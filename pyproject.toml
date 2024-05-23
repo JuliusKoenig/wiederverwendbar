@@ -3,7 +3,7 @@ name = "wiederverwendbar"
 dynamic = ["version"]
 description = "A collection of scripts, classes and tools they are \"wiederverwendbar\"."
 authors = [
-    {name = "Julius König", email = "info@bastelquartier.de"},
+    {name = "Julius Koenig", email = "info@bastelquartier.de"},
 ]
 dependencies = [
     "pydantic>=2.7.1",
