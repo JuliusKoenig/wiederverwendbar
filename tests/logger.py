@@ -1,5 +1,5 @@
-from wiederverwendbar.logger.logger_singleton import LoggerSingleton
-from wiederverwendbar.logger.logger_settings import LoggerSettings
+from wiederverwendbar.logger import LoggerSingleton
+from wiederverwendbar.logger import LoggerSettings
 
 
 class TestSettings(LoggerSettings):
