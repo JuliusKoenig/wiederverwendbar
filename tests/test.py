@@ -1,5 +1,5 @@
-from wiederverwendbar.models.file_config import FileConfig
-from wiederverwendbar.models.indexable_model import IndexableModel
+from wiederverwendbar.pydantic.file_config import FileConfig
+from wiederverwendbar.pydantic.indexable_model import IndexableModel
 
 
 class Config(FileConfig, IndexableModel):
