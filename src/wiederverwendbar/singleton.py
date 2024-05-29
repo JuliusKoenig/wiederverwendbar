@@ -179,8 +179,6 @@ class Singleton(ModelMetaclass):
         if ordered is None:
             ordered = cls.delete_ordered_on_exit
 
-        print(ordered)
-
         singleton_names = list(cls.get_all(ordered=ordered).keys())
         singleton_names.reverse()
         for name in singleton_names:
