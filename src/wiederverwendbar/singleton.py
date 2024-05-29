@@ -1,3 +1,4 @@
+import atexit
 from abc import ABCMeta
 from typing import Any
 
@@ -14,6 +15,8 @@ class Singleton(ModelMetaclass):
 
     singleton_map: dict[str, Any] = {}
     singleton_order: dict[str, int] = {}
+    delete_all_on_exit = True
+    delete_ordered_on_exit = True
 
     def __new__(cls, name, bases, attrs, order: int | None = None):
         # get __init__ method
@@ -88,9 +91,13 @@ class Singleton(ModelMetaclass):
         """
 
         if ordered:
-            return {k: v for k, v in sorted(cls.singleton_map.items(), key=lambda item: cls.singleton_order[item[0]])}
+            singleton_map =  {k: v for k, v in sorted(cls.singleton_map.items(), key=lambda item: cls.singleton_order[item[0]])}
+        else:
+            singleton_map = cls.singleton_map
 
-        return cls.singleton_map
+        print(singleton_map)
+
+        return singleton_map
 
     @classmethod
     def get_by_name(cls, name: str) -> Any:
@@ -161,10 +168,16 @@ class Singleton(ModelMetaclass):
             return max(cls.singleton_order.values()) + 1
 
     @classmethod
-    def delete_all(cls, ordered: bool = True):
+    def delete_all(cls, ordered: bool | None = None):
         """
         Delete all singletons in map
         """
+
+        # if ordered is None, delete by class attribute
+        if ordered is None:
+            ordered = cls.delete_ordered_on_exit
+
+        print(ordered)
 
         singleton_names = list(cls.get_all(ordered=ordered).keys())
         singleton_names.reverse()
@@ -209,3 +222,15 @@ class Singleton(ModelMetaclass):
         if current is None:
             raise RuntimeError(f"Singleton order {order} not found.")
         del cls.singleton_map[current.__class__.__name__]
+
+
+def _on_exit():
+    """
+    On exit hook
+    """
+
+    if Singleton.delete_all_on_exit:
+        Singleton.delete_all()
+
+
+atexit.register(_on_exit)

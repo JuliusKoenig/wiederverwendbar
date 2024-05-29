@@ -1,7 +1,7 @@
 from wiederverwendbar.singleton import Singleton
 
 
-class A(metaclass=Singleton):
+class A(metaclass=Singleton, order=3):
     def __init__(self):
         print("A created")
 
@@ -9,7 +9,7 @@ class A(metaclass=Singleton):
         print("A deleted")
 
 
-class B(metaclass=Singleton):
+class B(metaclass=Singleton, order=2):
     def __init__(self):
         print("B created")
 
@@ -17,7 +17,7 @@ class B(metaclass=Singleton):
         print("B deleted")
 
 
-class C(metaclass=Singleton):
+class C(metaclass=Singleton, order=1):
     def __init__(self):
         print("C created")
 
@@ -40,14 +40,7 @@ def main():
     print("main")
 
 
-def end():
-    Singleton.delete_all()
-    print("end")
-
-
 if __name__ == '__main__':
+    Singleton.delete_ordered_on_exit = True
     init()
     main()
-    end()
-
-    print()
