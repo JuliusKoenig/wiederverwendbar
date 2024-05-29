@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "rich", "typer"]
+groups = ["default", "rich", "typer", "ping"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:d76952a097e6ea4c49ba6e9bd4b6146613747cc7d5f75e7dd945319114d4431d"
+content_hash = "sha256:efa1952381e5e7d79b554ad314f06f5c125457f301bde913bba52a34695eb0f9"
 
 [[package]]
 name = "annotated-types"
@@ -162,6 +162,16 @@ groups = ["default"]
 files = [
     {file = "python-dotenv-1.0.1.tar.gz", hash = "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca"},
     {file = "python_dotenv-1.0.1-py3-none-any.whl", hash = "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a"},
+]
+
+[[package]]
+name = "pythonping"
+version = "1.1.4"
+summary = "A simple way to ping in Python"
+groups = ["ping"]
+files = [
+    {file = "pythonping-1.1.4-py3-none-any.whl", hash = "sha256:dedd690e36cb8c69703175610cf6ce01ff0c2070b447cc64c31a82951c9a53f6"},
+    {file = "pythonping-1.1.4.tar.gz", hash = "sha256:acef84640fee6f20b725f2a1d2392771f2845554cfabcef30b1fdea5030161af"},
 ]
 
 [[package]]
