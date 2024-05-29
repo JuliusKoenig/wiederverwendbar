@@ -20,28 +20,32 @@ class LoggerSingleton(Logger, metaclass=Singleton, order=LOGGER_SINGLETON_ORDER)
 
         super().__init__(name, settings)
 
+        self.ignored_loggers_equal = ignored_loggers_equal
+        self.ignored_loggers_like = ignored_loggers_like
+
         if use_sub_logger:
             logging.setLoggerClass(SubLogger)
 
-        self.ignored_loggers_equal = ignored_loggers_equal
-        self.ignored_loggers_like = ignored_loggers_like
+            for logger in logging.Logger.manager.loggerDict.values():
+                if not isinstance(logger, logging.Logger):
+                    continue
+                _configure_logger(logger)
+
+
+def _configure_logger(cls: logging.Logger):
+    logger_singleton = LoggerSingleton()
+    if cls.name in logger_singleton.ignored_loggers_equal or any([ignored in cls.name for ignored in logger_singleton.ignored_loggers_like]):
+        return
+    cls.setLevel(logger_singleton.level)
+    cls.parent = logger_singleton
 
 
 class SubLogger(logging.Logger):
     def __init__(self, name: str, level=logging.NOTSET):
         self.init = False
-        logger_singleton = LoggerSingleton()
-
-        if name in logger_singleton.ignored_loggers_equal:
-            super().__init__(name, level)
-        elif any([ignored in name for ignored in logger_singleton.ignored_loggers_like]):
-            super().__init__(name, level)
-        else:
-            super().__init__(name, level)
-
-            self.parent = logger_singleton
-
-            self.init = True
+        super().__init__(name, level)
+        _configure_logger(self)
+        self.init = True
 
     def __setattr__(self, key, value):
         if key == "init":

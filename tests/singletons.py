@@ -1,4 +1,7 @@
+from wiederverwendbar.logger import LoggerSingleton, LoggerSettings
 from wiederverwendbar.singleton import Singleton
+
+logger = LoggerSingleton(init=True, name="test", settings=LoggerSettings(log_level="DEBUG"), ignored_loggers_like=["uvicorn"])
 
 
 class A(metaclass=Singleton, order=3):

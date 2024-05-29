@@ -1,4 +1,5 @@
 import atexit
+import logging
 from abc import ABCMeta
 from typing import Any
 
@@ -6,6 +7,8 @@ from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass
 
 from wiederverwendbar.functions.find_class_method import find_class_method
+
+logger = logging.getLogger(__name__)
 
 
 class Singleton(ModelMetaclass):
@@ -35,6 +38,7 @@ class Singleton(ModelMetaclass):
             if self_name not in Singleton.singleton_map:
                 Singleton.singleton_map[self_name] = self
                 Singleton.singleton_order[self_name] = _order
+                logger.debug(f"Singleton '{self_name}' with order {_order} initialized.")
                 if __init__ is not None:
                     __init__(self, *args, **kwargs)
             else:
@@ -91,11 +95,9 @@ class Singleton(ModelMetaclass):
         """
 
         if ordered:
-            singleton_map =  {k: v for k, v in sorted(cls.singleton_map.items(), key=lambda item: cls.singleton_order[item[0]])}
+            singleton_map = {k: v for k, v in sorted(cls.singleton_map.items(), key=lambda item: cls.singleton_order[item[0]])}
         else:
             singleton_map = cls.singleton_map
-
-        print(singleton_map)
 
         return singleton_map
 
@@ -195,6 +197,7 @@ class Singleton(ModelMetaclass):
         current = cls.get_all().get(name, None)
         if current is None:
             raise RuntimeError(f"Singleton {name} not found.")
+        logger.debug(f"Singleton '{name}' deleted.")
         del cls.singleton_map[name]
 
     @classmethod
@@ -208,6 +211,7 @@ class Singleton(ModelMetaclass):
         current = cls.get_by_type(t)
         if current is None:
             raise RuntimeError(f"Singleton {t} not found.")
+        logger.debug(f"Singleton '{current.__class__.__name__}' deleted.")
         del cls.singleton_map[current.__class__.__name__]
 
     @classmethod
@@ -221,6 +225,7 @@ class Singleton(ModelMetaclass):
         current = cls.get_by_order(order)
         if current is None:
             raise RuntimeError(f"Singleton order {order} not found.")
+        logger.debug(f"Singleton '{current.__class__.__name__}' deleted.")
         del cls.singleton_map[current.__class__.__name__]
 
 
@@ -228,6 +233,8 @@ def _on_exit():
     """
     On exit hook
     """
+
+    logger.debug("Running on exit hook.")
 
     if Singleton.delete_all_on_exit:
         Singleton.delete_all()
