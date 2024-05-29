@@ -23,6 +23,9 @@ typer = [
 ping = [
     "pythonping>=1.1.4",
 ]
+mongoengine = [
+    "mongoengine>=0.28.2",
+]
 
 [build-system]
 requires = ["pdm-backend"]
