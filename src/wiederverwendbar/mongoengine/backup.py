@@ -9,13 +9,12 @@ from pymongo.database import Database
 logger = logging.getLogger(__name__)
 
 
-def dump(db: Database, path: str | Path, overwrite: bool = False, zip: bool = True) -> None:
+def dump(db: Database, path: str | Path, overwrite: bool = False) -> None:
     """
     MongoDB Dump
     :param db: MongoDB database
     :param path: Database dump path
     :param overwrite: Overwrite existing files
-    :param zip: Zip dump
     :return: None
     """
 
@@ -25,15 +24,20 @@ def dump(db: Database, path: str | Path, overwrite: bool = False, zip: bool = Tr
 
     logger.debug(f"Dumping database to '{path}'")
 
-    if path.is_dir():
+    if path.exists():
         if not overwrite:
             raise FileExistsError(f"Path '{path}' already exists")
-        # remove existing files
-        logger.debug(f"Removing existing files in '{path}'")
-        shutil.rmtree(path)
+        if path.is_file():
+            # remove existing file
+            logger.debug(f"Removing existing file '{path}'")
+            os.remove(path)
+        else:
+            # remove existing files
+            logger.debug(f"Removing existing files in '{path}'")
+            shutil.rmtree(path)
 
     # ensure path dir exists
-    path.mkdir(parents=True, exist_ok=True)
+    path.with_suffix("").mkdir(parents=True, exist_ok=True)
 
     for collection_name in db.list_collection_names():
         logger.debug(f"Dumping collection '{collection_name}'")
@@ -48,22 +52,21 @@ def dump(db: Database, path: str | Path, overwrite: bool = False, zip: bool = Tr
         logger.debug(f"Dumping {len(documents_encoded)} documents")
 
         # create bson file
-        bson_file = path / f'{collection_name}.bson'
+        bson_file = path.with_suffix("") / f'{collection_name}.bson'
         with open(bson_file, 'wb+') as f:
             # write all documents to bson file
             for document_encode in documents_encoded:
                 f.write(document_encode)
 
-    if zip:
+    if path.suffix == ".zip":
         # zip dump
-        zip_file = path.with_suffix(".zip")
-        logger.debug(f"Zipping dump to '{zip_file}'")
-        shutil.make_archive(str(zip_file), 'zip', path)
+        logger.debug(f"Zipping dump '{path.with_suffix("")}' as '{path}'")
+        shutil.make_archive(str(path.with_suffix("")), path.suffix.replace(".", ""), path.with_suffix(""))
         logger.debug("Zipped dump successfully")
 
         # remove bson files
-        logger.debug(f"Removing bson files in '{path}'")
-        shutil.rmtree(path)
+        logger.debug(f"Removing bson files in '{path.with_suffix("")}'")
+        shutil.rmtree(path.with_suffix(""))
 
     logger.debug("Database dumped successfully")
 
@@ -85,17 +88,19 @@ def restore(db: Database, path: str | Path, overwrite: bool = False) -> None:
 
     # unzip dump
     if path.suffix == ".zip":
+        if path.with_suffix("").is_dir():
+            logger.debug(f"Removing existing directory '{path.with_suffix("")}'")
+            shutil.rmtree(path.with_suffix(""))
         logger.debug(f"Unzipping dump '{path}'")
         shutil.unpack_archive(path, path.with_suffix(""))
-        path = path.with_suffix("")
         logger.debug("Unzipped dump successfully")
 
     # check if path is a directory
-    if not os.path.isdir(path):
-        raise FileNotFoundError(f"Path '{path}' does not exist")
+    if not os.path.isdir(path.with_suffix("")):
+        raise FileNotFoundError(f"Path '{path.with_suffix("")}' does not exist")
 
-    for bson_file in os.listdir(path):
-        bson_file = path / bson_file
+    for bson_file in os.listdir(path.with_suffix("")):
+        bson_file = path.with_suffix("") / bson_file
 
         # check bson file is a file
         if not os.path.isfile(bson_file):
@@ -128,5 +133,10 @@ def restore(db: Database, path: str | Path, overwrite: bool = False) -> None:
         # insert documents into collection
         logger.debug(f"Restoring {len(documents)} documents")
         db[collection_name].insert_many(documents)
+
+    # remove bson files
+    if path.suffix == ".zip":
+        logger.debug(f"Removing bson files in '{path.with_suffix("")}'")
+        shutil.rmtree(path.with_suffix(""))
 
     logger.debug("Database restored successfully")
