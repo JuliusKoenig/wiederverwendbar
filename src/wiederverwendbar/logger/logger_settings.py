@@ -1,4 +1,5 @@
 import encodings
+import logging
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -95,14 +96,6 @@ class LoggerSettings(BaseModel):
                                    title="File Encoding",
                                    description="The encoding of the log file")
 
-    @field_validator("log_file_encoding")
-    def validate_log_file_encoding(cls, value):
-        # check if encoding is available
-        available_encodings = [encoding_name.replace("_", "-") for encoding_name in encodings.aliases.aliases.values()]
-        if value not in available_encodings:
-            raise ValueError(f"Encoding '{value}' is not available. Available encodings: {', '.join(available_encodings)}")
-        return value
-
     log_file_delay: bool = Field(default=False,
                                  title="Delay File Logging",
                                  description="Whether to delay the file logging")
@@ -119,3 +112,17 @@ class LoggerSettings(BaseModel):
 
         if self.log_file_level is None:
             self.log_file_level = self.log_level
+
+    @field_validator("log_level", "log_console_level", "log_file_level", mode="before")
+    def validate_log_level(cls, value: int | str) -> str:
+        if isinstance(value, int):
+            value = logging.getLevelName(value)
+        return value
+
+    @field_validator("log_file_encoding")
+    def validate_log_file_encoding(cls, value):
+        # check if encoding is available
+        available_encodings = [encoding_name.replace("_", "-") for encoding_name in encodings.aliases.aliases.values()]
+        if value not in available_encodings:
+            raise ValueError(f"Encoding '{value}' is not available. Available encodings: {', '.join(available_encodings)}")
+        return value
