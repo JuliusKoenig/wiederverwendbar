@@ -14,22 +14,35 @@ class WrappedClass(ABCMeta):
 
         # iterate over all attributes
         for attr_name, attr in attrs.items():
-            if not getattr(attr, "__ba_wrapped__", False):
-                continue
-            # get before and after names
-            before_names = getattr(attr, "__ba_before__")
-            after_names = getattr(attr, "__ba_after__")
+            if getattr(attr, "__ba_wrapped__", False):
+                # get before and after names
+                before_names = getattr(attr, "__ba_before__")
+                after_names = getattr(attr, "__ba_after__")
 
-            # get base attr
-            base_before_names = []
-            base_after_names = []
-
-            if getattr(attr, "__ba_include_base__", False):
+                # get base attr if include_base is True
+                base_before_names = []
+                base_after_names = []
+                if getattr(attr, "__ba_include_base__", False):
+                    base_attr = find_class_method(bases, attr_name)
+                    if base_attr is not None:
+                        if getattr(base_attr, "__ba_wrapped__", False):
+                            base_before_names = getattr(base_attr, "__ba_before__")
+                            base_after_names = getattr(base_attr, "__ba_after__")
+            else:
+                # get base attr
                 base_attr = find_class_method(bases, attr_name)
-                if base_attr is not None:
-                    if getattr(attr, "__ba_wrapped__", False):
-                        base_before_names = getattr(base_attr, "__ba_before__")
-                        base_after_names = getattr(base_attr, "__ba_after__")
+                if base_attr is None:
+                    continue
+                if not getattr(base_attr, "__ba_wrapped__", False):
+                    continue
+                if not getattr(base_attr, "__ba_include_inherited__", True):
+                    continue
+
+                # get before and after names from base attr
+                before_names = []
+                after_names = []
+                base_before_names = getattr(base_attr, "__ba_before__")
+                base_after_names = getattr(base_attr, "__ba_after__")
 
             # get before and after methods
             before_methods = _get_methods([*base_before_names, *before_names], attrs, bases)
@@ -179,7 +192,7 @@ def _wrap(before_methods: list[callable], after_methods: list[callable]):
     return decorator
 
 
-def wrap(before=None, after=None, include_base=True):
+def wrap(before=None, after=None, include_base=True, include_inherited=True):
     if before is None and after is None:
         raise ValueError("before and after cannot be None at the same time.")
 
@@ -225,6 +238,9 @@ def wrap(before=None, after=None, include_base=True):
 
         # add include_base flag to function
         func.__ba_include_base__ = include_base
+
+        # add include_inherited flag to function
+        func.__ba_include_inherited__ = include_inherited
 
         # check if function is a class method
         if "." not in func.__qualname__:
