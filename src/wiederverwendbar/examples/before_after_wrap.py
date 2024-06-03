@@ -46,16 +46,16 @@ class ChildClass(BaseClass):
         print("after_cls_test3")
 
 
-def before_test1():
+def before_test1(*_, **__):
     print("before_test1")
 
 
 @wrap(before=before_test1, after="after_test1")
-def test1():
-    print("test1")
+def test1(arg1: str):
+    print(f"test1 -> {arg1}")
 
 
-def after_test1():
+def after_test1(*_, **__):
     print("after_test1")
 
 
@@ -69,4 +69,6 @@ if __name__ == "__main__":
     child_class.cls_test2()
     child_class.cls_test3()
 
-    test1(__ba_use_before__=False, __ba_use_after__=False)
+    test1("qwe")
+
+
