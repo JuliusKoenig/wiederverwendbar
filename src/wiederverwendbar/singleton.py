@@ -1,7 +1,7 @@
 import atexit
 import logging
 from abc import ABCMeta
-from typing import Any
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass
@@ -21,7 +21,7 @@ class Singleton(ModelMetaclass):
     delete_all_on_exit = True
     delete_ordered_on_exit = True
 
-    def __new__(cls, name, bases, attrs, order: int | None = None):
+    def __new__(cls, name, bases, attrs, order: Optional[int] = None):
         # get __init__ method
         __init__ = attrs.pop("__init__", None)
         if __init__ is None:
@@ -116,7 +116,7 @@ class Singleton(ModelMetaclass):
         return current
 
     @classmethod
-    def get_by_type(cls, t: type | str) -> Any:
+    def get_by_type(cls, t: Union[type, str]) -> Any:
         """
         Get singleton by type
 
@@ -170,7 +170,7 @@ class Singleton(ModelMetaclass):
             return max(cls.singleton_order.values()) + 1
 
     @classmethod
-    def delete_all(cls, ordered: bool | None = None):
+    def delete_all(cls, ordered: Optional[bool] = None):
         """
         Delete all singletons in map
         """
@@ -199,7 +199,7 @@ class Singleton(ModelMetaclass):
         del cls.singleton_map[name]
 
     @classmethod
-    def delete_by_type(cls, t: type | str):
+    def delete_by_type(cls, t: Union[type, str]):
         """
         Delete singleton by type
 

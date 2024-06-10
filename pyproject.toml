@@ -1,7 +1,7 @@
 [project]
 name = "wiederverwendbar"
 dynamic = ["version"]
-description = "A collection of scripts, classes and tools they are \"wiederverwendbar\"."
+description = "A collection of scripts, classes and tools they are \\\"wiederverwendbar\\\"."
 authors = [
     {name = "Julius Koenig", email = "info@bastelquartier.de"},
 ]

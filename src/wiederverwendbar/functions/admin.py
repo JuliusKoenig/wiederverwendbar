@@ -2,6 +2,7 @@ import ctypes
 import logging
 import os
 from functools import wraps
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def is_admin() -> bool:
     return _is_admin
 
 
-def require_admin(show_window: int | None = None):
+def require_admin(show_window: Optional[int] = None):
     def decorator(func):
         """
         Decorator to require admin rights

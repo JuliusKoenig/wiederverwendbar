@@ -2,7 +2,7 @@ import encodings
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -27,9 +27,9 @@ class LoggerSettings(BaseModel):
     log_console: bool = Field(default=True,
                               title="Console Logging",
                               description="Whether to log to the console")
-    log_console_level: LogLevels | None = Field(default=None,
-                                                title="Console Log Level",
-                                                description="The log level for the console")
+    log_console_level: Optional[LogLevels] = Field(default=None,
+                                                   title="Console Log Level",
+                                                   description="The log level for the console")
     log_console_format: str = Field(default="%(name)s - %(message)s",
                                     title="Console Log Format",
                                     description="The log format for the console")
@@ -64,12 +64,12 @@ class LoggerSettings(BaseModel):
     log_file: bool = Field(default=False,
                            title="File Logging",
                            description="Whether to log to a file")
-    log_file_path: Path | None = Field(default=None,
-                                       title="Log File Path",
-                                       description="The path of the log file")
-    log_file_level: LogLevels | None = Field(default=None,
-                                             title="File Log Level",
-                                             description="The log level for the file")
+    log_file_path: Optional[Path] = Field(default=None,
+                                          title="Log File Path",
+                                          description="The path of the log file")
+    log_file_level: Optional[LogLevels] = Field(default=None,
+                                                title="File Log Level",
+                                                description="The log level for the file")
     log_file_format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                                  title="File Log Format",
                                  description="The log format for the file")
@@ -114,7 +114,7 @@ class LoggerSettings(BaseModel):
             self.log_file_level = self.log_level
 
     @field_validator("log_level", "log_console_level", "log_file_level", mode="before")
-    def validate_log_level(cls, value: int | str) -> str:
+    def validate_log_level(cls, value: Union[int, str]) -> str:
         if isinstance(value, int):
             value = logging.getLevelName(value)
         return value

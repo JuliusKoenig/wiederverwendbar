@@ -1,17 +1,17 @@
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Union, Optional
 
 logger = logging.getLogger(__name__)
 
 
 def eval_value(what: str,
-               value: str | Path | list[str],
-               index_marker: list[str] | None = None,
+               value: Union[str, Path, list[str]],
+               index_marker: Optional[list[str]] = None,
                print_console: bool = False,
                use_environ: bool = True,
-               **_local_vars) -> str | Path | list[str | Path]:
+               **_local_vars) -> Union[str, Path, list[Union[str, Path]]]:
     """
     Evaluate value with variables.
 

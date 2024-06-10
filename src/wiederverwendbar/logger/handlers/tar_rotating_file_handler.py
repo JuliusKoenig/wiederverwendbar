@@ -2,6 +2,7 @@ import os
 import tarfile
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Union, Optional
 
 
 class TarRotatingFileHandler(RotatingFileHandler):
@@ -11,11 +12,11 @@ class TarRotatingFileHandler(RotatingFileHandler):
 
     def __init__(self,
                  name: str,
-                 filename: str | Path,
+                 filename: Union[str, Path],
                  mode: str = "a",
                  max_bytes: int = 0,
                  backup_count: int = 0,
-                 encoding: str | None = None,
+                 encoding: Optional[str] = None,
                  delay: bool = False,
                  archive_backup_count: int = 0):
         super().__init__(filename, mode, max_bytes, backup_count, encoding, delay)

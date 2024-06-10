@@ -1,13 +1,13 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, create_model
 
 
 class FileConfig(BaseModel):
     def __init__(self,
-                 file_path: Path | str | None = None,
+                 file_path: Optional[Path, str] = None,
                  file_postfix: str = ".json",
                  file_must_exist: bool = False,
                  **overwrite_data: Any):

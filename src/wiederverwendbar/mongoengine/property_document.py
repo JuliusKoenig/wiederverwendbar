@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Union
 
 from mongoengine import Document
 
@@ -6,7 +6,7 @@ from mongoengine import Document
 class PropertyDocument(Document):
     meta = {"abstract": True}
 
-    def __getitem__(self, item: int | str) -> Any:
+    def __getitem__(self, item: Union[int, str]) -> Any:
         """
         Get item from model
 

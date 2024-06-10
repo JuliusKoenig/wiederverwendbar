@@ -1,12 +1,13 @@
 import logging
 from pathlib import Path
+from typing import Optional
 
 from wiederverwendbar.functions.eval_value import eval_value
 
 logger = logging.getLogger(__name__)
 
 
-def eval_file(src_file_path: Path, print_console: bool = False, **locals_vars) -> str | None:
+def eval_file(src_file_path: Path, print_console: bool = False, **locals_vars) -> Optional[str]:
     """
     Evaluate file with variables.
 

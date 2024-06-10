@@ -1,10 +1,10 @@
-from typing import Any
+from typing import Any, Union
 
 from pydantic import BaseModel
 
 
 class IndexableModel(BaseModel):
-    def __getitem__(self, item: int | str) -> Any:
+    def __getitem__(self, item: Union[int, str]) -> Any:
         """
         Get item from model
 

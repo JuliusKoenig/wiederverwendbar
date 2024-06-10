@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
+from typing import Union
 
 import bson
 from pymongo.database import Database
@@ -9,7 +10,7 @@ from pymongo.database import Database
 logger = logging.getLogger(__name__)
 
 
-def dump(db: Database, path: str | Path, overwrite: bool = False) -> None:
+def dump(db: Database, path: Union[str, Path], overwrite: bool = False) -> None:
     """
     MongoDB Dump
     :param db: MongoDB database
@@ -60,18 +61,18 @@ def dump(db: Database, path: str | Path, overwrite: bool = False) -> None:
 
     if path.suffix == ".zip":
         # zip dump
-        logger.debug(f"Zipping dump '{path.with_suffix("")}' as '{path}'")
+        logger.debug(f"Zipping dump '{path.with_suffix('')}' as '{path}'")
         shutil.make_archive(str(path.with_suffix("")), path.suffix.replace(".", ""), path.with_suffix(""))
         logger.debug("Zipped dump successfully")
 
         # remove bson files
-        logger.debug(f"Removing bson files in '{path.with_suffix("")}'")
+        logger.debug(f"Removing bson files in '{path.with_suffix('')}'")
         shutil.rmtree(path.with_suffix(""))
 
     logger.debug("Database dumped successfully")
 
 
-def restore(db: Database, path: str | Path, overwrite: bool = False) -> None:
+def restore(db: Database, path: Union[str, Path], overwrite: bool = False) -> None:
     """
     MongoDB Restore
     :param db: Database connection
@@ -89,7 +90,7 @@ def restore(db: Database, path: str | Path, overwrite: bool = False) -> None:
     # unzip dump
     if path.suffix == ".zip":
         if path.with_suffix("").is_dir():
-            logger.debug(f"Removing existing directory '{path.with_suffix("")}'")
+            logger.debug(f"Removing existing directory '{path.with_suffix('')}'")
             shutil.rmtree(path.with_suffix(""))
         logger.debug(f"Unzipping dump '{path}'")
         shutil.unpack_archive(path, path.with_suffix(""))
@@ -97,7 +98,7 @@ def restore(db: Database, path: str | Path, overwrite: bool = False) -> None:
 
     # check if path is a directory
     if not os.path.isdir(path.with_suffix("")):
-        raise FileNotFoundError(f"Path '{path.with_suffix("")}' does not exist")
+        raise FileNotFoundError(f"Path '{path.with_suffix('')}' does not exist")
 
     for bson_file in os.listdir(path.with_suffix("")):
         bson_file = path.with_suffix("") / bson_file
@@ -136,7 +137,7 @@ def restore(db: Database, path: str | Path, overwrite: bool = False) -> None:
 
     # remove bson files
     if path.suffix == ".zip":
-        logger.debug(f"Removing bson files in '{path.with_suffix("")}'")
+        logger.debug(f"Removing bson files in '{path.with_suffix('')}'")
         shutil.rmtree(path.with_suffix(""))
 
     logger.debug("Database restored successfully")

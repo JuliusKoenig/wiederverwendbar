@@ -2,6 +2,7 @@ import inspect
 import logging
 from abc import ABCMeta
 from functools import wraps
+from typing import Optional
 
 from wiederverwendbar.functions.find_class_method import find_class_method
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class WrappedClass(ABCMeta):
-    def __new__(cls, name, bases, attrs, order: int | None = None):
+    def __new__(cls, name, bases, attrs, order: Optional[int] = None):
         logger.debug(f"Creating {cls.__name__} '{name}'")
 
         # iterate over all attributes

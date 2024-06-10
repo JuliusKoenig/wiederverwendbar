@@ -1,12 +1,13 @@
 import logging
 from ipaddress import IPv4Address
+from typing import Union
 
 from pythonping import ping
 
 logger = logging.getLogger(__name__)
 
 
-def wait_ping(host: str | IPv4Address, timeout: int = 3, count: int = 5, verbose: bool = False) -> bool:
+def wait_ping(host: Union[str, IPv4Address], timeout: int = 3, count: int = 5, verbose: bool = False) -> bool:
     """
     Wait until the remote host is pingable.
 
