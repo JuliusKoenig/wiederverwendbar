@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 manager1 = Manager(name="Manager1", logger=logger)
 manager2 = Manager(name="Manager2", logger=logger)
 
+
 @manager1.task(name="Task 1", trigger=AtCreation(delay_for_seconds=10), return_func=True)
 @manager2.task(name="Task 1", trigger=AtCreation(delay_for_seconds=10), return_func=True)
 def task1():
@@ -21,6 +22,7 @@ def task2():
     logger.debug("Task 2 ...")
     # time.sleep(2)
 
+
 @manager1.task(name="Task 3", trigger=Seconds(4), return_func=True)
 @manager2.task(name="Task 3", trigger=Seconds(4), return_func=True)
 def task3():
@@ -30,8 +32,6 @@ def task3():
 
 if __name__ == '__main__':
     logger.debug("This is the main module.")
-
-
 
     # start worker
     manager1.start()
