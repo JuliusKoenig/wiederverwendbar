@@ -1,0 +1,23 @@
+[project]
+name = "kdsm-poller"
+version = "0.1.0"
+description = "A Agent for KDSM Pollers."
+authors = [
+    {name = "Julius Koenig", email = "julius.koenig@kds-kg.de"},
+]
+dependencies = [
+    "wiederverwendbar>=0.2.18",
+    "requests>=2.32.3",
+    "rich>=13.7.1",
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "GPL-3.0"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
