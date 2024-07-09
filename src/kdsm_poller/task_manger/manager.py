@@ -121,8 +121,9 @@ class Manager:
 
         # wait for workers to finish
         for worker in self._workers:
-            self.logger.debug(f"{self}: Waiting for worker '{worker.name}' to finish ...")
-            worker.join()
+            if worker.is_alive():
+                self.logger.debug(f"{self}: Waiting for worker '{worker.name}' to finish ...")
+                worker.join()
 
         self.logger.debug(f"{self}: Manager stopped.")
 
