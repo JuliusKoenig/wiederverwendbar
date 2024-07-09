@@ -3,8 +3,10 @@ import multiprocessing
 import threading
 import time
 from datetime import datetime
+from typing import Any
 
 from kdsm_poller.task_manger.task import Task
+from kdsm_poller.task_manger.trigger import Trigger
 from wiederverwendbar.singleton import Singleton
 
 LOGGER = logging.getLogger(__name__)
@@ -56,21 +58,45 @@ class Manager:
 
     @property
     def worker_count(self):
+        """
+        Number of workers.
+
+        :return: int
+        """
+
         return len(self._workers)
 
     @property
     def stopped(self):
+        """
+        Manager stopped flag.
+
+        :return: bool
+        """
+
         with self.lock:
             stopped = self._stopped
         return stopped
 
     @property
-    def creation_time(self):
+    def creation_time(self) -> datetime:
+        """
+        Manager creation time.
+
+        :return: datetime
+        """
+
         with self.lock:
             creation_time = self._creation_time
         return creation_time
 
-    def start(self):
+    def start(self) -> None:
+        """
+        Start manager.
+
+        :return: None
+        """
+
         self.logger.debug(f"{self}: Starting manager ...")
 
         # start workers
@@ -80,7 +106,13 @@ class Manager:
 
         self.logger.debug(f"{self}: Manager started.")
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stop manager.
+
+        :return: None
+        """
+
         self.logger.debug(f"{self}: Stopping manager ...")
 
         # set stopped flag
@@ -94,7 +126,14 @@ class Manager:
 
         self.logger.debug(f"{self}: Manager stopped.")
 
-    def loop(self, stay_in_loop: bool | None = None):
+    def loop(self, stay_in_loop: bool | None = None) -> None:
+        """
+        Manager loop. All workers run this loop. If worker_count is 0, you can run this loop manually.
+
+        :param stay_in_loop: Stay in loop flag. If False, loop will break after the first task is run.
+        :return: None
+        """
+
         if stay_in_loop is None:
             with self.lock:
                 stay_in_loop = bool(self._loop_delay)
@@ -143,15 +182,61 @@ class Manager:
                 break
 
     def add_task(self, task: Task):
+        """
+        Add task to manager.
+
+        :param task:
+        :return:
+        """
+
         task.init(self)
         with self.lock:
             self._tasks.append(task)
         self.logger.debug(f"{self}: Task '{task}' added.")
 
     def remove_task(self, task: Task):
+        """
+        Remove task from manager.
+
+        :param task:
+        :return:
+        """
+
         with self.lock:
             self._tasks.remove(task)
         self.logger.debug(f"{self}: Task '{task}' removed.")
+
+    def task(self,
+             name: str | None = None,
+             trigger: Trigger | None = None,
+             time_measurement_before_run: bool = True,
+             return_func: bool = False,
+             *args,
+             **kwargs) -> Any:
+        """
+        Task decorator.
+
+        :param name: The name of the task.
+        :param trigger: The trigger of the task.
+        :param time_measurement_before_run: Time measurement before run flag.
+        :param return_func: Return function flag. If True, the function will be returned instead of the task.
+        :param args: Args for the task payload.
+        :param kwargs: Kwargs for the task payload.
+        :return: Task or function
+        """
+
+        def decorator(func):
+            task = Task(name=name,
+                        manager=self,
+                        trigger=trigger,
+                        time_measurement_before_run=time_measurement_before_run,
+                        payload=func,
+                        auto_add=True,
+                        *args,
+                        **kwargs)
+            return task if not return_func else func
+
+        return decorator
 
 
 class ManagerSingleton(Manager, metaclass=Singleton):
