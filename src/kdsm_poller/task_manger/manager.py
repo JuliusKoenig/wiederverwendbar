@@ -210,7 +210,7 @@ class Manager:
              name: str | None = None,
              trigger: Trigger | None = None,
              time_measurement_before_run: bool = True,
-             return_func: bool = False,
+             return_func: bool = True,
              *args,
              **kwargs) -> Any:
         """

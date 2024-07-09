@@ -10,21 +10,21 @@ manager1 = Manager(name="Manager1", logger=logger)
 manager2 = Manager(name="Manager2", logger=logger)
 
 
-@manager1.task(name="Task 1", trigger=AtCreation(delay_for_seconds=10), return_func=True)
-@manager2.task(name="Task 1", trigger=AtCreation(delay_for_seconds=10), return_func=True)
+@manager1.task(name="Task 1", trigger=AtCreation(delay_for_seconds=10))
+@manager2.task(name="Task 1", trigger=AtCreation(delay_for_seconds=10))
 def task1():
     logger.debug("Task 1 ...")
 
 
-@manager1.task(name="Task 2", trigger=Seconds(2), return_func=True)
-@manager2.task(name="Task 2", trigger=Seconds(2), return_func=True)
+@manager1.task(name="Task 2", trigger=Seconds(2))
+@manager2.task(name="Task 2", trigger=Seconds(2))
 def task2():
     logger.debug("Task 2 ...")
     # time.sleep(2)
 
 
-@manager1.task(name="Task 3", trigger=Seconds(4), return_func=True)
-@manager2.task(name="Task 3", trigger=Seconds(4), return_func=True)
+@manager1.task(name="Task 3", trigger=Seconds(4))
+@manager2.task(name="Task 3", trigger=Seconds(4))
 def task3():
     logger.debug("Task 3 ...")
     # time.sleep(4)
