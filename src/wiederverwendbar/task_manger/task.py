@@ -1,16 +1,17 @@
 from datetime import datetime
+from typing import Optional
 
-from kdsm_poller.task_manger.trigger import Trigger, Interval, At
+from wiederverwendbar.task_manger.trigger import Trigger, Interval, At
 
 
 class Task:
     def __init__(self,
                  payload,
                  manager=None,
-                 name: str | None = None,
-                 trigger: Trigger | None = None,
+                 name: Optional[str] = None,
+                 trigger: Optional[Trigger] = None,
                  time_measurement_before_run: bool = True,
-                 auto_add: bool | None = None,
+                 auto_add: Optional[bool] = None,
                  *args,
                  **kwargs):
         # set task name
@@ -43,8 +44,8 @@ class Task:
 
         self.time_measurement_before_run = time_measurement_before_run
 
-        self._last_run: datetime | None = None
-        self._next_run: datetime | None = None
+        self._last_run: Optional[datetime] = None
+        self._next_run: Optional[datetime] = None
 
         # indicate if task is done
         self._done = False
@@ -70,13 +71,13 @@ class Task:
         self.manager.logger.debug(f"{self}: Task created.")
 
     @property
-    def last_run(self) -> datetime | None:
+    def last_run(self) -> Optional[datetime]:
         if self._last_run is None:
             return datetime.fromtimestamp(0)
         return self._last_run
 
     @property
-    def next_run(self) -> datetime | None:
+    def next_run(self) -> Optional[datetime]:
         if self.is_done:
             return None
         return self._next_run

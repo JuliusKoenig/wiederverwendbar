@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
+from typing import Optional
 
 
 class Trigger(ABC):
@@ -26,7 +27,7 @@ class Interval(Trigger):
                  years: int = 0):
         super().__init__()
 
-        self.interval: int | None = None
+        self.interval: Optional[int] = None
         self.seconds: int = seconds
         self.minutes: int = minutes
         self.hours: int = hours
@@ -92,61 +93,61 @@ class Interval(Trigger):
         return last + timedelta(seconds=int(self))
 
 
-class Seconds(Interval):
+class EverySeconds(Interval):
     def __init__(self, seconds: int):
         super().__init__(seconds=seconds)
 
 
-class Minutes(Interval):
+class EveryMinutes(Interval):
     def __init__(self, minutes: int):
         super().__init__(minutes=minutes)
 
 
-class Hours(Interval):
+class EveryHours(Interval):
     def __init__(self, hours: int):
         super().__init__(hours=hours)
 
 
-class Days(Interval):
+class EveryDays(Interval):
     def __init__(self, days: int):
         super().__init__(days=days)
 
 
-class Weeks(Interval):
+class EveryWeeks(Interval):
     def __init__(self, weeks: int):
         super().__init__(weeks=weeks)
 
 
-class Months(Interval):
+class EveryMonths(Interval):
     def __init__(self, months: int):
         super().__init__(minutes=months)
 
 
-class Years(Interval):
+class EveryYears(Interval):
     def __init__(self, years: int):
         super().__init__(years=years)
 
 
 class At(Trigger):
     def __init__(self,
-                 second: int | None = None,
-                 minute: int | None = None,
-                 hour: int | None = None,
-                 day: int | None = None,
-                 month: int | None = None,
-                 year: int | None = None,
+                 second: Optional[int] = None,
+                 minute: Optional[int] = None,
+                 hour: Optional[int] = None,
+                 day: Optional[int] = None,
+                 month: Optional[int] = None,
+                 year: Optional[int] = None,
                  delay_for_seconds: int = 0,
                  delay_for_minutes: int = 0,
                  delay_for_hours: int = 0,
                  delay_for_days: int = 0):
         super().__init__()
 
-        self.second: int | None = second
-        self.minute: int | None = minute
-        self.hour: int | None = hour
-        self.day: int | None = day
-        self.month: int | None = month
-        self.year: int | None = year
+        self.second: Optional[int] = second
+        self.minute: Optional[int] = minute
+        self.hour: Optional[int] = hour
+        self.day: Optional[int] = day
+        self.month: Optional[int] = month
+        self.year: Optional[int] = year
         self.delay_for_seconds: int = delay_for_seconds
         self.delay_for_minutes: int = delay_for_minutes
         self.delay_for_hours: int = delay_for_hours

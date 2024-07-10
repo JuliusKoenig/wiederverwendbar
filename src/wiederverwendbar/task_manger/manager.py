@@ -3,10 +3,10 @@ import multiprocessing
 import threading
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
-from kdsm_poller.task_manger.task import Task
-from kdsm_poller.task_manger.trigger import Trigger
+from wiederverwendbar.task_manger.task import Task
+from wiederverwendbar.task_manger.trigger import Trigger
 from wiederverwendbar.singleton import Singleton
 
 LOGGER = logging.getLogger(__name__)
@@ -16,12 +16,12 @@ class Manager:
     lock = threading.Lock()
 
     def __init__(self,
-                 name: str | None = None,
-                 worker_count: int | None = None,
+                 name: Optional[str] = None,
+                 worker_count: Optional[int] = None,
                  daemon: bool = False,
-                 keep_done_tasks: bool = True,
-                 loop_delay: float | None = None,
-                 logger: logging.Logger | None = None):
+                 keep_done_tasks: bool = False,
+                 loop_delay: Optional[float] = None,
+                 logger: Optional[logging.Logger] = None):
         if name is None:
             name = self.__class__.__name__
         self.name = name
@@ -127,7 +127,7 @@ class Manager:
 
         self.logger.debug(f"{self}: Manager stopped.")
 
-    def loop(self, stay_in_loop: bool | None = None) -> None:
+    def loop(self, stay_in_loop: Optional[bool] = None) -> None:
         """
         Manager loop. All workers run this loop. If worker_count is 0, you can run this loop manually.
 
@@ -208,8 +208,8 @@ class Manager:
         self.logger.debug(f"{self}: Task '{task}' removed.")
 
     def task(self,
-             name: str | None = None,
-             trigger: Trigger | None = None,
+             name: Optional[str] = None,
+             trigger: Optional[Trigger] = None,
              time_measurement_before_run: bool = True,
              return_func: bool = True,
              *args,
