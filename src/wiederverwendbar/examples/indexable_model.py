@@ -1,15 +1,14 @@
-from wiederverwendbar.pydantic.file_config import FileConfig
 from wiederverwendbar.pydantic.indexable_model import IndexableModel
 
 
-class Config(FileConfig, IndexableModel):
+class Config(IndexableModel):
     asd: int = 123
     qwe: str = "qwe"
     yxc: bool = False
 
 
 if __name__ == '__main__':
-    config = Config(file_path="test")
+    config = Config()
 
     asd = config["asd"]
     qwe = config["qwe"]
@@ -18,5 +17,3 @@ if __name__ == '__main__':
     asd_1 = config[0]
     qwe_1 = config[1]
     yxc_1 = config[2]
-
-    print(config.qwe)

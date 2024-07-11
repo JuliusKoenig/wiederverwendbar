@@ -1,0 +1,69 @@
+<div class="{% if error %}{{ field.error_class }}{% endif %}">
+    <select id="{{ field.id }}"
+            name="{{ field.id }}"
+            data-allow-clear="true"
+            data-placeholder="{{ _('Select a %(label)s', label=field.label) }}"
+            class="field-enum form-control form-select {% if error %}{{ field.error_class }}{% endif %}"
+            {% if field.disabled %}disabled{% endif %}
+            {% if field.select2 %}data-role="select2"{% endif %}
+            onchange="onchange_{{ field.id }}()">
+        {% if not field.required %}
+            <option></option>
+        {% endif %}
+        {% for doc_name in field.embedded_doc_fields.keys() %}
+            <option value="{{ doc_name }}" {{ 'selected' if doc_name == data["__doc_name__"] else '' }}>{{ doc_name }}
+            </option>
+        {% endfor %}
+    </select>
+    <fieldset id="{{ field.id }}.fieldset" class="form-fieldset">
+        {% for field in field.get_fields_list(request, "", action) %}
+        <div id="{{ field.id }}.div"
+             class="form-group row mb-3">
+            <label class="col-3 col-form-label {% if field.required %}required{% endif %}"
+                   for="{{ field.id }}">{{ field.label }}</label>
+            <div class="col">
+                {% set item_data= (data[field.name] if data else None) %}
+                {% with data=item_data, error=error.get(field.name, None) if error else None %}
+                {% include field.form_template %}
+                {% endwith %}
+            </div>
+        </div>
+        {% endfor %}
+    </fieldset>
+    {% if field.help_text %}
+    <small class="form-hint mt-2">{{ field.help_text }}</small>
+    {% endif %}
+    <script>
+        function onchange_{{ field.id }}() {
+            // define the emb field div ids
+            let field_div_ids = [];
+            {% for field in field.get_fields_list(request, "", action) %}
+            field_div_ids.push("{{ field.id }}.div");
+            {% endfor %}
+
+            // get the selected value
+            let selected_value = document.getElementById("{{ field.id }}").value;
+
+            if (selected_value === "") {
+                // hide fieldset
+                document.getElementById("{{ field.id }}.fieldset").style.display = "none";
+            } else {
+                // show fieldset
+                document.getElementById("{{ field.id }}.fieldset").style.display = "";
+
+                // hide invisible fields and show visible fields
+                for (let i = 0; i < field_div_ids.length; i++) {
+                    let field_div_id = field_div_ids[i];
+                    let field_div = document.getElementById(field_div_id);
+                    field_div.style.display = "none";
+                    if (field_div_id.includes(selected_value) && selected_value !== "") {
+                        field_div.style.display = "";
+                    }
+                }
+            }
+        }
+        // call the onchange function
+        onchange_{{ field.id }}();
+    </script>
+</div>
+{% include "forms/_error.html" %}
