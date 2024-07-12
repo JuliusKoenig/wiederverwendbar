@@ -11,13 +11,9 @@ from starlette_admin.contrib.mongoengine import ModelView
 from wiederverwendbar.starlette_admin.mongoengine import Admin, GenericEmbeddedConverter
 
 # connect to database
-connect("kdsm",
-        host="vpn.monitoring.kds-rz.de",
-        port=27017,
-        username="kdsm",
-        password="P4tQMbgmbjseOAt5EL2zd3adOfQBATNF",
-        authSource="admin",
-        serverSelectionTimeoutMS=3)
+connect("test",
+        host="localhost",
+        port=27017)
 
 # Create starlette app
 app = Starlette(
@@ -68,6 +64,7 @@ class Test(Document):
     # test_dict = DictField()
     # test_enum = EnumField(TestEnum)
     test_gen_emb = GenericEmbeddedDocumentField(choices=[Test1, Test2], help_text="Test Generic Embedded Document Field.")
+    test_gen_emb_list = ListField(GenericEmbeddedDocumentField(choices=[Test1, Test2], help_text="Test Generic Embedded Document Field."))
     # test_emb = EmbeddedDocumentField(Test2)
 
 

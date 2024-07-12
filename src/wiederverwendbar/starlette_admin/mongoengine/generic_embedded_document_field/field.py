@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from dataclasses import field as dc_field
-from typing import Any, Dict, Type, Sequence, List
+from typing import Any, Dict, Type, Sequence, List, Optional
 
 from starlette.requests import Request
 from starlette.datastructures import FormData
@@ -15,16 +15,20 @@ import starlette_admin as sa
 class GenericEmbeddedDocumentField(sa.BaseField):
     embedded_doc_name_mapping: Dict[str, Type[me.EmbeddedDocument]] = dc_field(default_factory=dict)
     embedded_doc_fields: Dict[str, Sequence[sa.BaseField]] = dc_field(default_factory=dict)
-    current_doc_name: str = ""
     render_function_key: str = "json"
     form_template: str = "forms/generic_embedded.html"
     display_template: str = "displays/generic_embedded.html"
     select2: bool = True
 
     def __post_init__(self) -> None:
-        self.current_doc_name = ""
         super().__post_init__()
         self._propagate_id()
+
+    @property
+    def fieldset_id(self) -> str:
+        if self.id == "":
+            return "fieldset"
+        return self.id + ".fieldset"
 
     def get_fields_list(
             self,
@@ -43,7 +47,7 @@ class GenericEmbeddedDocumentField(sa.BaseField):
         """Will update fields id by adding his id as prefix (ex: category.name)"""
         for doc_name, doc_fields in self.embedded_doc_fields.items():
             for field in doc_fields:
-                field.id = self.id + ("_" if self.id else "") + doc_name + "_" + field.name
+                field.id = self.id + ("." if self.id else "") + doc_name + "." + field.name
                 if isinstance(field, type(self)):
                     field._propagate_id()
 
@@ -128,6 +132,42 @@ class GenericEmbeddedDocumentField(sa.BaseField):
                     )
                 )
             )
+            _links.append(
+                str(
+                    request.url_for(
+                        f"{request.app.state.ROUTE_NAME}:statics",
+                        path="js/generic_embedded.js",
+                    )
+                )
+            )
         for f in self.get_fields_list(request, "", action):
             _links.extend(f.additional_js_links(request, action))
         return _links
+
+
+@dataclass(init=False)
+class ListField(sa.ListField):
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if isinstance(self.field, GenericEmbeddedDocumentField):
+            self.field._propagate_id()
+
+    async def parse_form_data(
+            self, request: Request, form_data: FormData, action: RequestAction
+    ) -> Any:
+        indices = self._extra_indices(form_data)
+        value = []
+        for index in indices:
+            self.field.id = f"{self.id}.{index}"
+            if isinstance(self.field, sa.CollectionField):
+                self.field._propagate_id()
+            if isinstance(self.field, GenericEmbeddedDocumentField):
+                self.field._propagate_id()
+            value.append(await self.field.parse_form_data(request, form_data, action))
+        return value
+
+    def _field_at(self, idx: Optional[int] = None) -> sa.BaseField:
+        super()._field_at(idx)
+        if isinstance(self.field, GenericEmbeddedDocumentField):
+            self.field._propagate_id()
+        return self.field
