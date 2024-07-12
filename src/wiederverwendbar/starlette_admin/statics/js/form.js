@@ -214,6 +214,9 @@ registerFieldInitializer(function (element) {
         .val(parseInt(idx) + 1);
       initializeFields(template);
       $("input:first", template).focus();
+
+      // GenericEmbeddedField integration
+      initialize_generic_emb_select();
     });
   });
 

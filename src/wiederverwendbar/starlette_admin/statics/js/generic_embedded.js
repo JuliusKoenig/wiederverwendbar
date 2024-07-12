@@ -43,11 +43,22 @@ function onchange_generic_emb_select(select) {
     }
 }
 
-// get all select fields by class 'generic-emb-select'
-let selects = document.getElementsByClassName("generic-emb-select");
+/**
+ * This function initializes all select fields with the class 'generic-emb-select
+ * @type {HTMLCollectionOf<Element>}
+ */
+function initialize_generic_emb_select() {
+    // get all select fields by class 'generic-emb-select'
+    let selects = document.getElementsByClassName("generic-emb-select");
 
-// call onchange_generic_emb_select for each select field
-for (let i = 0; i < selects.length; i++) {
-    let select = selects[i];
-    onchange_generic_emb_select(select);
+    // call onchange_generic_emb_select for each select field
+    for (let i = 0; i < selects.length; i++) {
+        let select = selects[i];
+        onchange_generic_emb_select(select);
+    }
 }
+
+// call initialize_generic_emb_select when the document is ready
+$(function () {
+    initialize_generic_emb_select();
+});
