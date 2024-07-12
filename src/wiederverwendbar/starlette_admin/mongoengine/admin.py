@@ -8,12 +8,21 @@ class Admin(BaseAdmin):
     def init_routes(self) -> None:
         super().init_routes()
 
+        # find the statics mount index
+        statics_index = None
+        for i, route in enumerate(self.routes):
+            if isinstance(route, Mount) and route.name == "statics":
+                statics_index = i
+                break
+        if statics_index is None:
+            raise ValueError("Could not find statics mount")
+
         # override the static files route
-        if not type(self.routes[0]) is Mount:
-            raise ValueError("First route must be a Mount")
-        statics = StaticFiles(directory=self.statics_dir, packages=[("wiederverwendbar", "starlette_admin/statics"), "starlette_admin"])
-        mount = Mount("/statics", app=statics, name="statics")
-        self.routes[0] = mount
+        self.routes[statics_index] = Mount("/statics",
+                                           app=StaticFiles(
+                                               directory=self.statics_dir,
+                                               packages=[("wiederverwendbar", "starlette_admin/statics"), "starlette_admin"]),
+                                           name="statics")
 
     def _setup_templates(self) -> None:
         super()._setup_templates()
