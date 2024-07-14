@@ -22,10 +22,15 @@
             <label class="col-3 col-form-label {% if field.required %}required{% endif %}"
                    for="{{ field.id }}">{{ field.label }}</label>
             <div class="col">
+                {% if not error or error is mapping %}
                 {% set item_data= (data[field.name] if data else None) %}
                 {% with data=item_data, error=error.get(field.name, None) if error else None %}
                 {% include field.form_template %}
                 {% endwith %}
+                {% else %}
+                {% set error= None %}
+                {% include field.form_template %}
+                {% endif %}
             </div>
         </div>
         {% endfor %}
