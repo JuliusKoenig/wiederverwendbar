@@ -7,12 +7,11 @@ from wiederverwendbar.functions.eval_value import eval_value
 logger = logging.getLogger(__name__)
 
 
-def eval_file(src_file_path: Path, print_console: bool = False, **locals_vars) -> Optional[str]:
+def eval_file(src_file_path: Path, **locals_vars) -> Optional[str]:
     """
     Evaluate file with variables.
 
     :param src_file_path Source file path
-    :param print_console: Print evaluated value to console
     :param locals_vars: Variables to use
     :return: Evaluated file
     """
@@ -40,18 +39,13 @@ def eval_file(src_file_path: Path, print_console: bool = False, **locals_vars) -
                                         **locals_vars)
             evaluated_lines.append(evaluated_line)
         except Exception as e:
-            if print_console:
-                logger.error(f"Could not evaluate line {current_line} '{line}'. -> {e}")
-            else:
-                logger.debug(f"Could not evaluate line {current_line} '{line}'. -> {e}")
+            logger.debug(f"Could not evaluate line {current_line} '{line}'. -> {e}")
+            raise RuntimeError(f"Could not evaluate line {current_line} '{line}'. -> {e}")
         current_line += 1
 
     # join lines
     evaluated = "\n".join(evaluated_lines)
 
-    if print_console:
-        logger.info(f"Evaluated file '{src_file_path}':\n{evaluated}")
-    else:
-        logger.debug(f"Evaluated file '{src_file_path}':\n{evaluated}")
+    logger.debug(f"Evaluated file '{src_file_path}':\n{evaluated}")
 
     return evaluated

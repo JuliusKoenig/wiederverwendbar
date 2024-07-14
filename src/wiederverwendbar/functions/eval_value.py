@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 def eval_value(what: str,
                value: Union[str, Path, list[str]],
                index_marker: Optional[list[str]] = None,
-               print_console: bool = False,
                use_environ: bool = True,
                **_local_vars) -> Union[str, Path, list[Union[str, Path]]]:
     """
@@ -18,7 +17,6 @@ def eval_value(what: str,
     :param what: Message to log
     :param value: Value to evaluate
     :param index_marker: Index marker
-    :param print_console: Print evaluated value to console
     :param use_environ: Use environment variables
     :param _local_vars: Variables to use
     :return: Evaluated value
@@ -31,14 +29,14 @@ def eval_value(what: str,
     # check if len of index_marker is 2
     if len(index_marker) != 2:
         logger.error("Index marker must have a length of 2.")
-        raise SystemExit(1)
+        raise RuntimeError("Index marker must have a length of 2.")
 
     logger.debug(f"Evaluate {what}")
 
     def update_local_vars(_key: str, _value: Any) -> None:
         if _key in _local_vars:
             logger.error(f"Variable '{_key}' is reserved and cannot be used.")
-            raise SystemExit(1)
+            raise RuntimeError(f"Variable '{_key}' is reserved and cannot be used.")
         _local_vars[_key] = _value
 
     # add env to local_vars
@@ -79,18 +77,15 @@ def eval_value(what: str,
             evaluated_values.append(evaluated_v)
         except Exception as e:
             logger.error(f"Could not evaluate {what} '{v}'. -> {e}")
-            raise SystemExit(1)
+            raise RuntimeError(f"Could not evaluate {what} '{v}'. -> {e}")
 
     if len(evaluated_values) == 0:
         logger.error(f"Could not evaluate {what}. -> Empty list")
-        raise SystemExit(1)
+        raise RuntimeError(f"Could not evaluate {what}. -> Empty list")
 
     if not as_list:
         evaluated_values = evaluated_values[0]
 
-    if print_console:
-        logger.info(f"Evaluated {what} is: '{evaluated_values}'")
-    else:
-        logger.debug(f"Evaluated {what} is: '{evaluated_values}'")
+    logger.debug(f"Evaluated {what} is: '{evaluated_values}'")
 
     return evaluated_values
