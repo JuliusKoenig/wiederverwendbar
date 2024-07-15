@@ -1,0 +1,1 @@
+from wiederverwendbar.starlette_admin.mongoengine.view.fixed_model_view import FixedModelView

@@ -6,7 +6,7 @@ from starlette_admin.contrib.mongoengine import ModelView as BaseModelView
 from starlette_admin import RequestAction
 
 
-class ModelView(BaseModelView):
+class FixedModelView(BaseModelView):
     async def serialize(
             self,
             obj: Any,

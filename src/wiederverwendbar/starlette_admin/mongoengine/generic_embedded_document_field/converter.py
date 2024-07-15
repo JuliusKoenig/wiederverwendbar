@@ -8,7 +8,7 @@ from starlette_admin.helpers import slugify_class_name
 from wiederverwendbar.starlette_admin.mongoengine.generic_embedded_document_field.field import GenericEmbeddedDocumentField, ListField
 
 
-class Converter(ModelConverter):
+class GenericEmbeddedConverter(ModelConverter):
     @converts(me.GenericEmbeddedDocumentField)
     def conv_generic_embedded_document_field(self, *args: Any, **kwargs: Any) -> sa.BaseField:
         common = self._field_common(*args, **kwargs)
