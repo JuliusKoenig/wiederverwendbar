@@ -84,6 +84,10 @@ class GenericEmbeddedDocumentField(sa.BaseField):
         if doc_name is None:
             raise ValueError(f"Invalid embedded document value: {value}")
 
+        # return doc name at list view if render function is text
+        if action == RequestAction.LIST and self.render_function_key == "text":
+            return doc_name
+
         serialized_value: Dict[str, Any] = {}
         for field in self.get_fields_list(request, doc_name, action):
             name = field.name
