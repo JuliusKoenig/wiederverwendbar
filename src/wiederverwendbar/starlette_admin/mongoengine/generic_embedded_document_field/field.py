@@ -51,6 +51,25 @@ class GenericEmbeddedDocumentField(sa.BaseField):
                 if isinstance(field, type(self)):
                     field._propagate_id()
 
+    def _add_doc_data(self, doc_data: Dict[str, Any], doc_name: str, doc_type: Type[me.EmbeddedDocument]) -> Dict[str, Any]:
+        # add doc name to serialized value at detail and edit view
+        if "__doc_name__" in doc_data:
+            raise ValueError(f"Field name '__doc_name__' is reserved")
+        doc_data["__doc_name__"] = doc_name
+
+        return doc_data
+
+    async def convert_generic_embedded_document(self, request: Request, value: Dict[str, Any]) -> Any:
+        doc_name = value.pop("__doc_name__", "")
+        if doc_name == "":
+            raise ValueError(f"Field name '__doc_name__' not found in value: {value}")
+        doc_type = self.embedded_doc_name_mapping.get(doc_name, None)
+        if doc_type is None:
+            raise ValueError(f"Invalid choice value: {doc_name}")
+
+        embedded_doc = doc_type(**value)
+        return embedded_doc
+
     async def parse_form_data(
             self, request: Request, form_data: FormData, action: RequestAction
     ) -> Any:
@@ -67,21 +86,26 @@ class GenericEmbeddedDocumentField(sa.BaseField):
         for field in self.get_fields_list(request, doc_name, action):
             doc_data[field.name] = await field.parse_form_data(request, form_data, action)
 
-        # create embedded document
-        doc_obj = doc_type(**doc_data)
+        # add doc name to serialized value at detail and edit view
+        if "__doc_name__" in doc_data:
+            raise ValueError(f"Field name '__doc_name__' is reserved")
+        if action == RequestAction.EDIT or action == RequestAction.DETAIL:
+            doc_data["__doc_name__"] = doc_name
 
-        return doc_obj
+        return doc_data
 
     async def serialize_value(
             self, request: Request, value: Any, action: RequestAction
     ) -> Any:
         # get embedded document name
         doc_name = None
+        doc_type = None
         for name, doc_type in self.embedded_doc_name_mapping.items():
             if isinstance(value, doc_type):
                 doc_name = name
+                doc_type = doc_type
                 break
-        if doc_name is None:
+        if doc_name is None or doc_type is None:
             raise ValueError(f"Invalid embedded document value: {value}")
 
         # return doc name at list view if render function is text
