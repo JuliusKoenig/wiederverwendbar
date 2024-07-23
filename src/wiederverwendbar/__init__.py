@@ -1,4 +1,4 @@
-__version__ = "0.2.25"
+__version__ = "0.2.26"
 TITLE = "wiederverwendbar"
 VERSION = __version__
 AUTHOR = "Julius Koenig"
