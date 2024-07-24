@@ -1,0 +1,34 @@
+
+<div id="modal-loading" class="modal modal-blur fade" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static">
+    <div id="modal-loading-doc" class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="d-flex justify-content-center">
+                    <div id="action-spinner" class="spinner-border text-primary" role="status"></div>
+                    <span id="action-spinner-text" class="ms-2">{{ _("Loading") }}...</span>
+                </div>
+                <div id="action-log-accordion" class="accordion"></div>
+                <button id="modal-loading-close" type="button" class="btn btn-red fa-pull-right fa-solid fa-x modal-btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .modal-btn-close {
+        height: 30px;
+        margin-top: 10px;
+    }
+    .modal-btn-copy {
+        height: 30px;
+        margin-top: -40px;
+        margin-right: 10px;
+        z-index: 2;
+    }
+    .modal-textarea {
+        z-index: 1;
+        /*resize: none;*/
+    }
+    .modal-status-indicator {
+        margin-left: -10px;
+    }
+</style>
