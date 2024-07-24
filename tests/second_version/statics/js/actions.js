@@ -19,7 +19,6 @@ class ActionManager {
         // actionLogKey
         this.actionLogClient = null;
         this.actionLogClientIsUsed = false;
-
     }
 
     /**
@@ -91,12 +90,11 @@ class ActionManager {
         let actionLogKey = window.crypto.randomUUID();
 
         // init actionLogClient
-        this.initActionLogClient(actionLogKey);
-
-        // set on modal-loading close event
-        $("#modal-loading").on("hidden.bs.modal", function (event) {
-            self.setResultInfo()
-        });
+        this.actionLogClient = new WebSocket("ws://" + window.location.host + "/" + window.location.pathname.split("/")[1] + "/ws/action_log/" + actionLogKey);
+        this.actionLogClient.onmessage = function (event) {
+            self.onActionLogCommand(event)
+        };
+        this.actionLogClientIsUsed = false;
 
         let baseUrl = isRowAction ? this.rowActionUrl : this.actionUrl;
         let query = new URLSearchParams();
@@ -188,25 +186,12 @@ class ActionManager {
         $("#modal-loading").modal("show");
     }
 
-    initActionLogClient(actionLogKey) {
-        let self = this;
-        this.actionLogClient = new WebSocket("ws://" + window.location.host + "/" + window.location.pathname.split("/")[1] + "/ws/action_log/" + actionLogKey);
-        this.actionLogClient.onmessage = function (event) {
-            self.onActionLogCommand(event)
-        };
-        this.actionLogClientIsUsed = false;
-    }
-
     onActionLogCommand(event) {
         // parse message
         let data = JSON.parse(event.data);
         if (data["command"] === "start") {
             this.actionLogClientIsUsed = true;
             this.setActionLogUi(true);
-        } else if (data["command"] === "finalize") {
-            $("#modal-loading-close").show();
-            $("#action-log-copy").show();
-            this.closeActionLogClient()
         } else if (data["command"] === "log") {
             this.pushActionLogMessage(data["value"]);
         } else if (data["command"] === "use_steps") {
@@ -215,13 +200,6 @@ class ActionManager {
             $("#action-log-progress-bar").width(data["value"] + "%");
         } else {
             console.log("Unknown command received:", data);
-        }
-    }
-
-    closeActionLogClient() {
-        if (this.actionLogClient !== null) {
-            this.actionLogClient.close();
-            this.actionLogClient = null;
         }
     }
 
@@ -248,24 +226,23 @@ class ActionManager {
     }
 
     setResponseInfo(actionName, element, msg, isError = false) {
-        this.actionName = actionName;
-        this.actionElement = element;
-        this.actionMsg = msg;
-        this.actionIsError = isError;
-        if (!this.actionLogClientIsUsed) {
-            $("#modal-loading").modal("hide");
-            this.closeActionLogClient()
-        }
-        if ($("#modal-loading").is(":hidden")) {
-            this.setResultInfo()
-        }
-    }
+        // close actionLogClient
+        this.actionLogClient.close();
+        this.actionLogClient = null;
 
-    setResultInfo() {
-        if (!this.actionIsError) {
-            this.onSuccess(this.actionName, this.actionElement, this.actionMsg);
+        if (isError) {
+            this.onError(actionName, element, msg);
         } else {
-            this.onError(this.actionName, this.actionElement, this.actionMsg);
+            this.onSuccess(actionName, element, msg);
+        }
+
+        if (this.actionLogClientIsUsed) {
+            // if actionLogClient is used, hide 'modal-loading' only when 'modal-loading-close' is clicked
+            $("#modal-loading-close").show();
+            $("#action-log-copy").show();
+        } else {
+            // if actionLogClient is not used, hide 'modal-loading' automatically
+            $("#modal-loading").modal("hide");
         }
     }
 }

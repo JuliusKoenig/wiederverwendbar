@@ -191,11 +191,11 @@ class ActionLogger(logging.Logger):
         self._started = False
 
     def exit(self):
-        if self.is_started:
-            self.finalize()
-            return
+        # if self.is_started:
+        #     self.finalize()
+        #     return
 
-            # remove handler
+        # remove handler
         for handler in self.handlers:
             self.removeHandler(handler)
 
@@ -265,7 +265,8 @@ class ActionLog:
         return self.action_logger
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.action_logger.finalize()
+        ...
+        # self.action_logger.finalize()
 
 
 class ActionLogEndpoint(WebSocketEndpoint):
@@ -352,11 +353,11 @@ class TestView(ModelView):
             action_logger.info("Test Aktion step 2")
             action_logger.next_step()
             await asyncio.sleep(2)
-            action_logger.steps += 100
-            for i in range(1, 100):
-                action_logger.info(f"Test Aktion step 2 - {i}")
-                action_logger.next_step()
-                await asyncio.sleep(0.1)
+            # action_logger.steps += 100
+            # for i in range(1, 100):
+            #     action_logger.info(f"Test Aktion step 2 - {i}")
+            #     action_logger.next_step()
+            #     await asyncio.sleep(0.1)
             action_logger.info("Test Aktion step 3")
             action_logger.next_step()
             await asyncio.sleep(2)
