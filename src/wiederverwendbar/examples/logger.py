@@ -7,18 +7,8 @@ import uvicorn
 from fastapi import FastAPI
 
 
-class TestSettings(LoggerSettings):
-    qwe: str = "qwe"
-
-
-test_settings = TestSettings(
-    log_level="DEBUG",
-    log_file=True,
-    log_file_path="test.log"
-)
-
 if __name__ == '__main__':
-    logger = LoggerSingleton(init=True, name="test", settings=test_settings, ignored_loggers_like=["uvicorn"])
+    logger = LoggerSingleton(init=True, name="test", settings=LoggerSettings(log_level="DEBUG"))
 
     sub_logger = logging.getLogger("sub")
 
