@@ -367,22 +367,26 @@ class ActionManager {
             // get actionLogTextArea
             let actionLogTextArea = $("#" + this.actionLogTextareaIdPrefix + subLogger);
 
-            // calculate new height
-            let newHeight = actionLogTextArea.height() + 20;
-            if (newHeight > 500) {
-                newHeight = 500;
-            }
-
-            // set actionLogTextArea height
-            actionLogTextArea.height(newHeight);
-
-            // append message to actionLogTextArea
+            // get current text
             let currentText = actionLogTextArea.text();
             if (currentText.length > 0) {
                 currentText += "\n";
             }
             currentText += value;
+
+            // calculate new height
+            let lineHeight = parseInt(actionLogTextArea.css("line-height"));
+            let lineCount = currentText.split("\n").length - 1;
+            let newHeight = actionLogTextArea.height() + (lineCount) * lineHeight;
+            if (newHeight > 500) {
+                newHeight = 500;
+            }
+
+            // set new text
             actionLogTextArea.text(currentText);
+
+            // set actionLogTextArea height
+            actionLogTextArea.height(newHeight);
 
             // scroll to bottom
             actionLogTextArea.scrollTop(actionLogTextArea[0].scrollHeight);
