@@ -28,6 +28,9 @@ class LoggerSingleton(Logger, metaclass=Singleton, order=LOGGER_SINGLETON_ORDER)
             logging.setLoggerClass(SubLogger)
             self.configure()
 
+    def is_ignored(self, logger_name: str) -> bool:
+        return logger_name in self.ignored_loggers_equal or any([ignored in logger_name for ignored in self.ignored_loggers_like])
+
     def configure(self):
         for logger in logging.Logger.manager.loggerDict.values():
             if not isinstance(logger, logging.Logger):
@@ -35,9 +38,7 @@ class LoggerSingleton(Logger, metaclass=Singleton, order=LOGGER_SINGLETON_ORDER)
             self.configure_logger(logger)
 
     def configure_logger(self, logger: logging.Logger):
-        if logger.name in self.ignored_loggers_equal or any([ignored in logger.name for ignored in self.ignored_loggers_like]):
-            if isinstance(logger, SubLogger):
-                logger.configure()
+        if self.is_ignored(logger.name):
             return
         logger.setLevel(self.level)
         logger.parent = self
@@ -45,46 +46,40 @@ class LoggerSingleton(Logger, metaclass=Singleton, order=LOGGER_SINGLETON_ORDER)
 
 class SubLogger(logging.Logger):
     def __init__(self, name: str, level=logging.NOTSET):
-        self.init = True
-        self._configure_log: list[tuple[callable, dict[str, Any]]] = []
-        self.init = False
+        self._init = False
         super().__init__(name, level)
         LoggerSingleton().configure_logger(self)
-        self.init = True
+        self._init = True
 
     def __setattr__(self, key, value):
-        if key in ["init", "_configure_log"]:
+        if key in ["_init" "init", "_configure_log"]:
             return super().__setattr__(key, value)
         if not self.init:
             return super().__setattr__(key, value)
-        self._configure_log.append((self.__setattr__, {"key": key, "value": value}))
 
-    def configure(self):
-        for func, kwargs in self._configure_log:
-            func(**kwargs)
-        self._configure_log = []
+    @property
+    def init(self):
+        if hasattr(self, "name"):
+            if LoggerSingleton().is_ignored(self.name):
+                return False
+        return getattr(self, "_init", False)
 
     def setLevel(self, level):
         if not self.init:
             return super().setLevel(level)
-        self._configure_log.append((self.setLevel, {"level": level}))
 
     def addHandler(self, hdlr):
         if not self.init:
             return super().addHandler(hdlr)
-        self._configure_log.append((self.addHandler, {"hdlr": hdlr}))
 
     def removeHandler(self, hdlr):
         if not self.init:
             return super().removeHandler(hdlr)
-        self._configure_log.append((self.removeHandler, {"hdlr": hdlr}))
 
     def addFilter(self, fltr):
         if not self.init:
             return super().addFilter(fltr)
-        self._configure_log.append((self.addFilter, {"fltr": fltr}))
 
     def removeFilter(self, fltr):
         if not self.init:
             return super().removeFilter(fltr)
-        self._configure_log.append((self.removeFilter, {"fltr": fltr}))
