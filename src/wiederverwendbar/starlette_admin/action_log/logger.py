@@ -395,8 +395,11 @@ class ActionSubLogger(logging.Logger):
 
         if self.exited:
             raise ValueError("ActionSubLogger already exited.")
-        if success and self.step < self.steps:
-            self.step = self.steps
+
+        if success:
+            if self.steps is not None:
+                if self.step < self.steps:
+                    self.step = self.steps
         if msg is not None:
             self.log(log_level, msg)
 
@@ -547,10 +550,12 @@ class ActionLogger:
 
         # get exception string
         if exc_type is not None and self.show_errors:
+            te = traceback.TracebackException(type(exc_type), exc_val, exc_tb)
+            efs = te.stack[-1]
             exception_str = f"{exc_type.__name__}: {exc_val}"
             # add line number
             if exc_tb is not None:
-                exception_str += f" at line {exc_tb.tb_lineno} in {exc_tb.tb_frame.f_code.co_filename}"
+                exception_str += f" at line {efs.lineno} in {efs.filename}"
 
             # raise ActionFailed
             raise ActionFailed(exception_str)
