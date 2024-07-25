@@ -1,6 +1,8 @@
 from typing import Union
 
 from jinja2 import BaseLoader, ChoiceLoader, FileSystemLoader, PackageLoader
+from starlette.requests import Request
+from starlette.responses import Response
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 from starlette_admin.base import BaseAdmin
@@ -81,3 +83,25 @@ class MultiPathAdmin(BaseAdmin, metaclass=MultiPathAdminMeta):
                 *self.template_packages,
             ]
         )
+
+
+class FormMaxFieldsAdmin(BaseAdmin):
+    form_max_fields: int = 1000
+
+    async def _render_create(self, request: Request) -> Response:
+        self._form_func = request.form
+        request.form = self.form
+
+        return await super()._render_create(request)
+
+    async def _render_edit(self, request: Request) -> Response:
+        self._form_func = request.form
+        request.form = self.form
+
+        return await super()._render_edit(request)
+
+    async def form(self, *args, **kwargs):
+        if "max_fields" not in kwargs:
+            kwargs["max_fields"] = self.form_max_fields
+
+        return await self._form_func(*args, **kwargs)

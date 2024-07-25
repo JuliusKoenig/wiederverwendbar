@@ -1,4 +1,4 @@
-from wiederverwendbar.starlette_admin.admin import MultiPathAdmin
+from wiederverwendbar.starlette_admin.admin import MultiPathAdmin, FormMaxFieldsAdmin
 
 from wiederverwendbar.starlette_admin.view import PropertyModelView
 from wiederverwendbar.starlette_admin.view import property_field
