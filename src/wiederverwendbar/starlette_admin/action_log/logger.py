@@ -4,55 +4,37 @@ import asyncio
 import string
 import traceback
 import warnings
-from typing import Optional, Union, Sequence
+from typing import Optional, Union
 
-import uvicorn
-from starlette.applications import Starlette
-from starlette.middleware import Middleware
-from starlette.responses import HTMLResponse
-from starlette.routing import Route, WebSocketRoute
 from starlette.requests import Request
-from starlette.endpoints import WebSocketEndpoint
 from starlette.websockets import WebSocket, WebSocketState
-from starlette_admin import CustomView, I18nConfig
-from starlette_admin.auth import BaseAuthProvider
-from starlette_admin.base import BaseAdmin
-from starlette_admin.contrib.mongoengine import Admin, ModelView
-from starlette_admin.actions import action
 from starlette_admin.exceptions import ActionFailed
-from starlette_admin.i18n import lazy_gettext as _
-from mongoengine import connect, Document, StringField
 
 logger = logging.getLogger(__name__)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-logger.addHandler(ch)
-logger.setLevel(logging.DEBUG)
-
-# connect to database
-connect("test",
-        host="localhost",
-        port=27017)
-
-# Create starlette app
-app = Starlette(
-    routes=[
-        Route(
-            "/",
-            lambda r: HTMLResponse("<a href=/admin/>Click me to get to Admin!</a>"),
-        ),
-    ],
-)
 
 
 class WebsocketHandler(logging.Handler):
     def __init__(self):
+        """
+        Create new websocket handler.
+
+        :return: None
+        """
+
         super().__init__()
 
         self.global_buffer: list[logging.LogRecord] = []  # global_buffer
         self.websockets: dict[WebSocket, list[logging.LogRecord]] = {}  # websocket, websocket_buffer
 
-    def send(self, websocket: WebSocket, record: logging.LogRecord):
+    def send(self, websocket: WebSocket, record: logging.LogRecord) -> None:
+        """
+        Send log record to websocket.
+
+        :param websocket: Websocket
+        :param record: Log record
+        :return: None
+        """
+
         # get extra
         sub_logger_name = getattr(record, "sub_logger")
         command = getattr(record, "command", None)
@@ -80,7 +62,13 @@ class WebsocketHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-    def send_all(self):
+    def send_all(self) -> None:
+        """
+        Send all buffered records to all websockets.
+
+        :return: None
+        """
+
         # send buffered records
         for websocket in self.websockets:
             while self.websockets[websocket]:
@@ -88,6 +76,13 @@ class WebsocketHandler(logging.Handler):
                 self.send(websocket, buffered_record)
 
     def emit(self, record: logging.LogRecord) -> None:
+        """
+        Emit log record.
+
+        :param record: Log record
+        :return: None
+        """
+
         # add record to global buffer
         self.global_buffer.append(record)
 
@@ -99,6 +94,13 @@ class WebsocketHandler(logging.Handler):
         self.send_all()
 
     def add_websocket(self, websocket: WebSocket):
+        """
+        Add websocket to websocket handler. All global buffer will be sent to websocket buffer. After that, all buffered records will be sent to websocket.
+
+        :param websocket: Websocket
+        :return: None
+        """
+
         # check if websocket already exists
         if websocket in self.websockets:
             raise ValueError("Websocket already exists.")
@@ -114,6 +116,12 @@ class WebsocketHandler(logging.Handler):
         self.send_all()
 
     def remove_websocket(self, websocket: WebSocket):
+        """
+        Remove websocket from websocket handler. All buffered records will be sent to websocket.
+        :param websocket: Websocket
+        :return: None
+        """
+
         # check if websocket exists
         if websocket not in self.websockets:
             raise ValueError("Websocket not exists.")
@@ -127,6 +135,14 @@ class WebsocketHandler(logging.Handler):
 
 class ActionSubLogger(logging.Logger):
     def __init__(self, action_logger: "ActionLogger", name: str, title: Optional[str] = None):
+        """
+        Create new action sub logger.
+
+        :param action_logger: Action logger
+        :param name: Name of sub logger. Only a-z, A-Z, 0-9, - and _ are allowed.
+        :param title: Title of sub logger. Visible in frontend.
+        """
+
         super().__init__(name=action_logger.action_log_key + "." + name)
 
         # validate name
@@ -164,6 +180,13 @@ class ActionSubLogger(logging.Logger):
 
     @classmethod
     def _get_logger(cls, name: str) -> Optional["ActionSubLogger"]:
+        """
+        Get logger by name.
+
+        :param name: Name of logger.
+        :return: Logger
+        """
+
         # get all logger
         all_loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
 
@@ -178,9 +201,23 @@ class ActionSubLogger(logging.Logger):
 
     @classmethod
     def is_logger_exist(cls, name: str) -> bool:
+        """
+        Check if logger exists by name.
+
+        :param name: Name of logger.
+        :return: True if exists, otherwise False.
+        """
+
         return cls._get_logger(name=name) is not None
 
     def _extra(self, extra: Optional[dict] = None) -> dict:
+        """
+        Add extra to log record and check if any key is already in extra.
+
+        :param extra: Extra of log record.
+        :return: New extra.
+        """
+
         _extra = {"sub_logger": self.sub_logger_name}
 
         if extra is not None:
@@ -191,21 +228,55 @@ class ActionSubLogger(logging.Logger):
             _extra.update(extra)
         return _extra
 
-    def _command(self, command: str, value: Union[str, int, float, bool, None]):
+    def _command(self, command: str, value: Union[str, int, float, bool, None]) -> None:
+        """
+        Send command to websocket.
+
+        :param command: Command
+        :param value: Value
+        :return: None
+        """
+
         record = self.makeRecord(self.name, logging.NOTSET, "", 0, "", (), None, extra=self._extra({"command": {"command": command, "value": value}}))
         self.handle(record)
 
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1):
+    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1) -> None:
+        """
+        Log message.
+
+        :param level: Log level
+        :param msg: Message
+        :param args: Arguments
+        :param exc_info: Exception info
+        :param extra: Extra added to log record
+        :param stack_info: Stack info
+        :param stacklevel: Stack level
+        :return: None
+        """
+
         super()._log(level=level, msg=msg, args=args, exc_info=exc_info, extra=self._extra(extra), stack_info=stack_info, stacklevel=stacklevel)
 
-    def _step_command(self):
+    def _step_command(self) -> None:
+        """
+        Send step command to websocket.
+
+        :return: None
+        """
+
         if self.steps is None:
             return
         calculated_progress = round(self.step / self.steps * 100)
 
         self._command("step", calculated_progress)
 
-    def add_websocket(self, websocket: WebSocket):
+    def add_websocket(self, websocket: WebSocket) -> None:
+        """
+        Add websocket to sub logger.
+
+        :param websocket: Websocket
+        :return: None
+        """
+
         # add websocket to websocket handler
         for handler in self.handlers:
             if not isinstance(handler, WebsocketHandler):
@@ -218,6 +289,13 @@ class ActionSubLogger(logging.Logger):
         self._websockets.append(websocket)
 
     def remove_websocket(self, websocket: WebSocket):
+        """
+        Remove websocket from sub logger.
+
+        :param websocket: Websocket
+        :return: None
+        """
+
         # remove websocket from sub logger
         for handler in self.handlers:
             if not isinstance(handler, WebsocketHandler):
@@ -231,18 +309,43 @@ class ActionSubLogger(logging.Logger):
 
     @property
     def sub_logger_name(self) -> str:
+        """
+        Get sub logger name.
+
+        :return: Sub logger name.
+        """
+
         return self.name.replace(self._action_logger.action_log_key + ".", "")
 
     @property
     def title(self) -> str:
+        """
+        Get title of sub logger.
+
+        :return: Title of sub logger.
+        """
+
         return self._title
 
     @property
     def steps(self) -> int:
+        """
+        Get steps of sub logger.
+
+        :return: Steps of sub logger.
+        """
+
         return self._steps
 
     @steps.setter
-    def steps(self, value: int):
+    def steps(self, value: int) -> None:
+        """
+        Set steps of sub logger. Also send step command to websocket.
+
+        :param value: Steps
+        :return: None
+        """
+
         if value < 0:
             raise ValueError("Steps must be greater than 0.")
         self._steps = value
@@ -250,19 +353,46 @@ class ActionSubLogger(logging.Logger):
 
     @property
     def step(self) -> int:
+        """
+        Get step of sub logger.
+
+        :return: Step of sub logger.
+        """
         return self._step
 
     @step.setter
-    def step(self, value: int):
+    def step(self, value: int) -> None:
+        """
+        Set step of sub logger. Also send step command to websocket.
+
+        :param value: Step
+        :return: None
+        """
+
         self._step = value
         self._step_command()
 
-    def next_step(self):
+    def next_step(self) -> None:
+        """
+        Increase step by 1.
+
+        :return: None
+        """
+
         if self.step >= self.steps:
             return
         self.step += 1
 
-    def finalize(self, success: bool = True, log_level: int = logging.INFO, msg: Optional[str] = None):
+    def finalize(self, success: bool = True, log_level: int = logging.INFO, msg: Optional[str] = None) -> None:
+        """
+        Finalize sub logger. Also send finalize command to websocket.
+
+        :param success: If True, frontend will show success message. If False, frontend will show error message.
+        :param log_level: Log level of finalize message.
+        :param msg: Message of finalize message.
+        :return: None
+        """
+
         if self.exited:
             raise ValueError("ActionSubLogger already exited.")
         if success and self.step < self.steps:
@@ -273,7 +403,13 @@ class ActionSubLogger(logging.Logger):
         self._command("finalize", success)
         self.exit()
 
-    def exit(self):
+    def exit(self) -> None:
+        """
+        Exit sub logger. Also remove websocket from sub logger.
+
+        :return: None
+        """
+
         if self.exited:
             raise ValueError("ActionSubLogger already exited.")
 
@@ -290,46 +426,68 @@ class ActionSubLogger(logging.Logger):
 
     @property
     def exited(self) -> bool:
+        """
+        Check if sub logger is exited.
+
+        :return: True if exited, otherwise False.
+        """
+
         return not self.is_logger_exist(name=self.name)
 
 
-class ActionLogger:
-    class ActionSubLoggerContext:
-        def __init__(self,
-                     action_logger: "ActionLogger",
-                     name: str,
-                     title: Optional[str] = None,
-                     log_level: Optional[int] = None,
-                     parent: Optional[logging.Logger] = None,
-                     formatter: Optional[logging.Formatter] = None,
-                     steps: Optional[int] = None,
-                     finalize_on_success_log_level: int = logging.INFO,
-                     finalize_on_success_msg: Optional[str] = None,
-                     show_errors: Optional[bool] = None):
-            # create sub logger
-            self.sub_logger = action_logger.new_sub_logger(name=name, title=title, log_level=log_level, parent=parent, formatter=formatter, steps=steps)
+class ActionSubLoggerContext:
+    def __init__(self,
+                 action_logger: "ActionLogger",
+                 name: str,
+                 title: Optional[str] = None,
+                 log_level: Optional[int] = None,
+                 parent: Optional[logging.Logger] = None,
+                 formatter: Optional[logging.Formatter] = None,
+                 steps: Optional[int] = None,
+                 finalize_on_success_log_level: int = logging.INFO,
+                 finalize_on_success_msg: Optional[str] = None,
+                 show_errors: Optional[bool] = None):
+        """
+        Create new action sub logger context manager.
 
-            self.finalize_on_success_log_level = finalize_on_success_log_level
-            self.finalize_on_success_msg = finalize_on_success_msg
-            if show_errors is None:
-                show_errors = action_logger.show_errors
-            self.show_errors = show_errors
+        :param action_logger: Action logger
+        :param name: Name of sub logger. Only a-z, A-Z, 0-9, - and _ are allowed.
+        :param title: Title of sub logger. Visible in frontend.
+        :param log_level: Log level of sub logger. If None, parent log level will be used. If parent is None, action logger log level will be used.
+        :param parent: Parent logger. If None, action logger parent will be used.
+        :param formatter: Formatter of sub logger. If None, action logger formatter will be used.
+        :param steps: Steps of sub logger.
+        :param finalize_on_success_log_level: Log level of finalize message if success.
+        :param finalize_on_success_msg: Message of finalize message if success.
+        :param show_errors: Show errors in frontend. If None, action logger show_errors will be used.
+        """
 
-        def __enter__(self) -> "ActionSubLogger":
-            return self.sub_logger
+        # create sub logger
+        self.sub_logger = action_logger.new_sub_logger(name=name, title=title, log_level=log_level, parent=parent, formatter=formatter, steps=steps)
 
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            if not self.sub_logger.exited:
-                if exc_type is None:
-                    self.sub_logger.finalize(success=True, log_level=self.finalize_on_success_log_level, msg=self.finalize_on_success_msg)
+        self.finalize_on_success_log_level = finalize_on_success_log_level
+        self.finalize_on_success_msg = finalize_on_success_msg
+        if show_errors is None:
+            show_errors = action_logger.show_errors
+        self.show_errors = show_errors
+
+    def __enter__(self) -> "ActionSubLogger":
+        return self.sub_logger
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self.sub_logger.exited:
+            if exc_type is None:
+                self.sub_logger.finalize(success=True, log_level=self.finalize_on_success_log_level, msg=self.finalize_on_success_msg)
+            else:
+                if self.show_errors:
+                    # get exception string
+                    tb_str = traceback.format_exc()
+                    self.sub_logger.finalize(success=False, log_level=logging.ERROR, msg=tb_str)
                 else:
-                    if self.show_errors:
-                        # get exception string
-                        tb_str = traceback.format_exc()
-                        self.sub_logger.finalize(success=False, log_level=logging.ERROR, msg=tb_str)
-                    else:
-                        self.sub_logger.finalize(success=False, log_level=logging.ERROR, msg="Something went wrong.")
+                    self.sub_logger.finalize(success=False, log_level=logging.ERROR, msg="Something went wrong.")
 
+
+class ActionLogger:
     _action_loggers: list["ActionLogger"] = []
 
     def __init__(self,
@@ -416,7 +574,7 @@ class ActionLogger:
         return None
 
     @classmethod
-    def get_action_key(cls, action_log_key_request_or_websocket: Union[str, Request, WebSocket]):
+    def get_action_key(cls, action_log_key_request_or_websocket: Union[str, Request, WebSocket]) -> str:
         """
         Get action log key from request or websocket.
 
@@ -467,7 +625,14 @@ class ActionLogger:
 
         return action_logger
 
-    def add_websocket(self, websocket: WebSocket):
+    def add_websocket(self, websocket: WebSocket) -> None:
+        """
+        Add websocket to action logger.
+
+        :param websocket: Websocket
+        :return: None
+        """
+
         # add websocket to sub loggers
         for sub_logger in self._sub_logger:
             sub_logger.add_websocket(websocket)
@@ -477,7 +642,14 @@ class ActionLogger:
             return
         self._websockets.append(websocket)
 
-    def remove_websocket(self, websocket: WebSocket):
+    def remove_websocket(self, websocket: WebSocket) -> None:
+        """
+        Remove websocket from action logger.
+
+        :param websocket: Websocket
+        :return: None
+        """
+
         # remove websocket from sub loggers
         for sub_logger in self._sub_logger:
             sub_logger.remove_websocket(websocket)
@@ -586,20 +758,20 @@ class ActionLogger:
         :return:
         """
 
-        return self.ActionSubLoggerContext(action_logger=self,
-                                           name=name,
-                                           title=title,
-                                           log_level=log_level,
-                                           parent=parent,
-                                           formatter=formatter,
-                                           steps=steps,
-                                           finalize_on_success_log_level=finalize_on_success_log_level,
-                                           finalize_on_success_msg=finalize_on_success_msg,
-                                           show_errors=show_errors)
+        return ActionSubLoggerContext(action_logger=self,
+                                      name=name,
+                                      title=title,
+                                      log_level=log_level,
+                                      parent=parent,
+                                      formatter=formatter,
+                                      steps=steps,
+                                      finalize_on_success_log_level=finalize_on_success_log_level,
+                                      finalize_on_success_msg=finalize_on_success_msg,
+                                      show_errors=show_errors)
 
     def exit(self):
         """
-        Exit action logger.
+        Exit action logger. Also remove all websockets and sub loggers.
 
         :return: None
         """
@@ -628,240 +800,3 @@ class ActionLogger:
         """
 
         return self not in self._action_loggers
-
-
-class ActionLogEndpoint(WebSocketEndpoint):
-    encoding = "text"
-    wait_for_logger_timeout = 5
-
-    async def on_connect(self, websocket: WebSocket):
-        await websocket.accept()
-
-        # wait for action logger
-        try:
-            action_logger = await ActionLogger.wait_for_logger(websocket, timeout=self.wait_for_logger_timeout)
-        except Exception as e:
-            await websocket.close(code=1008)
-            raise e
-
-        # add websocket to action logger
-        action_logger.add_websocket(websocket)
-
-    async def on_disconnect(self, websocket: WebSocket, close_code: int):
-        # get logger
-        action_logger = await ActionLogger.get_logger(websocket)
-        if action_logger is None:
-            return
-
-        # remove websocket from logger
-        action_logger.remove_websocket(websocket)
-
-
-class CustomActionAdmin(BaseAdmin):
-    def __init__(
-            self,
-            title: str = _("Admin"),
-            base_url: str = "/admin",
-            route_name: str = "admin",
-            logo_url: Optional[str] = None,
-            login_logo_url: Optional[str] = None,
-            templates_dir: str = "templates",
-            statics_dir: Optional[str] = None,
-            index_view: Optional[CustomView] = None,
-            auth_provider: Optional[BaseAuthProvider] = None,
-            middlewares: Optional[Sequence[Middleware]] = None,
-            debug: bool = False,
-            i18n_config: Optional[I18nConfig] = None,
-            favicon_url: Optional[str] = None,
-            action_log_endpoint: type[ActionLogEndpoint] = ActionLogEndpoint,
-    ):
-        self.action_log_endpoint = action_log_endpoint
-        super().__init__(title=title,
-                         base_url=base_url,
-                         route_name=route_name,
-                         logo_url=logo_url,
-                         login_logo_url=login_logo_url,
-                         templates_dir=templates_dir,
-                         statics_dir=statics_dir,
-                         index_view=index_view,
-                         auth_provider=auth_provider,
-                         middlewares=middlewares,
-                         debug=debug,
-                         i18n_config=i18n_config,
-                         favicon_url=favicon_url)
-
-    def init_routes(self) -> None:
-        super().init_routes()
-        self.routes.append(WebSocketRoute(path="/ws/action_log/{action_log_key}", endpoint=self.action_log_endpoint, name="action_log"))  # noqa
-
-
-class MyAdmin(Admin, CustomActionAdmin):
-    ...
-
-
-# Create admin
-admin = MyAdmin(title="Test Admin",
-                statics_dir="statics")
-
-
-class Test(Document):
-    meta = {"collection": "test"}
-
-    test_str = StringField()
-
-
-class TestView(ModelView):
-    def __init__(self):
-        super().__init__(document=Test, icon="fa fa-server", name="Test", label="Test")
-
-    actions = ["delete", "test_action_normal", "test_action_action_log"]
-
-    @action(name="test_action_normal",
-            text="Test Action - Normal")
-    # confirmation="Möchtest du die Test Aktion durchführen?",
-    # icon_class="fa-regular fa-network-wired",
-    # submit_btn_text="Ja, fortsetzen",
-    # submit_btn_class="btn-success")
-    async def test_action_normal(self, request: Request, pk: list[str]) -> str:
-        await asyncio.sleep(2)
-
-        return "Test Aktion erfolgreich."
-
-    @action(name="test_action_action_log",
-            text="Test Action - Action Log")
-    # confirmation="Möchtest du die Test Aktion durchführen?",
-    # icon_class="fa-regular fa-network-wired",
-    # submit_btn_text="Ja, fortsetzen",
-    # submit_btn_class="btn-success")
-    async def test_action_action_log(self, request: Request, pk: list[str]) -> str:
-        with ActionLogger(request) as action_logger:
-            with action_logger.sub_logger("sub_action_1", "Sub Action 1") as sub_logger:
-                _ = 1 / 0
-                sub_logger.steps = 3
-                sub_logger.info("Test Aktion startet ...")
-                sub_logger.debug("Debug")
-                sub_logger.info("Test Aktion step 1")
-                await asyncio.sleep(2)
-                sub_logger.next_step()
-                sub_logger.info("Test Aktion step 2")
-                await asyncio.sleep(2)
-                sub_logger.next_step()
-                sub_logger.steps += 100
-                for i in range(1, 100):
-                    sub_logger.info(f"Test Aktion step 2 - {i}")
-                    sub_logger.next_step()
-                    await asyncio.sleep(0.1)
-                sub_logger.info("Test Aktion step 3")
-                await asyncio.sleep(2)
-                sub_logger.next_step()
-                sub_logger.finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-            action_logger.new_sub_logger("sub_action_2", "Sub Action 2").steps = 3
-            action_logger.new_sub_logger("sub_action_3", "Sub Action 3").steps = 3
-            action_logger.get_sub_logger("sub_action_2").info("Test Aktion startet ...")
-            action_logger.get_sub_logger("sub_action_3").info("Test Aktion startet ...")
-            await asyncio.sleep(2)
-            action_logger.get_sub_logger("sub_action_2").next_step()
-            action_logger.get_sub_logger("sub_action_3").next_step()
-            await asyncio.sleep(2)
-            action_logger.get_sub_logger("sub_action_2").next_step()
-            action_logger.get_sub_logger("sub_action_3").next_step()
-            action_logger.get_sub_logger("sub_action_2").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            action_logger.get_sub_logger("sub_action_3").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-            # action_logger.new_sub_logger("sub_action_4", "Sub Action 4").steps = 1
-            # action_logger.get_sub_logger("sub_action_4").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_4").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_5", "Sub Action 5").steps = 1
-            # action_logger.get_sub_logger("sub_action_5").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_5").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_6", "Sub Action 6").steps = 1
-            # action_logger.get_sub_logger("sub_action_6").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_6").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_7", "Sub Action 7").steps = 1
-            # action_logger.get_sub_logger("sub_action_7").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_7").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_8", "Sub Action 8").steps = 1
-            # action_logger.get_sub_logger("sub_action_8").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_8").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_9", "Sub Action 9").steps = 1
-            # action_logger.get_sub_logger("sub_action_9").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_9").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_10", "Sub Action 10").steps = 1
-            # action_logger.get_sub_logger("sub_action_10").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_10").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_11", "Sub Action 11").steps = 1
-            # action_logger.get_sub_logger("sub_action_11").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_11").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_12", "Sub Action 12").steps = 1
-            # action_logger.get_sub_logger("sub_action_12").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_12").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_13", "Sub Action 13").steps = 1
-            # action_logger.get_sub_logger("sub_action_13").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_13").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_14", "Sub Action 14").steps = 1
-            # action_logger.get_sub_logger("sub_action_14").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_14").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_15", "Sub Action 15").steps = 1
-            # action_logger.get_sub_logger("sub_action_15").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_15").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_16", "Sub Action 16").steps = 1
-            # action_logger.get_sub_logger("sub_action_16").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_16").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_17", "Sub Action 17").steps = 1
-            # action_logger.get_sub_logger("sub_action_17").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_17").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_18", "Sub Action 18").steps = 1
-            # action_logger.get_sub_logger("sub_action_18").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_18").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            #
-            # action_logger.new_sub_logger("sub_action_19", "Sub Action 19").steps = 1
-            # action_logger.get_sub_logger("sub_action_19").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_19").finalize(success=True, msg="Test Aktion erfolgreich.")
-            #
-            # action_logger.new_sub_logger("sub_action_20", "Sub Action 20").steps = 1
-            # action_logger.get_sub_logger("sub_action_20").info("Test Aktion startet ...")
-            # await asyncio.sleep(0.5)
-            # action_logger.get_sub_logger("sub_action_20").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        return "Test Aktion erfolgreich."
-
-
-# Add views to admin#
-admin.add_view(TestView())
-
-# Mount admin to app
-admin.mount_to(app)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,21 +1,13 @@
-from copy import deepcopy
 from enum import Enum
-from typing import Dict, Any
 
 import uvicorn
 from starlette.applications import Starlette
-from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
 from mongoengine import connect, Document, EmbeddedDocument, StringField, IntField, FloatField, BooleanField, ListField, DictField, EmbeddedDocumentField, \
     GenericEmbeddedDocumentField
-from starlette_admin.contrib.mongoengine import ModelView
 
-from wiederverwendbar.starlette_admin import Admin, GenericEmbeddedConverter, GenericEmbeddedDocumentView
-
-# ---
-from wiederverwendbar.starlette_admin.mongoengine.generic_embedded_document_field.field import ListField as sa_ListField
-from wiederverwendbar.starlette_admin.mongoengine.generic_embedded_document_field.field import GenericEmbeddedDocumentField as sa_GenericEmbeddedDocumentField
+from wiederverwendbar.starlette_admin import GenericEmbeddedAdmin, GenericEmbeddedConverter, GenericEmbeddedDocumentView
 
 # connect to database
 connect("test",
@@ -33,7 +25,7 @@ app = Starlette(
 )
 
 # Create admin
-admin = Admin(title="Test Admin")
+admin = GenericEmbeddedAdmin(title="Test Admin")
 
 
 class Test1(EmbeddedDocument):
@@ -63,16 +55,9 @@ class TestEnum(Enum):
 class Test(Document):
     meta = {"collection": "test"}
 
-    # test_str = StringField()
-    # test_int = IntField()
-    # test_float = FloatField()
-    # test_bool = BooleanField()
-    # test_list = ListField(me.StringField())
-    # test_dict = DictField()
-    # test_enum = EnumField(TestEnum)
+    test_emb = EmbeddedDocumentField(Test2)
     test_gen_emb = GenericEmbeddedDocumentField(choices=[Test1, Test2], help_text="Test Generic Embedded Document Field.")
     test_gen_emb_list = ListField(GenericEmbeddedDocumentField(choices=[Test1, Test2], help_text="Test Generic Embedded Document Field."))
-    # test_emb = EmbeddedDocumentField(Test2)
 
 
 class TestView(GenericEmbeddedDocumentView):
