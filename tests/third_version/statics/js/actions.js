@@ -27,23 +27,35 @@ class ActionManager {
         // define accordion item template html
         this.accordionItemTemplate = `<div class="accordion-item">
             <h2 id="{{action-log-accordion-header-}}" class="accordion-header">
-                <button class="accordion-button collapsed action-log-accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#{{action-log-accordion-collapse-}}" aria-expanded="true">
-                    <span id="{{action-log-accordion-status-}}" class="status-indicator status-blue status-indicator-animated modal-status-indicator">
-                        <span class="status-indicator-circle"></span>
-                    </span> 
-                    {{logger-name}}
-                </button>
+                <div class="row">
+                    <div class="col float-start ms-1">
+                        <div class="d-flex">
+                            <span id="{{action-log-accordion-status-}}" class="status-indicator status-blue status-indicator-animated">
+                                <span class="status-indicator-circle"></span>
+                            </span> 
+                            <h3 class="mt-2">
+                                {{logger-name}}
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="d-flex float-end">
+                            <button id="{{action-log-copy-}}" type="button" class="btn btn-ghost-secondary fa-regular fa-copy" aria-label="Copy"></button>
+                            <button class="accordion-button action-log-accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#{{action-log-accordion-collapse-}}" aria-expanded="true"></button>
+                        </div>
+                    </div>
+                </div>
+                
             </h2>
             <div id="{{action-log-accordion-collapse-}}" class="accordion-collapse collapse show action-log-accordion-collapse" data-bs-parent="#action-log-accordion" style="">
                 <div class="accordion-body pt-0">
                     <div id="{{action-log-progress-}}" class="progress progress-sm" style="display: none">
                         <div id="{{action-log-progress-bar-}}" class="progress-bar" role="progressbar"></div>
                     </div>
-                    <textarea id="{{action-log-textarea-}}" class="form-control modal-textarea" name="action-log" placeholder="Empty Log" readonly></textarea>
-                    <button id="{{action-log-copy-}}" type="button" class="btn fa-pull-right fa-regular fa-copy modal-btn-copy" aria-label="Copy"></button>
+                    <textarea id="{{action-log-textarea-}}" class="form-control mb-1" name="action-log" placeholder="Empty Log" readonly></textarea>
                 </div>
             </div>
-        </div>`;
+        </div>`
 
         // define template id prefixes
         this.actionLogAccordionHeaderIdPrefix = "action-log-accordion-header-";
@@ -264,13 +276,18 @@ class ActionManager {
     }
 
     copyClipboard(actionLogTextAreaId) {
+        // get actionLogTextArea
+        let actionLogTextArea = $("#" + actionLogTextAreaId);
+        if (actionLogTextArea.length === 0) {
+            alert("actionLogTextArea not found: " + actionLogTextAreaId);
+            return;
+        }
+
         // copy to clipboard
-        navigator.clipboard.writeText($("#" + actionLogTextAreaId).text()).then(
+        navigator.clipboard.writeText(actionLogTextArea.text()).then(
+            () => {},
             () => {
-                console.log("clipboard successfully set");
-            },
-            () => {
-                console.error("clipboard write failed");
+                alert("clipboard write failed from " + actionLogTextAreaId);
             });
     }
 
@@ -284,8 +301,6 @@ class ActionManager {
         let subLogger = data["sub_logger"];
         let command = data["command"];
         let value = data["value"];
-
-        console.log("subLogger:", subLogger, "command:", command, "value:", value);
 
         if (command === "start") {
             // check if action log is initialized
@@ -320,8 +335,11 @@ class ActionManager {
 
             // set copy to clipboard action
             $("#" + this.actionLogCopyIdPrefix + subLogger).on("click", function (_) {
-                self.copyClipboard(this.actionLogTextareaIdPrefix + subLogger);
+                self.copyClipboard(self.actionLogTextareaIdPrefix + subLogger);
             });
+
+            // set actionLogTextArea height
+            $("#" + this.actionLogTextareaIdPrefix + subLogger).height(0);
 
             // collapse all accordion items
             let accordionButtons = $(".action-log-accordion-button");
@@ -411,28 +429,6 @@ class ActionManager {
             alert("Unknown command received - subLogger: " + subLogger + " command: " + command + " value: " + value);
         }
     }
-
-    // pushActionLogMessage(msg) {
-    //     // calculate new height
-    //     let newHeight = $("#action-log-textarea").height() + 20
-    //     if (newHeight > 500) {
-    //         newHeight = 500;
-    //     }
-    //
-    //     // set 'action-log-textarea' height
-    //     $("#action-log-textarea").height(newHeight);
-    //
-    //     // append message to 'action-log-textarea'
-    //     let currentText = $("#action-log-textarea").text();
-    //     if (currentText.length > 0) {
-    //         currentText += "\n";
-    //     }
-    //     currentText += msg;
-    //     $("#action-log-textarea").text(currentText);
-    //
-    //     // scroll to bottom
-    //     $("#action-log-textarea").scrollTop($("#action-log-textarea")[0].scrollHeight);
-    // }
 }
 
 // // set copy to clipboard action

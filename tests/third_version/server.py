@@ -208,6 +208,16 @@ class ActionSubLogger(logging.Logger):
 
 
 class ActionLogger:
+    class ActionSubLoggerContext:
+        def __init__(self):
+            ...
+
+        def __enter__(self):
+            ...
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            ...
+
     _action_loggers: list["ActionLogger"] = []
 
     def __init__(self, action_log_key: str, websocket: Optional[WebSocket] = None):
@@ -231,13 +241,19 @@ class ActionLogger:
         return None
 
     @classmethod
-    async def wait_for_logger(cls,
-                              action_log_key_or_request: Union[str, Request],
-                              # log_level: Optional[int] = None,
-                              # parent: Optional[logging.Logger] = logger,
-                              # formatter: logging.Formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d - %H:%M:%S"),
-                              timeout: int = 5,
-                              ignore_not_found: bool = False) -> "ActionLogger":
+    def get_action_key(cls, action_log_key_or_request: Union[str, Request]):
+        if isinstance(action_log_key_or_request, Request):
+            action_log_key = action_log_key_or_request.query_params.get("actionLogKey", None)
+            if action_log_key is None:
+                raise ValueError("No action log key provided.")
+        elif isinstance(action_log_key_or_request, str):
+            action_log_key = action_log_key_or_request
+        else:
+            raise ValueError("Invalid action log key or request.")
+        return action_log_key
+
+    @classmethod
+    async def wait_for_logger(cls, action_log_key_or_request: Union[str, Request], timeout: int = 5, ignore_not_found: bool = False) -> "ActionLogger":
         """
         Wait for action logger to be created by WebSocket connection. If action logger not found, a dummy logger will be created or an error will be raised.
 
@@ -247,14 +263,8 @@ class ActionLogger:
         :return: Action logger.
         """
 
-        if isinstance(action_log_key_or_request, Request):
-            action_log_key = action_log_key_or_request.query_params.get("actionLogKey", None)
-            if action_log_key is None:
-                raise ValueError("No action log key provided.")
-        elif isinstance(action_log_key_or_request, str):
-            action_log_key = action_log_key_or_request
-        else:
-            raise ValueError("Invalid action log key or request.")
+        # get action log key
+        action_log_key = cls.get_action_key(action_log_key_or_request)
 
         # get action logger
         action_logger = None
@@ -277,30 +287,48 @@ class ActionLogger:
             action_logger = ActionLogger(action_log_key="dummy")
             warnings.warn("ActionLogger not found. Created dummy logger.", RuntimeWarning)
 
-        # # set log level
-        # if log_level is None:
-        #     if parent is None:
-        #         log_level = logging.INFO
-        #     else:
-        #         log_level = parent.level
-        # action_logger.setLevel(log_level)
-        #
-        # # set parent logger
-        # action_logger.parent = parent
-        #
-        # # set formatter
-        # for handler in action_logger.handlers:
-        #     handler.setFormatter(formatter)
-
         return action_logger
 
-    def new_sub_logger(self, sub_logger_name: str, sub_logger_title: Optional[str] = None) -> ActionSubLogger:
+    def new_sub_logger(self,
+                       name: str,
+                       title: Optional[str] = None,
+                       log_level: Optional[int] = None,
+                       parent: Optional[logging.Logger] = logger,
+                       formatter: logging.Formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d - %H:%M:%S")) -> ActionSubLogger:
+        """
+        Create new sub logger.
+
+        :param name: Name of sub logger. Only a-z, A-Z, 0-9, - and _ are allowed.
+        :param title: Title of sub logger. Visible in frontend.
+        :param log_level: Log level of sub logger. If None, parent log level will be used. If parent is None, logging.INFO will be used.
+        :param parent: Parent logger. If None, logger will be added to module logger.
+        :param formatter: Formatter of sub logger.
+        :return:
+        """
+
         try:
-            self.get_sub_logger(sub_logger_name=sub_logger_name)
+            self.get_sub_logger(sub_logger_name=name)
         except ValueError:
             pass
+
         # create sub logger
-        sub_logger = ActionSubLogger(action_logger=self, name=sub_logger_name, title=sub_logger_title)
+        sub_logger = ActionSubLogger(action_logger=self, name=name, title=title)
+
+        # set log level
+        if log_level is None:
+            if parent is None:
+                log_level = logging.INFO
+            else:
+                log_level = parent.level
+        sub_logger.setLevel(log_level)
+
+        # set parent logger
+        sub_logger.parent = parent
+
+        # set formatter
+        for handler in sub_logger.handlers:
+            handler.setFormatter(formatter)
+
         self._sub_logger.append(sub_logger)
         return sub_logger
 
@@ -354,7 +382,7 @@ class ActionLogEndpoint(WebSocketEndpoint):
         try:
             # create logger
             ActionLogger(action_log_key=self.action_log_key, websocket=websocket)
-        except Exception as e:
+        except Exception:
             await websocket.close(code=1000)
             raise
 
@@ -426,110 +454,113 @@ class TestView(ModelView):
         action_logger.get_sub_logger("sub_action_1").info("Test Aktion step 2")
         await asyncio.sleep(2)
         action_logger.get_sub_logger("sub_action_1").next_step()
-        action_logger.get_sub_logger("sub_action_1").steps += 100
-        for i in range(1, 100):
-            action_logger.get_sub_logger("sub_action_1").info(f"Test Aktion step 2 - {i}")
-            action_logger.get_sub_logger("sub_action_1").next_step()
-            await asyncio.sleep(0.1)
+        # action_logger.get_sub_logger("sub_action_1").steps += 100
+        # for i in range(1, 100):
+        #     action_logger.get_sub_logger("sub_action_1").info(f"Test Aktion step 2 - {i}")
+        #     action_logger.get_sub_logger("sub_action_1").next_step()
+        #     await asyncio.sleep(0.1)
         action_logger.get_sub_logger("sub_action_1").info("Test Aktion step 3")
         await asyncio.sleep(2)
         action_logger.get_sub_logger("sub_action_1").next_step()
         action_logger.get_sub_logger("sub_action_1").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
 
-        action_logger.new_sub_logger("sub_action_2", "Sub Action 2").steps = 1
+        action_logger.new_sub_logger("sub_action_2", "Sub Action 2").steps = 3
+        action_logger.new_sub_logger("sub_action_3", "Sub Action 3").steps = 3
         action_logger.get_sub_logger("sub_action_2").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_2").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_3", "Sub Action 3").steps = 1
         action_logger.get_sub_logger("sub_action_3").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(2)
+        action_logger.get_sub_logger("sub_action_2").next_step()
+        action_logger.get_sub_logger("sub_action_3").next_step()
+        await asyncio.sleep(2)
+        action_logger.get_sub_logger("sub_action_2").next_step()
+        action_logger.get_sub_logger("sub_action_3").next_step()
+        action_logger.get_sub_logger("sub_action_2").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
         action_logger.get_sub_logger("sub_action_3").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_4", "Sub Action 4").steps = 1
-        action_logger.get_sub_logger("sub_action_4").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_4").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_5", "Sub Action 5").steps = 1
-        action_logger.get_sub_logger("sub_action_5").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_5").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_6", "Sub Action 6").steps = 1
-        action_logger.get_sub_logger("sub_action_6").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_6").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_7", "Sub Action 7").steps = 1
-        action_logger.get_sub_logger("sub_action_7").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_7").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_8", "Sub Action 8").steps = 1
-        action_logger.get_sub_logger("sub_action_8").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_8").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_9", "Sub Action 9").steps = 1
-        action_logger.get_sub_logger("sub_action_9").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_9").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_10", "Sub Action 10").steps = 1
-        action_logger.get_sub_logger("sub_action_10").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_10").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_11", "Sub Action 11").steps = 1
-        action_logger.get_sub_logger("sub_action_11").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_11").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_12", "Sub Action 12").steps = 1
-        action_logger.get_sub_logger("sub_action_12").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_12").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_13", "Sub Action 13").steps = 1
-        action_logger.get_sub_logger("sub_action_13").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_13").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_14", "Sub Action 14").steps = 1
-        action_logger.get_sub_logger("sub_action_14").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_14").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_15", "Sub Action 15").steps = 1
-        action_logger.get_sub_logger("sub_action_15").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_15").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_16", "Sub Action 16").steps = 1
-        action_logger.get_sub_logger("sub_action_16").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_16").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_17", "Sub Action 17").steps = 1
-        action_logger.get_sub_logger("sub_action_17").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_17").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_18", "Sub Action 18").steps = 1
-        action_logger.get_sub_logger("sub_action_18").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_18").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-
-        action_logger.new_sub_logger("sub_action_19", "Sub Action 19").steps = 1
-        action_logger.get_sub_logger("sub_action_19").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_19").finalize(success=True, msg="Test Aktion erfolgreich.")
-
-        action_logger.new_sub_logger("sub_action_20", "Sub Action 20").steps = 1
-        action_logger.get_sub_logger("sub_action_20").info("Test Aktion startet ...")
-        await asyncio.sleep(0.5)
-        action_logger.get_sub_logger("sub_action_20").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_4", "Sub Action 4").steps = 1
+        # action_logger.get_sub_logger("sub_action_4").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_4").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_5", "Sub Action 5").steps = 1
+        # action_logger.get_sub_logger("sub_action_5").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_5").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_6", "Sub Action 6").steps = 1
+        # action_logger.get_sub_logger("sub_action_6").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_6").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_7", "Sub Action 7").steps = 1
+        # action_logger.get_sub_logger("sub_action_7").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_7").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_8", "Sub Action 8").steps = 1
+        # action_logger.get_sub_logger("sub_action_8").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_8").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_9", "Sub Action 9").steps = 1
+        # action_logger.get_sub_logger("sub_action_9").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_9").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_10", "Sub Action 10").steps = 1
+        # action_logger.get_sub_logger("sub_action_10").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_10").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_11", "Sub Action 11").steps = 1
+        # action_logger.get_sub_logger("sub_action_11").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_11").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_12", "Sub Action 12").steps = 1
+        # action_logger.get_sub_logger("sub_action_12").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_12").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_13", "Sub Action 13").steps = 1
+        # action_logger.get_sub_logger("sub_action_13").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_13").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_14", "Sub Action 14").steps = 1
+        # action_logger.get_sub_logger("sub_action_14").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_14").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_15", "Sub Action 15").steps = 1
+        # action_logger.get_sub_logger("sub_action_15").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_15").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_16", "Sub Action 16").steps = 1
+        # action_logger.get_sub_logger("sub_action_16").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_16").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_17", "Sub Action 17").steps = 1
+        # action_logger.get_sub_logger("sub_action_17").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_17").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_18", "Sub Action 18").steps = 1
+        # action_logger.get_sub_logger("sub_action_18").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_18").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
+        #
+        # action_logger.new_sub_logger("sub_action_19", "Sub Action 19").steps = 1
+        # action_logger.get_sub_logger("sub_action_19").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_19").finalize(success=True, msg="Test Aktion erfolgreich.")
+        #
+        # action_logger.new_sub_logger("sub_action_20", "Sub Action 20").steps = 1
+        # action_logger.get_sub_logger("sub_action_20").info("Test Aktion startet ...")
+        # await asyncio.sleep(0.5)
+        # action_logger.get_sub_logger("sub_action_20").finalize(success=False, msg="Test Aktion fehlgeschlagen.")
 
         return "Test Aktion erfolgreich."
 
