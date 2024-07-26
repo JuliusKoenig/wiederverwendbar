@@ -512,15 +512,21 @@ class ActionLogger:
 
         self.action_log_key = self.get_action_key(action_log_key_request_or_websocket)
         self.show_errors = show_errors
+
+        # get parent logger
+        if parent is None:
+            parent = logger
+        self.parent = parent
+
+        # set log level
         if log_level is None:
             if parent is None:
                 log_level = logging.INFO
             else:
                 log_level = parent.level
         self.log_level = log_level
-        if parent is None:
-            parent = logger
-        self.parent = parent
+
+        # set formatter
         if formatter is None:
             formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d - %H:%M:%S")
         self.formatter = formatter
@@ -691,6 +697,11 @@ class ActionLogger:
         # create sub logger
         sub_logger = ActionSubLogger(action_logger=self, name=name, title=title)
 
+        # set parent logger
+        if parent is None:
+            parent = self.parent
+        sub_logger.parent = parent
+
         # set log level
         if log_level is None:
             if parent is None:
@@ -698,11 +709,6 @@ class ActionLogger:
             else:
                 log_level = parent.level
         sub_logger.setLevel(log_level)
-
-        # set parent logger
-        if parent is None:
-            parent = self.parent
-        sub_logger.parent = parent
 
         # set formatter
         if formatter is None:

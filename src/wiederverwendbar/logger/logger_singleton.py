@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from typing import Any
 
@@ -64,6 +65,17 @@ class SubLogger(logging.Logger):
                 return False
         return getattr(self, "_init", False)
 
+    @contextlib.contextmanager
+    def reconfigure(self):
+        if self.init:
+            try:
+                super().__setattr__("_init", False)
+                yield self
+            finally:
+                super().__setattr__("_init", True)
+        else:
+            yield self
+
     def setLevel(self, level):
         if not self.init:
             return super().setLevel(level)
@@ -83,3 +95,10 @@ class SubLogger(logging.Logger):
     def removeFilter(self, fltr):
         if not self.init:
             return super().removeFilter(fltr)
+
+    @classmethod
+    def get_logger(cls, name: str) -> "SubLogger":
+        logger = logging.getLogger(name)
+        if not isinstance(logger, SubLogger):
+            raise RuntimeError(f"Logger '{name}' is not a {cls.__name__}")
+        return logger
