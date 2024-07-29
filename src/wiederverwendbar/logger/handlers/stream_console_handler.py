@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from wiederverwendbar.logger.logger_settings import LoggerSettings
+from wiederverwendbar.logger.settings import LoggerSettings
 
 
 def _resolve_file(outfile: LoggerSettings.TerminalOutFile):

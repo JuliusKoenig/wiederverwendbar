@@ -10,7 +10,7 @@ from starlette.requests import Request
 from starlette.websockets import WebSocket, WebSocketState
 from starlette_admin.exceptions import ActionFailed
 
-from wiederverwendbar.logger.logger_context import LoggingContext
+from wiederverwendbar.logger.context import LoggingContext
 
 LOGGER = logging.getLogger(__name__)
 

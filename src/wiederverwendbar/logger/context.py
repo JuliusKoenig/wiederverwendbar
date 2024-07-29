@@ -2,7 +2,7 @@ import inspect
 import logging
 from typing import Union, Optional
 
-from wiederverwendbar.logger.logger_singleton import SubLogger
+from wiederverwendbar.logger.singleton import SubLogger
 
 # get module lock
 _acquireLock = getattr(logging, "_acquireLock")

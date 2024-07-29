@@ -7,12 +7,11 @@ from typing import Any, Optional
 
 from wiederverwendbar.task_manger.task import Task
 from wiederverwendbar.task_manger.trigger import Trigger
-from wiederverwendbar.singleton import Singleton
 
 LOGGER = logging.getLogger(__name__)
 
 
-class Manager:
+class TaskManager:
     lock = threading.Lock()
 
     def __init__(self,
@@ -240,5 +239,3 @@ class Manager:
         return decorator
 
 
-class ManagerSingleton(Manager, metaclass=Singleton):
-    ...

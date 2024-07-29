@@ -1,5 +1,5 @@
 from wiederverwendbar.pydantic.security.hashed_password_model import HashedPasswordModel
-from wiederverwendbar.functions.security.hash_password import hash_password
+from wiederverwendbar.pydantic.security.hash_password import hash_password
 
 
 def verify_password(hashed_password_model: HashedPasswordModel, verifying_password: str) -> bool:

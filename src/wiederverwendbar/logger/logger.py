@@ -1,13 +1,7 @@
 import logging
 
-from wiederverwendbar.logger.handlers.stream_console_handler import StreamConsoleHandler
-from wiederverwendbar.logger.logger_settings import LoggerSettings
-
-try:
-    from wiederverwendbar.logger.handlers.rich_console_handler import RichConsoleHandler
-except ModuleNotFoundError:
-    RichConsoleHandler = None
-from wiederverwendbar.logger.handlers.tar_rotating_file_handler import TarRotatingFileHandler
+from wiederverwendbar.logger.handlers import RichConsoleHandler, StreamConsoleHandler, TarRotatingFileHandler
+from wiederverwendbar.logger.settings import LoggerSettings
 
 
 class Logger(logging.Logger):

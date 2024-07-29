@@ -1,9 +1,8 @@
 import contextlib
 import logging
-from typing import Any
 
 from wiederverwendbar.logger.logger import Logger
-from wiederverwendbar.logger.logger_settings import LoggerSettings
+from wiederverwendbar.logger.settings import LoggerSettings
 from wiederverwendbar.singleton import Singleton
 
 LOGGER_SINGLETON_ORDER = 10

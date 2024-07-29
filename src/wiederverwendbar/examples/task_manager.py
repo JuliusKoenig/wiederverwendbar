@@ -1,7 +1,7 @@
 import logging
 import time
 
-from wiederverwendbar.task_manger import Manager, Task, AtCreation, EverySeconds
+from wiederverwendbar.task_manger import TaskManager, Task, AtCreation, EverySeconds
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -9,8 +9,8 @@ ch = logging.StreamHandler()
 logger.addHandler(ch)
 
 # create manager
-manager1 = Manager(name="Manager1", logger=logger)
-manager2 = Manager(name="Manager2", logger=logger)
+manager1 = TaskManager(name="Manager1", logger=logger)
+manager2 = TaskManager(name="Manager2", logger=logger)
 
 
 @manager1.task(name="Task 1", trigger=AtCreation(delay_for_seconds=10))

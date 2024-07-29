@@ -1,4 +1,7 @@
+from pydantic import BaseModel
+
 from wiederverwendbar.logger import LoggerSingleton, LoggerSettings
+from wiederverwendbar.pydantic import ModelSingleton
 from wiederverwendbar.singleton import Singleton
 
 logger = LoggerSingleton(init=True, name="test", settings=LoggerSettings(log_level="DEBUG"), ignored_loggers_like=["uvicorn"])
@@ -26,6 +29,13 @@ class C(metaclass=Singleton, order=1):
 
     def __del__(self):
         print("C deleted")
+
+
+class Model(BaseModel, metaclass=ModelSingleton):
+    qwe: str
+
+
+Model(qwe="qwe", init=True)
 
 
 def init():

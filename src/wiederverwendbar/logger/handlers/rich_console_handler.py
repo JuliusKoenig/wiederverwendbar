@@ -2,7 +2,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 from wiederverwendbar.logger.handlers.stream_console_handler import _resolve_file
-from wiederverwendbar.logger.logger_settings import LoggerSettings
+from wiederverwendbar.logger.settings import LoggerSettings
 
 
 class RichConsoleHandler(RichHandler):

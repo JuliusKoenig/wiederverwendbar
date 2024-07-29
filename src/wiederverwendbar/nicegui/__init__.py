@@ -1,0 +1,1 @@
+from wiederverwendbar.nicegui.settings import NiceGuiSettings

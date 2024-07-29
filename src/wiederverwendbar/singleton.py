@@ -3,15 +3,12 @@ import logging
 from abc import ABCMeta
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel
-from pydantic._internal._model_construction import ModelMetaclass
-
 from wiederverwendbar.functions.find_class_method import find_class_method
 
 logger = logging.getLogger(__name__)
 
 
-class Singleton(ModelMetaclass):
+class Singleton(ABCMeta):
     """
     Singleton metaclass
     """
@@ -56,22 +53,7 @@ class Singleton(ModelMetaclass):
         if not singleton_set:
             attrs["__init__"] = singleton__init__
 
-        # check if BaseModel in bases
-        def check_base_model(previous, _bases):
-            for _b in _bases:
-                if _b is previous:
-                    continue
-                if _b is BaseModel:
-                    return True
-                found = check_base_model(_b, _base.__bases__)
-                if found:
-                    return True
-            return False
-
-        if not check_base_model(cls, bases):
-            return ABCMeta.__new__(cls, name, bases, attrs)
-        else:
-            return super().__new__(cls, name, bases, attrs)
+        return super().__new__(cls, name, bases, attrs)
 
     def __call__(cls, *args, init: bool = False, **kwargs):
         if init:
