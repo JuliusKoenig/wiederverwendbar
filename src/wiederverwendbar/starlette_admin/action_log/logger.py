@@ -10,6 +10,8 @@ from starlette.requests import Request
 from starlette.websockets import WebSocket, WebSocketState
 from starlette_admin.exceptions import ActionFailed
 
+from wiederverwendbar.logger.logger_context import LoggingContext
+
 logger = logging.getLogger(__name__)
 
 
@@ -438,7 +440,7 @@ class ActionSubLogger(logging.Logger):
         return not self.is_logger_exist(name=self.name)
 
 
-class ActionSubLoggerContext:
+class ActionSubLoggerContext(LoggingContext):
     def __init__(self,
                  action_logger: "ActionLogger",
                  name: str,
@@ -449,7 +451,8 @@ class ActionSubLoggerContext:
                  steps: Optional[int] = None,
                  finalize_on_success_log_level: int = logging.INFO,
                  finalize_on_success_msg: Optional[str] = None,
-                 show_errors: Optional[bool] = None):
+                 show_errors: Optional[bool] = None,
+                 handle_origin_logger: bool = True):
         """
         Create new action sub logger context manager.
 
@@ -463,10 +466,11 @@ class ActionSubLoggerContext:
         :param finalize_on_success_log_level: Log level of finalize message if success.
         :param finalize_on_success_msg: Message of finalize message if success.
         :param show_errors: Show errors in frontend. If None, action logger show_errors will be used.
+        :param handle_origin_logger: Handle origin logger.
         """
 
         # create sub logger
-        self.sub_logger = action_logger.new_sub_logger(name=name, title=title, log_level=log_level, parent=parent, formatter=formatter, steps=steps)
+        self.context_logger = action_logger.new_sub_logger(name=name, title=title, log_level=log_level, parent=parent, formatter=formatter, steps=steps)
 
         self.finalize_on_success_log_level = finalize_on_success_log_level
         self.finalize_on_success_msg = finalize_on_success_msg
@@ -474,20 +478,24 @@ class ActionSubLoggerContext:
             show_errors = action_logger.show_errors
         self.show_errors = show_errors
 
+        super().__init__(context_logger=self.context_logger, handle_origin_logger=handle_origin_logger)
+
     def __enter__(self) -> "ActionSubLogger":
-        return self.sub_logger
+        super().__enter__()
+        return self.context_logger
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if not self.sub_logger.exited:
+        super().__exit__(exc_type, exc_val, exc_tb)
+        if not self.context_logger.exited:
             if exc_type is None:
-                self.sub_logger.finalize(success=True, log_level=self.finalize_on_success_log_level, msg=self.finalize_on_success_msg)
+                self.context_logger.finalize(success=True, log_level=self.finalize_on_success_log_level, msg=self.finalize_on_success_msg)
             else:
                 if self.show_errors:
                     # get exception string
                     tb_str = traceback.format_exc()
-                    self.sub_logger.finalize(success=False, log_level=logging.ERROR, msg=tb_str)
+                    self.context_logger.finalize(success=False, log_level=logging.ERROR, msg=tb_str)
                 else:
-                    self.sub_logger.finalize(success=False, log_level=logging.ERROR, msg="Something went wrong.")
+                    self.context_logger.finalize(success=False, log_level=logging.ERROR, msg="Something went wrong.")
 
 
 class ActionLogger:
