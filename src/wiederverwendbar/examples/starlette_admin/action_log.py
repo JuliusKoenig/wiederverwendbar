@@ -72,7 +72,7 @@ class TestView(ModelView):
     # submit_btn_text="Ja, fortsetzen",
     # submit_btn_class="btn-success")
     async def test_action_action_log(self, request: Request, pk: list[str]) -> str:
-        with ActionLogger(request) as action_logger:
+        with ActionLogger(request, parent=logger) as action_logger:
             # use context manager to ensure that the logger is finalized
             with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3) as sub_logger:
                 sub_logger.info("Test Aktion startet ...")
@@ -102,8 +102,8 @@ class TestView(ModelView):
             await asyncio.sleep(2)
             sub_action_2_logger.next_step()
             sub_action_3_logger.next_step()
-            sub_action_2_logger.finalize(success=False, msg="Test Aktion fehlgeschlagen.")
-            sub_action_3_logger.finalize(success=True, msg="Test Aktion erfolgreich.")
+            sub_action_2_logger.finalize(success=False, on_error_msg="Test Aktion fehlgeschlagen.")
+            sub_action_3_logger.finalize(success=True, on_success_msg="Test Aktion erfolgreich.")
 
         return "Test Aktion erfolgreich."
 

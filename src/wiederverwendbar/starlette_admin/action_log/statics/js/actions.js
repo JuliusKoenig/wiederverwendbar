@@ -339,7 +339,7 @@ class ActionManager {
             });
 
             // set actionLogTextArea height
-            $("#" + this.actionLogTextareaIdPrefix + subLogger).height(0);
+            $("#" + this.actionLogTextareaIdPrefix + subLogger).height(500);
 
             // collapse all accordion items
             let accordionButtons = $(".action-log-accordion-button");
@@ -374,19 +374,8 @@ class ActionManager {
             }
             currentText += value;
 
-            // calculate new height
-            let lineHeight = parseInt(actionLogTextArea.css("line-height"));
-            let lineCount = currentText.split("\n").length - 1;
-            let newHeight = actionLogTextArea.height() + (lineCount) * lineHeight;
-            if (newHeight > 500) {
-                newHeight = 500;
-            }
-
             // set new text
             actionLogTextArea.text(currentText);
-
-            // set actionLogTextArea height
-            actionLogTextArea.height(newHeight);
 
             // scroll to bottom
             actionLogTextArea.scrollTop(actionLogTextArea[0].scrollHeight);
@@ -434,15 +423,3 @@ class ActionManager {
         }
     }
 }
-
-// // set copy to clipboard action
-// $("#action-log-copy").on("click", function (event) {
-//     navigator.clipboard.writeText($("#action-log-textarea").text()).then(
-//         () => {
-//             console.log("clipboard successfully set");
-//         },
-//         () => {
-//             console.error("clipboard write failed");
-//         });
-// });
-

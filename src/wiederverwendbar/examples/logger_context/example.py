@@ -1,5 +1,6 @@
 import logging
 import sys
+import threading
 
 from wiederverwendbar.logger import LoggingContext
 from wiederverwendbar.logger import LoggerSingleton, LoggerSettings
@@ -22,6 +23,17 @@ ch.setFormatter(logging.Formatter('logger2 - %(name)s - %(levelname)s - %(messag
 logger2.addHandler(ch)
 logger2.setLevel(logging.DEBUG)
 
+
+def test_thread():
+    while True:
+        # generate log messages on different loggers
+        example_function()
+
+
+# start test thread
+thread = threading.Thread(target=test_thread, daemon=True)
+thread.start()
+
 if __name__ == '__main__':
     # no context
     logger1.debug("no context")
@@ -33,8 +45,8 @@ if __name__ == '__main__':
         example_function()
     example_function()
 
-    with LoggingContext(logger1, handle_origin_logger=False) as context1_b:
-        with LoggingContext(logger2, handle_origin_logger=False) as context2_b:
+    with LoggingContext(logger1):
+        with LoggingContext(logger2):
             example_function()
         example_function()
     example_function()

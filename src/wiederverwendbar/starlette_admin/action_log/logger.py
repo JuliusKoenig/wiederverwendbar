@@ -4,7 +4,7 @@ import asyncio
 import string
 import traceback
 import warnings
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from starlette.requests import Request
 from starlette.websockets import WebSocket, WebSocketState
@@ -12,7 +12,7 @@ from starlette_admin.exceptions import ActionFailed
 
 from wiederverwendbar.logger.logger_context import LoggingContext
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class WebsocketHandler(logging.Handler):
@@ -135,6 +135,39 @@ class WebsocketHandler(logging.Handler):
         self.websockets.pop(websocket)
 
 
+class _SubLoggerCommand:
+    def __init__(self, logger: logging.Logger, command: str, **values):
+        record = logger.makeRecord(logger.name,
+                                   logging.NOTSET,
+                                   "",
+                                   0,
+                                   "",
+                                   (),
+                                   None,
+                                   extra={"handling_command": {"command": command, "values": values}})
+        logger.handle(record)
+
+
+class StepCommand(_SubLoggerCommand):
+    def __init__(self, logger: logging.Logger, step: int, steps: Optional[int] = None):
+        super().__init__(logger, "step", step=step, steps=steps)
+
+
+class NextStepCommand(_SubLoggerCommand):
+    def __init__(self, logger: logging.Logger):
+        super().__init__(logger, "next_step")
+
+
+class FinalizeCommand(_SubLoggerCommand):
+    def __init__(self, logger: logging.Logger, success: bool, on_success_msg: Optional[str] = None, on_error_msg: Optional[str] = None):
+        super().__init__(logger, "finalize", success=success, on_success_msg=on_success_msg, on_error_msg=on_error_msg)
+
+
+class ExitCommand(_SubLoggerCommand):
+    def __init__(self, logger: logging.Logger):
+        super().__init__(logger, "exit")
+
+
 class ActionSubLogger(logging.Logger):
     def __init__(self, action_logger: "ActionLogger", name: str, title: Optional[str] = None):
         """
@@ -174,7 +207,7 @@ class ActionSubLogger(logging.Logger):
         logging.root.manager.loggerDict[self.name] = self
 
         # start sub logger
-        self._command("start", self.title)
+        _SubLoggerCommand(logger=self, command="start")
 
     def __del__(self):
         if not self.exited:
@@ -212,64 +245,71 @@ class ActionSubLogger(logging.Logger):
 
         return cls._get_logger(name=name) is not None
 
-    def _extra(self, extra: Optional[dict] = None) -> dict:
-        """
-        Add extra to log record and check if any key is already in extra.
+    def handle(self, record) -> None:
+        if self.exited:
+            raise ValueError("ActionSubLogger already exited.")
 
-        :param extra: Extra of log record.
-        :return: New extra.
-        """
+        record.sub_logger = self.sub_logger_name
 
-        _extra = {"sub_logger": self.sub_logger_name}
+        if hasattr(record, "handling_command"):
+            command_name: str = getattr(record, "handling_command")["command"]
+            values: dict[str, Any] = getattr(record, "handling_command")["values"]
+            del record.handling_command
 
-        if extra is not None:
-            # check if any key is already in extra
-            for key in extra:
-                if key in _extra:
-                    raise ValueError(f"Key '{key}' is reserved for ActionSubLogger.")
-            _extra.update(extra)
-        return _extra
+            command = {"command": command_name}
+            if command_name == "start":
+                command["value"] = self.title
+                record.command = command
+                super().handle(record)
+            elif command_name == "step":
+                step = values["step"]
+                steps = values["steps"]
+                if steps is None:
+                    return
+                if steps < 0:
+                    raise ValueError("Steps must be greater than 0.")
+                if step >= steps:
+                    step = steps
+                calculated_progress = round(step / steps * 100)
+                command["value"] = calculated_progress
+                record.command = command
+                super().handle(record)
+                self._step = step
+                self._steps = steps
+            elif command_name == "next_step":
+                self.step += 1
+            elif command_name == "finalize":
+                success = values["success"]
+                msg = values["on_success_msg"] if success else values["on_error_msg"]
+                if success:
+                    if self.steps is not None:
+                        if self.step < self.steps:
+                            self.step = self.steps
+                if msg is not None:
+                    if success:
+                        self.log(logging.INFO, msg)
+                    else:
+                        self.log(logging.ERROR, msg)
 
-    def _command(self, command: str, value: Union[str, int, float, bool, None]) -> None:
-        """
-        Send command to websocket.
+                command["value"] = success
+                record.command = command
+                super().handle(record)
+                self.exit()
+            elif command_name == "exit":
+                # remove websockets
+                for websocket in self._websockets:
+                    self.remove_websocket(websocket)
 
-        :param command: Command
-        :param value: Value
-        :return: None
-        """
+                # remove handler
+                for handler in self.handlers:
+                    self.removeHandler(handler)
 
-        record = self.makeRecord(self.name, logging.NOTSET, "", 0, "", (), None, extra=self._extra({"command": {"command": command, "value": value}}))
-        self.handle(record)
-
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1) -> None:
-        """
-        Log message.
-
-        :param level: Log level
-        :param msg: Message
-        :param args: Arguments
-        :param exc_info: Exception info
-        :param extra: Extra added to log record
-        :param stack_info: Stack info
-        :param stacklevel: Stack level
-        :return: None
-        """
-
-        super()._log(level=level, msg=msg, args=args, exc_info=exc_info, extra=self._extra(extra), stack_info=stack_info, stacklevel=stacklevel)
-
-    def _step_command(self) -> None:
-        """
-        Send step command to websocket.
-
-        :return: None
-        """
-
-        if self.steps is None:
-            return
-        calculated_progress = round(self.step / self.steps * 100)
-
-        self._command("step", calculated_progress)
+                # remove logger from logger manager
+                logging.root.manager.loggerDict.pop(self.name, None)
+            else:
+                raise ValueError("Invalid command.")
+        else:
+            super().handle(record)
 
     def add_websocket(self, websocket: WebSocket) -> None:
         """
@@ -348,10 +388,7 @@ class ActionSubLogger(logging.Logger):
         :return: None
         """
 
-        if value < 0:
-            raise ValueError("Steps must be greater than 0.")
-        self._steps = value
-        self._step_command()
+        StepCommand(logger=self, step=self.step, steps=value)
 
     @property
     def step(self) -> int:
@@ -371,8 +408,7 @@ class ActionSubLogger(logging.Logger):
         :return: None
         """
 
-        self._step = value
-        self._step_command()
+        StepCommand(logger=self, step=value, steps=self.steps)
 
     def next_step(self) -> None:
         """
@@ -381,32 +417,22 @@ class ActionSubLogger(logging.Logger):
         :return: None
         """
 
-        if self.step >= self.steps:
-            return
-        self.step += 1
+        NextStepCommand(logger=self)
 
-    def finalize(self, success: bool = True, log_level: int = logging.INFO, msg: Optional[str] = None) -> None:
+    def finalize(self,
+                 success: bool = True,
+                 on_success_msg: Optional[str] = None,
+                 on_error_msg: Optional[str] = "Something went wrong.") -> None:
         """
         Finalize sub logger. Also send finalize command to websocket.
 
         :param success: If True, frontend will show success message. If False, frontend will show error message.
-        :param log_level: Log level of finalize message.
-        :param msg: Message of finalize message.
+        :param on_success_msg: Message if success.
+        :param on_error_msg: Message if error.
         :return: None
         """
 
-        if self.exited:
-            raise ValueError("ActionSubLogger already exited.")
-
-        if success:
-            if self.steps is not None:
-                if self.step < self.steps:
-                    self.step = self.steps
-        if msg is not None:
-            self.log(log_level, msg)
-
-        self._command("finalize", success)
-        self.exit()
+        FinalizeCommand(logger=self, success=success, on_success_msg=on_success_msg, on_error_msg=on_error_msg)
 
     def exit(self) -> None:
         """
@@ -415,19 +441,7 @@ class ActionSubLogger(logging.Logger):
         :return: None
         """
 
-        if self.exited:
-            raise ValueError("ActionSubLogger already exited.")
-
-        # remove websockets
-        for websocket in self._websockets:
-            self.remove_websocket(websocket)
-
-        # remove handler
-        for handler in self.handlers:
-            self.removeHandler(handler)
-
-        # remove logger from logger manager
-        logging.root.manager.loggerDict.pop(self.name, None)
+        ExitCommand(logger=self)
 
     @property
     def exited(self) -> bool:
@@ -445,13 +459,17 @@ class ActionSubLoggerContext(LoggingContext):
                  action_logger: "ActionLogger",
                  name: str,
                  title: Optional[str] = None,
-                 log_level: Optional[int] = None,
+                 log_level: int = logging.NOTSET,
                  parent: Optional[logging.Logger] = None,
                  formatter: Optional[logging.Formatter] = None,
                  steps: Optional[int] = None,
-                 finalize_on_success_log_level: int = logging.INFO,
-                 finalize_on_success_msg: Optional[str] = None,
+                 on_success_msg: Optional[str] = None,
+                 on_error_msg: Optional[str] = "Something went wrong.",
                  show_errors: Optional[bool] = None,
+                 use_context_logger_level: bool = True,
+                 use_context_logger_level_on_not_set: Optional[bool] = None,
+                 ignore_loggers_equal: Optional[list[str]] = None,
+                 ignore_loggers_like: Optional[list[str]] = None,
                  handle_origin_logger: bool = True):
         """
         Create new action sub logger context manager.
@@ -463,39 +481,50 @@ class ActionSubLoggerContext(LoggingContext):
         :param parent: Parent logger. If None, action logger parent will be used.
         :param formatter: Formatter of sub logger. If None, action logger formatter will be used.
         :param steps: Steps of sub logger.
-        :param finalize_on_success_log_level: Log level of finalize message if success.
-        :param finalize_on_success_msg: Message of finalize message if success.
+        :param on_success_msg: Message of finalize message if success.
+        :param on_error_msg: Message of finalize message if error.
         :param show_errors: Show errors in frontend. If None, action logger show_errors will be used.
+        :param use_context_logger_level: Use context logger level.
+        :param use_context_logger_level_on_not_set: Use context logger level on not set.
         :param handle_origin_logger: Handle origin logger.
         """
 
         # create sub logger
         self.context_logger = action_logger.new_sub_logger(name=name, title=title, log_level=log_level, parent=parent, formatter=formatter, steps=steps)
 
-        self.finalize_on_success_log_level = finalize_on_success_log_level
-        self.finalize_on_success_msg = finalize_on_success_msg
+        self.on_success_msg = on_success_msg
+        self.on_error_msg = on_error_msg
         if show_errors is None:
             show_errors = action_logger.show_errors
         self.show_errors = show_errors
 
-        super().__init__(context_logger=self.context_logger, handle_origin_logger=handle_origin_logger)
+        super().__init__(context_logger=self.context_logger,
+                         use_context_logger_level=use_context_logger_level,
+                         use_context_logger_level_on_not_set=use_context_logger_level_on_not_set,
+                         ignore_loggers_equal=ignore_loggers_equal,
+                         ignore_loggers_like=ignore_loggers_like,
+                         handle_origin_logger=handle_origin_logger)
 
     def __enter__(self) -> "ActionSubLogger":
         super().__enter__()
         return self.context_logger
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        super().__exit__(exc_type, exc_val, exc_tb)
         if not self.context_logger.exited:
             if exc_type is None:
-                self.context_logger.finalize(success=True, log_level=self.finalize_on_success_log_level, msg=self.finalize_on_success_msg)
+                self.context_logger.finalize(success=True, on_success_msg=self.on_success_msg, on_error_msg=self.on_error_msg)
             else:
                 if self.show_errors:
                     # get exception string
                     tb_str = traceback.format_exc()
-                    self.context_logger.finalize(success=False, log_level=logging.ERROR, msg=tb_str)
+                    if self.on_error_msg is None:
+                        on_error_msg = tb_str
+                    else:
+                        on_error_msg = self.on_error_msg + "\n" + tb_str
+                    self.context_logger.finalize(success=False, on_success_msg=self.on_success_msg, on_error_msg=on_error_msg)
                 else:
-                    self.context_logger.finalize(success=False, log_level=logging.ERROR, msg="Something went wrong.")
+                    self.context_logger.finalize(success=False, on_success_msg=self.on_success_msg, on_error_msg=self.on_error_msg)
+        super().__exit__(exc_type, exc_val, exc_tb)
 
 
 class ActionLogger:
@@ -503,7 +532,7 @@ class ActionLogger:
 
     def __init__(self,
                  action_log_key_request_or_websocket: Union[str, Request],
-                 log_level: Optional[int] = None,
+                 log_level: int = logging.NOTSET,
                  parent: Optional[logging.Logger] = None,
                  formatter: Optional[logging.Formatter] = None,
                  show_errors: bool = True,
@@ -523,15 +552,15 @@ class ActionLogger:
 
         # get parent logger
         if parent is None:
-            parent = logger
+            parent = LOGGER
         self.parent = parent
 
         # set log level
-        if log_level is None:
-            if parent is None:
-                log_level = logging.INFO
-            else:
-                log_level = parent.level
+        if log_level == logging.NOTSET:
+            log_level = logging.INFO
+            if self.parent is not None:
+                if self.parent.level != logging.NOTSET:
+                    log_level = self.parent.level
         self.log_level = log_level
 
         # set formatter
@@ -552,7 +581,7 @@ class ActionLogger:
                 if current_try >= wait_for_websocket_timeout:
                     raise ValueError("No websocket connected.")
                 current_try += 1
-                logger.debug(f"[{current_try}/{wait_for_websocket_timeout}] Waiting for websocket...")
+                LOGGER.debug(f"[{current_try}/{wait_for_websocket_timeout}] Waiting for websocket...")
                 asyncio.run(asyncio.sleep(1))
 
     def __enter__(self) -> "ActionLogger":
@@ -635,7 +664,7 @@ class ActionLogger:
             if action_logger is not None:
                 break
             current_try += 1
-            logger.debug(f"[{current_try}/{timeout}] Waiting for action logger...")
+            LOGGER.debug(f"[{current_try}/{timeout}] Waiting for action logger...")
             await asyncio.sleep(1)
 
         # check if action logger finally found
@@ -681,7 +710,7 @@ class ActionLogger:
     def new_sub_logger(self,
                        name: str,
                        title: Optional[str] = None,
-                       log_level: Optional[int] = None,
+                       log_level: int = logging.NOTSET,
                        parent: Optional[logging.Logger] = None,
                        formatter: Optional[logging.Formatter] = None,
                        steps: Optional[int] = None) -> ActionSubLogger:
@@ -711,11 +740,11 @@ class ActionLogger:
         sub_logger.parent = parent
 
         # set log level
-        if log_level is None:
-            if parent is None:
-                log_level = self.log_level
-            else:
-                log_level = parent.level
+        if log_level == logging.NOTSET:
+            log_level = self.log_level
+            if parent is not None:
+                if parent.level != logging.NOTSET:
+                    log_level = parent.level
         sub_logger.setLevel(log_level)
 
         # set formatter
@@ -755,13 +784,19 @@ class ActionLogger:
     def sub_logger(self,
                    name: str,
                    title: Optional[str] = None,
-                   log_level: Optional[int] = None,
+                   log_level: int = logging.NOTSET,
                    parent: Optional[logging.Logger] = None,
                    formatter: Optional[logging.Formatter] = None,
                    steps: Optional[int] = None,
-                   finalize_on_success_log_level: int = logging.INFO,
-                   finalize_on_success_msg: Optional[str] = None,
-                   show_errors: Optional[bool] = None) -> ActionSubLoggerContext:
+                   on_success_msg: Optional[str] = None,
+                   on_error_msg: Optional[str] = "Something went wrong.",
+                   show_errors: Optional[bool] = None,
+                   use_context_logger_level: bool = True,
+                   use_context_logger_level_on_not_set: Optional[bool] = None,
+                   ignore_loggers_equal: Optional[list[str]] = None,
+                   ignore_loggers_like: Optional[list[str]] = None,
+                   handle_origin_logger: bool = True) -> ActionSubLoggerContext:
+
         """
         Sub logger context manager.
 
@@ -771,9 +806,14 @@ class ActionLogger:
         :param parent: Parent logger. If None, action logger parent will be used.
         :param formatter: Formatter of sub logger. If None, action logger formatter will be used.
         :param steps: Steps of sub logger.
-        :param finalize_on_success_log_level: Log level of finalize message if success.
-        :param finalize_on_success_msg: Message of finalize message if success.
+        :param on_success_msg: Message of finalize message if success.
+        :param on_error_msg: Message of finalize message if error.
         :param show_errors: Show errors in frontend. If None, action logger show_errors will be used.
+        :param use_context_logger_level: Use context logger level.
+        :param use_context_logger_level_on_not_set: Use context logger level on not set.
+        :param ignore_loggers_equal: Ignore loggers equal to this list.
+        :param ignore_loggers_like: Ignore loggers like this list.
+        :param handle_origin_logger: Handle origin logger.
         :return:
         """
 
@@ -784,9 +824,14 @@ class ActionLogger:
                                       parent=parent,
                                       formatter=formatter,
                                       steps=steps,
-                                      finalize_on_success_log_level=finalize_on_success_log_level,
-                                      finalize_on_success_msg=finalize_on_success_msg,
-                                      show_errors=show_errors)
+                                      on_success_msg=on_success_msg,
+                                      on_error_msg=on_error_msg,
+                                      show_errors=show_errors,
+                                      use_context_logger_level=use_context_logger_level,
+                                      use_context_logger_level_on_not_set=use_context_logger_level_on_not_set,
+                                      ignore_loggers_equal=ignore_loggers_equal,
+                                      ignore_loggers_like=ignore_loggers_like,
+                                      handle_origin_logger=handle_origin_logger)
 
     def exit(self):
         """
