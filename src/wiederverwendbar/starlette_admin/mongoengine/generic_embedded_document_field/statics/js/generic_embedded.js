@@ -36,7 +36,7 @@ function onchange_generic_emb_select(select) {
         for (let i = 0; i < field_divs.length; i++) {
             let field_div = field_divs[i];
             field_div.style.display = "none";
-            if (field_div.id.includes(selected_value) && selected_value !== "") {
+            if (field_div.id.includes(selected_value + ".") && selected_value !== "") {
                 field_div.style.display = "";
             }
         }
