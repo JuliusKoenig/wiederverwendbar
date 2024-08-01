@@ -8,7 +8,7 @@ job("Build and publish Package") {
     startOn {
         gitPush {
             anyTagMatching {
-                +"build/v*"
+                +"release/v*"
             }
         }
     }
