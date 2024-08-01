@@ -1,2 +1,0 @@
-from wiederverwendbar.starlette_admin.view.property_model_view import PropertyModelView
-from wiederverwendbar.starlette_admin.view.property_model_view import property_field

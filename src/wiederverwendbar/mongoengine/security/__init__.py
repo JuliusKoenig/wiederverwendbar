@@ -1,1 +1,1 @@
-from wiederverwendbar.mongoengine.security.hashed_password_document import HashedPasswordDocument
+from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
