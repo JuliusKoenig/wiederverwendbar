@@ -23,6 +23,8 @@ full = [
     "nicegui>=1.4.30",
     "uvicorn>=0.30.4",
     "fastapi>=0.109.2",
+    "starlette-admin[i18n]>=0.14.1",
+    "pillow>=10.4.0",
 ]
 rich = [
     "rich>=13.7.1",
@@ -45,8 +47,9 @@ fastapi = [
 nicegui = [
     "nicegui>=1.4.30",
 ]
-starlette_admin = [
-    "starlette-admin>=0.14.1",
+starlette-admin = [
+    "starlette-admin[i18n]>=0.14.1",
+    "pillow>=10.4.0",
 ]
 
 [build-system]
