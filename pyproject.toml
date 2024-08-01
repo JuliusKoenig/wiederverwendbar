@@ -7,7 +7,7 @@ authors = [
 ]
 dependencies = [
     "pydantic>=2.8.2",
-    "pydantic-settings>=2.3.4",
+    "pydantic-settings>=2.4.0",
     "devtools>=0.12.2",
 ]
 requires-python = ">=3.9"
@@ -20,8 +20,8 @@ full = [
     "typer>=0.12.3",
     "pythonping>=1.1.4",
     "mongoengine>=0.28.2",
-    "nicegui>=1.4.29",
-    "uvicorn>=0.30.1",
+    "nicegui>=1.4.30",
+    "uvicorn>=0.30.4",
     "fastapi>=0.109.2",
 ]
 rich = [
@@ -37,16 +37,16 @@ mongoengine = [
     "mongoengine>=0.28.2",
 ]
 uvicorn = [
-    "uvicorn>=0.30.1",
+    "uvicorn>=0.30.4",
 ]
 fastapi = [
     "fastapi>=0.109.2",
 ]
 nicegui = [
-    "nicegui>=1.4.29",
+    "nicegui>=1.4.30",
 ]
 starlette_admin = [
-    "starlette-admin>=0.14.0",
+    "starlette-admin>=0.14.1",
 ]
 
 [build-system]
@@ -59,3 +59,12 @@ distribution = true
 [tool.pdm.version]
 source = "file"
 path = "src/wiederverwendbar/__init__.py"
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "gitchangelog>=3.0.4",
+    "pystache>=0.6.5",
+]
+
+[tool.pdm.scripts]
+changelog = {shell="gitchangelog > .\\CHANGELOG.md"}
