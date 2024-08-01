@@ -3,7 +3,7 @@ name = "wiederverwendbar"
 dynamic = ["version"]
 description = "A collection of scripts, classes and tools they are \\\"wiederverwendbar\\\"."
 authors = [
-    {name = "Julius Koenig", email = "info@bastelquartier.de"},
+    { name = "Julius Koenig", email = "info@bastelquartier.de" },
 ]
 dependencies = [
     "pydantic>=2.8.2",
@@ -12,7 +12,7 @@ dependencies = [
 ]
 requires-python = ">=3.9"
 readme = "README.md"
-license = {text = "GPL-3.0"}
+license = { text = "GPL-3.0" }
 
 [project.optional-dependencies]
 full = [
@@ -70,4 +70,4 @@ dev = [
 ]
 
 [tool.pdm.scripts]
-changelog = {shell="gitchangelog > .\\CHANGELOG.md"}
+changelog = { shell = "gitchangelog > .\\CHANGELOG.md" }
