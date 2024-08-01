@@ -19,7 +19,7 @@ class User(Document):
     password_change_time: Optional[datetime] = DateTimeField()
     password_expiration_time: Optional[datetime] = DateTimeField()
     sessions: list[Session] = ListField(ReferenceField(Session, reverse_delete_rule=PULL))
-    avatar: ImageGridFsProxy = ImageField()
+    avatar: ImageGridFsProxy = ImageField(size=(100, 100))
     company_logo: str = StringField()
 
     def save(
