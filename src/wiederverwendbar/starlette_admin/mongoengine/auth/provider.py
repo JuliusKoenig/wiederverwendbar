@@ -51,11 +51,18 @@ class MongoengineAdminAuthProvider(AuthProvider):
                 raise FormValidationError({"username": "User not found!"})
             raise LoginFailed("Invalid username or password!")
 
-        # validate password
-        if not user.password.verify_password(password):
-            if settings.admin_debug:
-                raise FormValidationError({"password": "Invalid password!"})
-            raise LoginFailed("Invalid username or password!")
+        # check if user password is set
+        if user.password is None:
+            if not settings.admin_user_allows_empty_password_login:
+                if settings.admin_debug:
+                    raise FormValidationError({"password": "Password is not set for this user!"})
+                raise LoginFailed("Invalid username or password!")
+        else:
+            # validate password
+            if not user.password.verify_password(password):
+                if settings.admin_debug:
+                    raise FormValidationError({"password": "Invalid password!"})
+                raise LoginFailed("Invalid username or password!")
 
         # check if user have already a session
         if settings.admin_session_only_one:

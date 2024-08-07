@@ -1,4 +1,5 @@
-from pathlib import Path
+import logging
+import warnings
 from typing import Optional, Sequence, Tuple, Any
 
 from starlette.middleware import Middleware
@@ -17,6 +18,8 @@ from wiederverwendbar.starlette_admin.mongoengine.auth.document.session import S
 from wiederverwendbar.starlette_admin.mongoengine.auth.view.session import SessionView
 from wiederverwendbar.starlette_admin.mongoengine.auth.document.user import User
 from wiederverwendbar.starlette_admin.mongoengine.auth.view.user import UserView
+
+logger = logging.getLogger(__name__)
 
 
 class MongoengineAuthAdmin(SettingsAdmin, Admin):
@@ -102,6 +105,19 @@ class MongoengineAuthAdmin(SettingsAdmin, Admin):
         # create views
         self.add_view(self.user_view)
         self.add_view(self.session_view)
+
+        # check if superuser is set
+        if settings.admin_superuser_username is not None:
+            # check if superuser exists
+            if not self.user_document.objects(username=settings.admin_superuser_username).first():
+                if settings.admin_superuser_auto_create:
+                    # create superuser
+                    logger.info(f"Creating superuser with username '{settings.admin_superuser_username}' and password '{settings.admin_superuser_username}'")
+                    superuser = self.user_document(username=settings.admin_superuser_username)
+                    superuser.password = settings.admin_superuser_username
+                    superuser.save()
+                else:
+                    warnings.warn(f"Superuser with username '{settings.admin_superuser_username}' does not exist!", UserWarning)
 
     def company_logo_files(self, request: Request) -> Sequence[Tuple[Any, str]]:
         if not self.settings.admin_static_company_logo_dir:
