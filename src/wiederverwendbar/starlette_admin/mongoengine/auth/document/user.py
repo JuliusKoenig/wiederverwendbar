@@ -47,24 +47,17 @@ class User(Document):
             signal_kwargs=None,
             **kwargs,
     ):
-        changed_fields = getattr(self, "_changed_fields", [])
-
-        if self.password_new_field and "password_new_field" in changed_fields:
+        if self.password_new_field:
             if self.password_new_field != self.password_new_repeat_field:
                 raise ValidationError(errors={"password_new_field": "The new password does not match the repeated password.",
                                               "password_new_repeat_field": "The repeated password does not match the new password."})
             self.password = self.password_new_field
-            self.password_new_field = None
-            self.password_new_repeat_field = None
-        if "password_doc" in changed_fields:
-            self.password_change_time = None if self.password is None else datetime.now()
-        if "password_change_time" in changed_fields:
-            if self.password_change_time is None:
-                self.password_expiration_time = None
-            else:
-                if not self.password_expiration_time:
-                    if self.password_change_time > self.password_expiration_time:
-                        self.password_expiration_time = None
+
+            if self.password_expiration_time is not None:
+                if self.password_change_time > self.password_expiration_time:
+                    self.password_expiration_time = None
+        self.password_new_field = None
+        self.password_new_repeat_field = None
 
         return super().save(
             force_insert=force_insert,
@@ -89,6 +82,7 @@ class User(Document):
     @password.setter
     def password(self, value: str) -> None:
         self.password_doc = HashedPasswordDocument.hash_password(value)
+        self.password_change_time = datetime.now()
 
     @property
     def session_document_cls(self) -> type[Any]:
