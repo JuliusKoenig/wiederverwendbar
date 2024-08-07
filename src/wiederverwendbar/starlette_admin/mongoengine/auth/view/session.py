@@ -22,6 +22,7 @@ class SessionView(MongoengineModelView):
             identity: Optional[str] = None,
             converter: Optional[BaseMongoEngineModelConverter] = None,
     ):
+        # set default values
         document = document or Session
         icon = icon or "fa-solid fa-list"
         name = name or "Session"

@@ -38,6 +38,7 @@ class UserView(MongoengineModelView):
             converter: Optional[BaseMongoEngineModelConverter] = None,
             company_logo_choices_loader: Optional[Callable[[Request], Union[Sequence[str], Sequence[Tuple[Any, str]]]]] = lambda _: [],
     ):
+        # set default values
         document = document or User
         icon = icon or "fa fa-user"
         name = name or "User"
