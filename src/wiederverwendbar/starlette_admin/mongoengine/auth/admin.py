@@ -12,6 +12,7 @@ from starlette_admin.views import CustomView
 from starlette_admin.auth import BaseAuthProvider
 
 from wiederverwendbar.starlette_admin.admin import SettingsAdmin
+from wiederverwendbar.starlette_admin.drop_down_icon_view.admin import DropDownIconViewAdmin
 from wiederverwendbar.starlette_admin.mongoengine.auth.views.auth import AuthView
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 from wiederverwendbar.starlette_admin.mongoengine.auth.provider import MongoengineAdminAuthProvider
@@ -23,7 +24,7 @@ from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import Use
 logger = logging.getLogger(__name__)
 
 
-class MongoengineAuthAdmin(SettingsAdmin, Admin):
+class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, Admin):
     def __init__(
             self,
             title: Optional[str] = None,
