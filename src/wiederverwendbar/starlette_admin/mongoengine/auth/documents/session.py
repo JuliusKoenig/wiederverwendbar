@@ -4,7 +4,7 @@ from typing import Any, Optional
 from mongoengine import Document, ReferenceField, DateTimeField, StringField, CASCADE
 from starlette.requests import Request
 
-from wiederverwendbar.starlette_admin.mongoengine.auth.document.user import User
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 
 

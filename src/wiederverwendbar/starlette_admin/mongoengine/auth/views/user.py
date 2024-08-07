@@ -4,7 +4,7 @@ from starlette.requests import Request
 from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelConverter
 from starlette_admin.fields import PasswordField, EnumField
 
-from wiederverwendbar.starlette_admin.mongoengine.auth.document.user import User
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
 
 

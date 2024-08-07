@@ -3,7 +3,7 @@ from typing import Type, Optional
 from starlette.requests import Request
 from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelConverter
 
-from wiederverwendbar.starlette_admin.mongoengine.auth.document.session import Session
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.session import Session
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
 
 

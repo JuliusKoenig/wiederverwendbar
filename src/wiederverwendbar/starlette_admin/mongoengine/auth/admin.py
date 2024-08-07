@@ -12,13 +12,13 @@ from starlette_admin.views import CustomView
 from starlette_admin.auth import BaseAuthProvider
 
 from wiederverwendbar.starlette_admin.admin import SettingsAdmin
-from wiederverwendbar.starlette_admin.mongoengine.auth.view.auth import AuthView
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.auth import AuthView
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 from wiederverwendbar.starlette_admin.mongoengine.auth.provider import MongoengineAdminAuthProvider
-from wiederverwendbar.starlette_admin.mongoengine.auth.document.session import Session
-from wiederverwendbar.starlette_admin.mongoengine.auth.view.session import SessionView
-from wiederverwendbar.starlette_admin.mongoengine.auth.document.user import User
-from wiederverwendbar.starlette_admin.mongoengine.auth.view.user import UserView
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.session import Session
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.session import SessionView
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.user import UserView
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
 
 logger = logging.getLogger(__name__)
 
