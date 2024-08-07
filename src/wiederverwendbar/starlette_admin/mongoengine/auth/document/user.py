@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
-from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ValidationError, PULL, ImageGridFsProxy
+from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ValidationError, ImageGridFsProxy
 from starlette.requests import Request
 
 from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
-from wiederverwendbar.starlette_admin.mongoengine.auth.document.session import Session
 
 
 class User(Document):
@@ -18,9 +17,22 @@ class User(Document):
     password_new_repeat_field: Optional[str] = StringField()
     password_change_time: Optional[datetime] = DateTimeField()
     password_expiration_time: Optional[datetime] = DateTimeField()
-    sessions: list[Session] = ListField(ReferenceField(Session, reverse_delete_rule=PULL))
+    sessions: list[Any] = ListField(ReferenceField("Session"))
     avatar: ImageGridFsProxy = ImageField(size=(100, 100))
     company_logo: str = StringField()
+
+    def __init__(self, *args, **values):
+        super().__init__(*args, **values)
+
+        # cleanup sessions they don't exist anymore
+        sessions = []
+        for session in self.sessions:
+            if type(session) is not self.session_document_cls:
+                continue
+            sessions.append(session)
+        if len(sessions) != len(self.sessions):
+            self.sessions = sessions
+            self.save()
 
     def save(
             self,
@@ -78,17 +90,21 @@ class User(Document):
     def password(self, value: str) -> None:
         self.password_doc = HashedPasswordDocument.hash_password(value)
 
-    def create_session_from_request(self, request: Request) -> Session:
+    @property
+    def session_document_cls(self) -> type[Any]:
+        return getattr(self, "_fields")["sessions"].field.document_type_obj
+
+    def create_session_from_request(self, request: Request) -> Any:
         # get settings
         settings = AuthAdminSettings.from_request(request=request)
 
         # get user-agent
         user_agent = request.headers.get("User-Agent", "")
 
-        session = Session(user=self,
-                          app_name=settings.admin_name,
-                          user_agent=user_agent,
-                          last_access=datetime.now())
+        session = self.session_document_cls(user=self,
+                                            app_name=settings.admin_name,
+                                            user_agent=user_agent,
+                                            last_access=datetime.now())
         session.save()
         self.sessions.append(session)
         self.save()

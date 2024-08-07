@@ -64,7 +64,7 @@ class MongoengineAdminAuthProvider(AuthProvider):
                 session.delete()
 
         # create new session
-        session = user.create_session_from_request(request=request)
+        session: Session = user.create_session_from_request(request=request)
 
         # save session id in session
         request.session.update({"session_id": str(session.id)})

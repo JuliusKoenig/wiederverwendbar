@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from mongoengine import Document, ReferenceField, DateTimeField, StringField
+from mongoengine import Document, ReferenceField, DateTimeField, StringField, CASCADE
 from starlette.requests import Request
 
+from wiederverwendbar.starlette_admin.mongoengine.auth.document.user import User
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 
 
 class Session(Document):
     meta = {"collection": "session"}
 
-    user: Any = ReferenceField("User", required=True)
+    user: Any = ReferenceField(User, required=True, reverse_delete_rule=CASCADE)
     app_name: str = StringField(regex=r"^[a-zA-Z0-9_-]+$", required=True)
     user_agent: str = StringField(default="")
     created: datetime = DateTimeField(default=datetime.now, required=True)
