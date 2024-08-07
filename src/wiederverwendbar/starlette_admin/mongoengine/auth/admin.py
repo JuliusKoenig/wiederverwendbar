@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Optional, Sequence, Tuple, Any
+from typing import Optional, Sequence, Tuple, Any, Union
 
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -12,6 +12,7 @@ from starlette_admin.views import CustomView
 from starlette_admin.auth import BaseAuthProvider
 
 from wiederverwendbar.starlette_admin.admin import SettingsAdmin
+from wiederverwendbar.starlette_admin.mongoengine.auth.view.auth import AuthView
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 from wiederverwendbar.starlette_admin.mongoengine.auth.provider import MongoengineAdminAuthProvider
 from wiederverwendbar.starlette_admin.mongoengine.auth.document.session import Session
@@ -33,6 +34,7 @@ class MongoengineAuthAdmin(SettingsAdmin, Admin):
             templates_dir: Optional[str] = None,
             statics_dir: Optional[str] = None,
             index_view: Optional[CustomView] = None,
+            auth_view: Union[None, AuthView, bool] = None,
             user_document: Optional[type[User]] = None,
             user_view: Optional[UserView] = None,
             session_document: Optional[type[Session]] = None,
@@ -70,6 +72,9 @@ class MongoengineAuthAdmin(SettingsAdmin, Admin):
         self.session_document = session_document or Session
 
         # set views
+        if auth_view is None:
+            auth_view = AuthView()
+        self.auth_view = auth_view
         self.user_view = user_view or UserView(document=self.user_document, company_logo_choices_loader=self.company_logo_files)
         self.session_view = session_view or SessionView(document=self.session_document)
 
@@ -103,8 +108,12 @@ class MongoengineAuthAdmin(SettingsAdmin, Admin):
         )
 
         # create views
-        self.add_view(self.user_view)
-        self.add_view(self.session_view)
+        if self.auth_view:
+            self.auth_view.views = [self.user_view, self.session_view]
+            self.add_view(self.auth_view)
+        else:
+            self.add_view(self.user_view)
+            self.add_view(self.session_view)
 
         # check if superuser is set
         if settings.admin_superuser_username is not None:

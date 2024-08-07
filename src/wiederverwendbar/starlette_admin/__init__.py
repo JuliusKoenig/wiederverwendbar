@@ -8,7 +8,8 @@ from wiederverwendbar.starlette_admin.action_log import (WebsocketHandler,
                                                          NextStepCommand,
                                                          StepCommand)
 
-from wiederverwendbar.starlette_admin.mongoengine import (Session,
+from wiederverwendbar.starlette_admin.mongoengine import (AuthView,
+                                                          Session,
                                                           SessionView,
                                                           User,
                                                           UserView,

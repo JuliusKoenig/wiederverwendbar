@@ -1,4 +1,5 @@
-from wiederverwendbar.starlette_admin.mongoengine.auth import (Session,
+from wiederverwendbar.starlette_admin.mongoengine.auth import (AuthView,
+                                                               Session,
                                                                SessionView,
                                                                User,
                                                                UserView,
