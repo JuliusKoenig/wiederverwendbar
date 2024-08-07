@@ -8,6 +8,9 @@ from wiederverwendbar.starlette_admin.action_log import (WebsocketHandler,
                                                          NextStepCommand,
                                                          StepCommand)
 
+from wiederverwendbar.starlette_admin.drop_down_icon_view import (DropDownIconViewAdmin,
+                                                                  DropDownIconView)
+
 from wiederverwendbar.starlette_admin.mongoengine import (AuthView,
                                                           Session,
                                                           SessionView,
@@ -28,8 +31,6 @@ from wiederverwendbar.starlette_admin.mongoengine import (AuthView,
 from wiederverwendbar.starlette_admin.admin import (MultiPathAdmin,
                                                     SettingsAdmin,
                                                     FormMaxFieldsAdmin)
-
-
 
 from wiederverwendbar.starlette_admin.settings import (AdminSettings,
                                                        FormMaxFieldsAdminSettings,
