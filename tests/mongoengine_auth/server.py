@@ -39,7 +39,7 @@ class MyAdmin(MongoengineAuthAdmin):
 
 
 # Create admin
-admin = MyAdmin(settings=AuthAdminSettings(admin_debug=True, admin_auth=True, admin_static_dir="statics"))
+admin = MyAdmin(settings=AuthAdminSettings(admin_debug=True, admin_auth=True, admin_static_dir="statics", admin_superuser_auto_create=True))
 
 
 class Test(Document):

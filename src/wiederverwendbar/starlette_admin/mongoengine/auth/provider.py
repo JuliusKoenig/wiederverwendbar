@@ -111,8 +111,10 @@ class MongoengineAdminAuthProvider(AuthProvider):
         custom_app_title = eval_value("Admin app title", settings.admin_user_app_title, session=session)
 
         # Update logo url according to current_user
-        custom_logo_url = str(request.url_for(settings.admin_route_name,
-                                              path=str(settings.admin_static_company_logo_dir / session.user.company_logo).replace("\\", "/")))
+        custom_logo_url = settings.admin_logo_url
+        if session.user.company_logo is not None:
+            custom_logo_url = str(request.url_for(settings.admin_route_name,
+                                                  path=str(settings.admin_static_company_logo_dir / session.user.company_logo).replace("\\", "/")))
 
         return AdminConfig(app_title=custom_app_title, logo_url=custom_logo_url)
 
