@@ -6,10 +6,9 @@ from wiederverwendbar.mongoengine.fields.with_instance_field import WithInstance
 
 
 class BooleanAlsoField(WithInstanceField):
-    def __init__(self, also: Union[str, Any] = None, only_on: Optional[bool] = None, **kwargs):
+    def __init__(self, also: Union[str, Any] = None, **kwargs):
         super().__init__(**kwargs)
         self.also: BooleanField = also
-        self.only_on = only_on
 
     def _set_owner_document(self, owner_document):
         super()._set_owner_document(owner_document)
@@ -18,17 +17,17 @@ class BooleanAlsoField(WithInstanceField):
         if self.also is not None and not isinstance(self.also, BooleanField):
             raise ValueError("The field 'also' must be of type 'BooleanField'.")
 
-    def validate(self, value):
+    def validate(self, value, clean=True):
         # validate value
         if not isinstance(value, bool):
             self.error("BooleanField only accepts boolean values")
 
-        # check if also field is set
-        if self.also is None:
+        # skip false values
+        if not value:
             return
 
-        # check if only_on is set and value equals only_on
-        if self.only_on is not None and value != self.only_on:
+        # check if also field is set
+        if self.also is None:
             return
 
         # get instance
