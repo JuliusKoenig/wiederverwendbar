@@ -157,6 +157,10 @@ class NextStepCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger):
         super().__init__(logger, "next_step")
 
+class IncreaseStepsCommand(_SubLoggerCommand):
+    def __init__(self, logger: logging.Logger, steps: int):
+        super().__init__(logger, "increase_steps", steps=steps)
+
 
 class FinalizeCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger, success: bool, on_success_msg: Optional[str] = None, on_error_msg: Optional[str] = None):
@@ -279,6 +283,11 @@ class ActionSubLogger(logging.Logger):
                 self._steps = steps
             elif command_name == "next_step":
                 self.step += 1
+            elif command_name == "increase_steps":
+                steps = values["steps"]
+                if steps < 0:
+                    raise ValueError("Steps must be greater than 0.")
+                self.steps += steps
             elif command_name == "finalize":
                 success = values["success"]
                 msg = values["on_success_msg"] if success else values["on_error_msg"]

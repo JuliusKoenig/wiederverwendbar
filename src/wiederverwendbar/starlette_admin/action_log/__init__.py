@@ -1,3 +1,3 @@
 from wiederverwendbar.starlette_admin.action_log.logger import WebsocketHandler, ActionSubLogger, ActionSubLoggerContext, ActionLogger, StepCommand, NextStepCommand, \
-    FinalizeCommand, ExitCommand
+    IncreaseStepsCommand, FinalizeCommand, ExitCommand
 from wiederverwendbar.starlette_admin.action_log.admin import ActionLogAdmin

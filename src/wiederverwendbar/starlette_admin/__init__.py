@@ -5,6 +5,7 @@ from wiederverwendbar.starlette_admin.action_log import (WebsocketHandler,
                                                          ActionLogAdmin,
                                                          ExitCommand,
                                                          FinalizeCommand,
+                                                         IncreaseStepsCommand,
                                                          NextStepCommand,
                                                          StepCommand)
 
