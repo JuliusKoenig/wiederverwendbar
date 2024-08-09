@@ -76,7 +76,7 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, Admin):
         if auth_view is None:
             auth_view = AuthView()
         self.auth_view = auth_view
-        self.user_view = user_view or UserView(document=self.user_document, company_logo_choices_loader=self.company_logo_files)
+        self.user_view = user_view or UserView(document=self.user_document, company_logo_choices_loader=self.user_company_logo_files_loader)
         self.session_view = session_view or SessionView(document=self.session_document)
 
         # set auth_provider
@@ -129,7 +129,7 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, Admin):
                 else:
                     warnings.warn(f"Superuser with username '{settings.admin_superuser_username}' does not exist!", UserWarning)
 
-    def company_logo_files(self, request: Request) -> Sequence[Tuple[Any, str]]:
+    def user_company_logo_files_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
         if not self.settings.admin_static_company_logo_dir:
             return []
         company_logo_files = []

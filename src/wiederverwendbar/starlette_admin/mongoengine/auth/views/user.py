@@ -10,21 +10,16 @@ from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelVi
 
 class UserView(MongoengineModelView):
     exclude_fields_from_list = [User.id,
-                                User.password_doc,
-                                User.password_new_field,
-                                User.password_new_repeat_field,
+                                "password",
                                 User.sessions,
-                                User.company_logo]
+                                User.company_logo,
+                                User.acls]
     exclude_fields_from_detail = [User.id,
-                                  User.password_doc,
-                                  User.password_new_field,
-                                  User.password_new_repeat_field]
+                                  "password"]
     exclude_fields_from_create = [User.id,
-                                  User.password_doc,
                                   User.password_change_time,
                                   User.sessions]
     exclude_fields_from_edit = [User.id,
-                                User.password_doc,
                                 User.password_change_time,
                                 User.sessions]
 
@@ -45,9 +40,9 @@ class UserView(MongoengineModelView):
         label = label or "Benutzer"
 
         fields = []
-        for field_name in document._fields_ordered:
-            if field_name == "password_new_field" or field_name == "password_new_repeat_field":
-                fields.append(PasswordField(name=field_name))
+        for field_name in list(getattr(document, "_fields_ordered", [])):
+            if field_name == "password_doc":
+                fields.append(PasswordField(name="password"))
             elif field_name == "company_logo":
                 fields.append(EnumField(name=field_name, choices_loader=company_logo_choices_loader))
             else:
@@ -63,10 +58,8 @@ class UserView(MongoengineModelView):
         for field in self.fields:
             if field.name == "username":
                 field.label = "Benutzername"
-            elif field.name == "password_new_field":
-                field.label = "Neues Passwort"
-            elif field.name == "password_new_repeat_field":
-                field.label = "Neues Passwort wiederholen"
+            elif field.name == "password":
+                field.label = "Passwort"
             elif field.name == "password_change_time":
                 field.label = "Passwortänderungszeit"
             elif field.name == "password_expiration_time":

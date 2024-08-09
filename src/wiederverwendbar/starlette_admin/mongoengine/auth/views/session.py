@@ -8,10 +8,10 @@ from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelVi
 
 
 class SessionView(MongoengineModelView):
-    exclude_fields_from_list = []
-    exclude_fields_from_detail = []
-    exclude_fields_from_create = []
-    exclude_fields_from_edit = []
+    exclude_fields_from_list = [Session.id]
+    exclude_fields_from_detail = [Session.id]
+    exclude_fields_from_create = [Session.id, Session.user, Session.app_name, Session.user_agent, Session.created, Session.last_access]
+    exclude_fields_from_edit = [Session.id, Session.user, Session.app_name, Session.user_agent, Session.created, Session.last_access]
 
     def __init__(
             self,
