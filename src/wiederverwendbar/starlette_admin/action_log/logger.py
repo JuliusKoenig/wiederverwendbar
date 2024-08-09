@@ -287,7 +287,10 @@ class ActionSubLogger(logging.Logger):
                 steps = values["steps"]
                 if steps < 0:
                     raise ValueError("Steps must be greater than 0.")
-                self.steps += steps
+                if self.steps is None:
+                    self.steps = steps
+                else:
+                    self.steps += steps
             elif command_name == "finalize":
                 success = values["success"]
                 msg = values["on_success_msg"] if success else values["on_error_msg"]
