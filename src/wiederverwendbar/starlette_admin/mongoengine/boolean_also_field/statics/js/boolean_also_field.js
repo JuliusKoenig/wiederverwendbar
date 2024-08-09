@@ -41,6 +41,9 @@ registerFieldInitializer(function (element) {
 
             // set the value of the current field to false
             el.prop("checked", false);
+
+            // trigger change event on current field
+            el.trigger("change");
         });
     });
 });

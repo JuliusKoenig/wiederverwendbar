@@ -14,7 +14,7 @@ class BooleanAlsoField(WithInstanceField):
         super()._set_owner_document(owner_document)
         if type(self.also) is str:
             self.also = getattr(self.owner_document, self.also)
-        if self.also is not None and not isinstance(self.also, BooleanField):
+        if self.also is not None and not (isinstance(self.also, BooleanField) or isinstance(self.also, BooleanAlsoField)):
             raise ValueError("The field 'also' must be of type 'BooleanField'.")
 
     def validate(self, value, clean=True):
