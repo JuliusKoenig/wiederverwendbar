@@ -38,16 +38,6 @@ class AdminSettings(BaseModel):
         data["admin_templates_dir"] = data.get("admin_templates_dir", Path("templates"))
         super().__init__(**data)
 
-        # check if and admin_session_secret_key is not the default value
-        if self.admin_session_secret_key == self.model_fields.get("admin_session_secret_key").default:
-            warnings.warn("Admin session secret key is not set. Please set it to a secure value.", UserWarning)
-
-        # check if admin_session_max_age is greater than admin_session_timeout_max_age
-        if self.admin_session_absolute_max_age is not None and self.admin_session_absolute_max_age < self.admin_session_max_age:
-            warnings.warn("Admin session absolute max age is smaller than admin session max age. "
-                          "Setting admin session absolute max age to admin session max age.", UserWarning)
-            self.admin_session_absolute_max_age = self.admin_session_max_age
-
         # check if admin_static_dir is set
         if self.admin_static_dir is None:
             warnings.warn("Admin static directory is not set. Please set it to the directory of the admin panel static.", UserWarning)
@@ -107,6 +97,16 @@ class AuthAdminSettings(AdminSettings):
 
     def __init__(self, /, **data: Any):
         super().__init__(**data)
+
+        # check if and admin_session_secret_key is not the default value
+        if self.admin_session_secret_key == self.model_fields.get("admin_session_secret_key").default:
+            warnings.warn("Admin session secret key is not set. Please set it to a secure value.", UserWarning)
+
+        # check if admin_session_max_age is greater than admin_session_timeout_max_age
+        if self.admin_session_absolute_max_age is not None and self.admin_session_absolute_max_age < self.admin_session_max_age:
+            warnings.warn("Admin session absolute max age is smaller than admin session max age. "
+                          "Setting admin session absolute max age to admin session max age.", UserWarning)
+            self.admin_session_absolute_max_age = self.admin_session_max_age
 
     @property
     def admin_static_company_logo_dir(self) -> Path:
