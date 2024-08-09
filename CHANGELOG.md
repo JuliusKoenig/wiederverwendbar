@@ -1,7 +1,22 @@
 # Changelog
 
 
-## (unreleased)
+## release/v0.4.1 (2024-08-09)
+
+### Changes
+
+* Version to v0.4.1. [Julius Koenig]
+
+### Fix
+
+* Starlette_admin.mongoengine.auth.views.users acls field. [Julius Koenig]
+
+* Action_log increase_steps if steps None. [Julius Koenig]
+
+* Settings admin_session_secret_key, admin_session_absolute_max_age  in wrong class. [Julius Koenig]
+
+
+## release/v0.4.0 (2024-08-09)
 
 ### Add
 
