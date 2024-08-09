@@ -12,8 +12,7 @@ class UserView(MongoengineModelView):
     exclude_fields_from_list = [User.id,
                                 "password",
                                 User.sessions,
-                                User.company_logo,
-                                User.acls]
+                                User.company_logo]
     exclude_fields_from_detail = [User.id,
                                   "password"]
     exclude_fields_from_create = [User.id,
