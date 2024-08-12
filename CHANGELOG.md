@@ -1,6 +1,13 @@
 # Changelog
 
 
+## release/v0.4.2 (2024-08-12)
+
+### Add
+
+* Add: ActionLogThread. [Julius Koenig]
+
+
 ## release/v0.4.1 (2024-08-09)
 
 ### Changes
