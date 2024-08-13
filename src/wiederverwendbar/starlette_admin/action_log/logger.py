@@ -1,11 +1,15 @@
+import inspect
 import json
 import logging
 import asyncio
 import string
+import time
 import traceback
 import warnings
+from enum import Enum
 from typing import Optional, Union, Any
 
+from pydantic import BaseModel, ValidationError
 from starlette.requests import Request
 from starlette.websockets import WebSocket, WebSocketState
 from starlette_admin.exceptions import ActionFailed
@@ -137,15 +141,17 @@ class WebsocketHandler(logging.Handler):
 
 class _SubLoggerCommand:
     def __init__(self, logger: logging.Logger, command: str, **values):
-        record = logger.makeRecord(logger.name,
-                                   logging.NOTSET,
-                                   "",
-                                   0,
-                                   "",
-                                   (),
-                                   None,
-                                   extra={"handling_command": {"command": command, "values": values}})
-        logger.handle(record)
+        self.logger = logger
+
+        record = self.logger.makeRecord(logger.name,
+                                        logging.NOTSET,
+                                        "",
+                                        0,
+                                        "",
+                                        (),
+                                        None,
+                                        extra={"handling_command": {"command": command, "values": values}})
+        self.logger.handle(record)
 
 
 class StepCommand(_SubLoggerCommand):
@@ -157,9 +163,28 @@ class NextStepCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger):
         super().__init__(logger, "next_step")
 
+
 class IncreaseStepsCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger, steps: int):
         super().__init__(logger, "increase_steps", steps=steps)
+
+
+class FormCommand(_SubLoggerCommand):
+    def __init__(self, logger: logging.Logger, submit_btn_text: str, abort_btn_text: str, form: str):
+        super().__init__(logger, "form", submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, form=form)
+
+    def __call__(self, timeout: int = -1) -> dict[str, Any]:
+        if isinstance(self.logger, ActionSubLogger):
+            return asyncio.run(self.logger.form_data(timeout=timeout))
+        action_sub_loggers = ActionSubLoggerContext.get_from_stack(inspect.stack())
+        action_sub_logger_context: Optional[ActionSubLoggerContext] = None
+        for action_sub_logger_context in action_sub_loggers:
+            if isinstance(action_sub_logger_context, ActionSubLoggerContext):
+                break
+        if action_sub_logger_context is None:
+            raise ValueError(f"No action logger found. Did you use the {ActionSubLoggerContext.__name__} context manager?")
+        action_sub_logger: ActionSubLogger = action_sub_logger_context.context_logger
+        return asyncio.run(action_sub_logger.form_data(timeout=timeout))
 
 
 class FinalizeCommand(_SubLoggerCommand):
@@ -170,6 +195,15 @@ class FinalizeCommand(_SubLoggerCommand):
 class ExitCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger):
         super().__init__(logger, "exit")
+
+
+class ActionLoggerResponseObj(BaseModel):
+    class Command(str, Enum):
+        FORM = "form"
+
+    sub_logger: str
+    command: Command
+    value: dict[str, Any]
 
 
 class ActionSubLogger(logging.Logger):
@@ -199,6 +233,7 @@ class ActionSubLogger(logging.Logger):
         self._step: int = 0
         self._websockets: list[WebSocket] = []
         self._error_msg: Optional[str] = None
+        self._response_obj: Union[None, bool, ActionLoggerResponseObj] = None
 
         # check if logger already exists
         if self.is_logger_exist(name=self.name):
@@ -253,6 +288,8 @@ class ActionSubLogger(logging.Logger):
     def handle(self, record) -> None:
         if self.exited:
             raise ValueError("ActionSubLogger already exited.")
+        if self.awaiting_response:
+            raise ValueError("ActionSubLogger is awaiting form data.")
 
         record.sub_logger = self.sub_logger_name
 
@@ -291,6 +328,14 @@ class ActionSubLogger(logging.Logger):
                     self.steps = steps
                 else:
                     self.steps += steps
+            elif command_name == "form":
+                submit_btn_text = values["submit_btn_text"]
+                abort_btn_text = values["abort_btn_text"]
+                form = values["form"]
+                command["value"] = {"submit_btn_text": submit_btn_text, "abort_btn_text": abort_btn_text, "form": form}
+                record.command = command
+                super().handle(record)
+                self._response_obj = True
             elif command_name == "finalize":
                 success = values["success"]
                 msg = values["on_success_msg"] if success else values["on_error_msg"]
@@ -434,6 +479,63 @@ class ActionSubLogger(logging.Logger):
 
         NextStepCommand(logger=self)
 
+    def form(self, submit_btn_text: str, abort_btn_text: str, form: str) -> FormCommand:
+        """
+        Send form to frontend.
+
+        :param submit_btn_text: Text of submit button.
+        :param abort_btn_text: Text of cancel button.
+        :param form: Form HTML.
+        :return: Form data.
+        """
+
+        return FormCommand(logger=self, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, form=form)
+
+    async def await_response(self, timeout: int = -1) -> Union[bool, ActionLoggerResponseObj]:
+        """
+        Fetch response from frontend.
+
+        :param timeout: Timeout in seconds. If -1, no timeout will be set.
+        :return: Form data.
+        """
+
+        if not self.awaiting_response:
+            raise ValueError("Sub logger is not awaiting form data.")
+
+        start_wait = time.perf_counter()
+        while self.awaiting_response:
+            if timeout != -1:
+                if time.perf_counter() - start_wait > timeout:
+                    return False
+            await asyncio.sleep(0.001)
+
+        # check is response object is for this sub logger
+        if not self._response_obj.sub_logger == self.sub_logger_name:
+            raise ValueError("The response object is not for this sub logger.")
+
+        response_obj = self._response_obj
+        self._response_obj = None
+
+        return response_obj
+
+    async def form_data(self, timeout: int = -1) -> Union[bool, dict[str, Any]]:
+        """
+        Fetch form data from frontend.
+
+        :param timeout: Timeout in seconds. If -1, no timeout will be set.
+        :return: Form data.
+        """
+
+        response_obj = await self.await_response(timeout=timeout)
+        if response_obj is False:
+            return False
+
+        # check if response object is form
+        if response_obj.command != ActionLoggerResponseObj.Command.FORM:
+            raise ValueError("Response object is not form.")
+
+        return response_obj.value
+
     def finalize(self,
                  success: bool = True,
                  on_success_msg: Optional[str] = None,
@@ -487,6 +589,23 @@ class ActionSubLogger(logging.Logger):
         """
 
         return self._error_msg
+
+    @property
+    def awaiting_response(self) -> bool:
+        """
+        Check if sub logger is awaiting response.
+
+        :return: True if awaiting response, otherwise False.
+        """
+
+        if self._response_obj is None:
+            return False
+        elif type(self._response_obj) == bool:
+            return True
+        elif isinstance(self._response_obj, ActionLoggerResponseObj):
+            return False
+        else:
+            raise ValueError("Invalid response object.")
 
 
 class ActionSubLoggerContext(LoggingContext):
@@ -926,3 +1045,46 @@ class ActionLogger:
         """
 
         return self not in self._action_loggers
+
+    @classmethod
+    def parse_response_obj(cls, data: str) -> Union[None, ActionLoggerResponseObj]:
+        """
+        Parse response object.
+
+        :param data: Data
+        :return: Response object
+        """
+
+        # parse to dict
+        try:
+            response_obj_dict = json.loads(data)
+        except json.JSONDecodeError as e:
+            LOGGER.error(f"JSONDecodeError while parsing response object: {e}")
+            return None
+
+        # create response object
+        try:
+            response_obj = ActionLoggerResponseObj(**response_obj_dict)
+        except ValidationError as e:
+            LOGGER.error(f"ValidationError while parsing response object: {e}")
+            return None
+
+        return response_obj
+
+    def send_response_to_sub_logger(self, response_obj: ActionLoggerResponseObj) -> None:
+        """
+        Send response object to sub logger.
+
+        :param response_obj: Response object
+        :return: None
+        """
+
+        # get sub logger
+        sub_logger = self.get_sub_logger(sub_logger_name=response_obj.sub_logger)
+
+        # check if sub logger is awaiting response
+        if not sub_logger.awaiting_response:
+            raise ValueError("Sub logger is not awaiting response.")
+
+        # set response object
+        sub_logger._response_obj = response_obj

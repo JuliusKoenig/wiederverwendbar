@@ -53,6 +53,15 @@ class ActionManager {
                         <div id="{{action-log-progress-bar-}}" class="progress-bar" role="progressbar"></div>
                     </div>
                     <textarea id="{{action-log-textarea-}}" class="form-control mb-1" name="action-log" placeholder="Empty Log" readonly></textarea>
+                    <div id="{{action-log-form-container-}}">
+                        <div id="{{action-log-form-body-}}"></div>
+                        <div class="row mt-1">
+                            <div class="col">
+                                <button id="{{action-log-form-abort-}}" type="button" class="btn btn-red float-end" aria-label="Abort"></button>
+                                <button id="{{action-log-form-submit-}}" type="button" class="btn float-end me-2" aria-label="Submit"></button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>`
@@ -65,6 +74,10 @@ class ActionManager {
         this.actionLogProgressBarIdPrefix = "action-log-progress-bar-";
         this.actionLogTextareaIdPrefix = "action-log-textarea-";
         this.actionLogCopyIdPrefix = "action-log-copy-";
+        this.actionLogFormContainerIdPrefix = "action-log-form-container-";
+        this.actionLogFormBodyIdPrefix = "action-log-form-body-";
+        this.actionLogFormSubmitIdPrefix = "action-log-form-submit-";
+        this.actionLogFormAbortIdPrefix = "action-log-form-abort-";
 
         // define subLoggerNames aray
         this.subLoggerNames = [];
@@ -285,7 +298,8 @@ class ActionManager {
 
         // copy to clipboard
         navigator.clipboard.writeText(actionLogTextArea.text()).then(
-            () => {},
+            () => {
+            },
             () => {
                 alert("clipboard write failed from " + actionLogTextAreaId);
             });
@@ -325,6 +339,10 @@ class ActionManager {
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogProgressBarIdPrefix + "}}", this.actionLogProgressBarIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogTextareaIdPrefix + "}}", this.actionLogTextareaIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogCopyIdPrefix + "}}", this.actionLogCopyIdPrefix + subLogger);
+            accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogFormContainerIdPrefix + "}}", this.actionLogFormContainerIdPrefix + subLogger);
+            accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogFormBodyIdPrefix + "}}", this.actionLogFormBodyIdPrefix + subLogger);
+            accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogFormSubmitIdPrefix + "}}", this.actionLogFormSubmitIdPrefix + subLogger);
+            accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogFormAbortIdPrefix + "}}", this.actionLogFormAbortIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{logger-name}}", value);
 
             // create accordion item
@@ -333,13 +351,25 @@ class ActionManager {
             // append accordion item to actionLogAccordion
             this.actionLogAccordion.append(accordionItem);
 
+            // get copy button
+            let copyButton = $("#" + this.actionLogCopyIdPrefix + subLogger);
+
             // set copy to clipboard action
-            $("#" + this.actionLogCopyIdPrefix + subLogger).on("click", function (_) {
+            copyButton.on("click", function (_) {
                 self.copyClipboard(self.actionLogTextareaIdPrefix + subLogger);
             });
 
+            // hide copy button
+            copyButton.hide();
+
             // set actionLogTextArea height
             $("#" + this.actionLogTextareaIdPrefix + subLogger).height(500);
+
+            // get form container
+            let formContainer = $("#" + this.actionLogFormContainerIdPrefix + subLogger);
+
+            // hide form container
+            formContainer.hide();
 
             // collapse all accordion items
             let accordionButtons = $(".action-log-accordion-button");
@@ -396,6 +426,93 @@ class ActionManager {
 
             // set width of actionLogProgressBar
             actionLogProgressBar.width(value + "%");
+        } else if (command === "form") {
+            // check if subLogger is in subLoggerNames
+            if (!this.subLoggerNames.includes(subLogger)) {
+                alert("SubLogger does not exist: " + subLogger);
+                return;
+            }
+
+            // get form arguments
+            let formHtml = value["form"];
+            let formBtnSubmitText = value["submit_btn_text"];
+            let formBtnAbortText = value["abort_btn_text"];
+
+            // get text area
+            let actionLogTextArea = $("#" + this.actionLogTextareaIdPrefix + subLogger);
+
+            // hide text area
+            actionLogTextArea.hide();
+
+            // get form container
+            let formContainer = $("#" + this.actionLogFormContainerIdPrefix + subLogger);
+
+            // get form body
+            let formBody = $("#" + this.actionLogFormBodyIdPrefix + subLogger);
+
+            // set form body
+            formBody.html(formHtml);
+
+            // get form submit button
+            let formSubmit = $("#" + this.actionLogFormSubmitIdPrefix + subLogger);
+
+            // set form submit button text
+            formSubmit.text(formBtnSubmitText);
+
+            // set form submit button action
+            formSubmit.on("click", function (_) {
+                // get form data
+                let formData = Object.fromEntries(new FormData($("#" + self.actionLogFormBodyIdPrefix + subLogger + " form").get(0)).entries());
+
+                // check if form data is empty
+                let result = true;
+                if (Object.keys(formData).length === 0) {
+                    alert("Form data is empty!");
+                    result = false;
+                }
+
+                // create form response object
+                let formResponseObj = {
+                    "result": result,
+                    "form_data": formData
+                };
+
+                // send form data
+                self.sendCommand(subLogger, "form", formResponseObj);
+
+                // hide form container
+                formContainer.hide();
+
+                // show text area
+                actionLogTextArea.show();
+            });
+
+            // get form abort button
+            let formAbort = $("#" + this.actionLogFormAbortIdPrefix + subLogger);
+
+            // set form abort button text
+            formAbort.text(formBtnAbortText);
+
+            // set form abort button action
+            formAbort.on("click", function (_) {
+                // create form response object
+                let formResponseObj = {
+                    "result": false,
+                    "form_data": {}
+                };
+
+                // send form data
+                self.sendCommand(subLogger, "form", formResponseObj);
+
+                // hide form container
+                formContainer.hide();
+
+                // show text area
+                actionLogTextArea.show();
+            });
+
+            // show form container
+            formContainer.show();
         } else if (command === "finalize") {
             // check if subLogger is in subLoggerNames
             if (!this.subLoggerNames.includes(subLogger)) {
@@ -403,7 +520,16 @@ class ActionManager {
                 return;
             }
 
+            // get copy button
+            let copyButton = $("#" + this.actionLogCopyIdPrefix + subLogger);
+
+            // show copy button
+            copyButton.show();
+
+            // get actionLogStatus
             let actionLogStatus = $("#" + this.actionLogAccordionStatusIdPrefix + subLogger);
+
+            // get actionLogProgressBar
             let actionLogProgressBar = $("#" + this.actionLogProgressBarIdPrefix + subLogger);
 
             // disable actionLogStatus animation
@@ -421,5 +547,18 @@ class ActionManager {
         } else {
             alert("Unknown command received - subLogger: " + subLogger + " command: " + command + " value: " + value);
         }
+    }
+
+    sendCommand(subLogger, command, value) {
+        if (this.actionLogClient === null) {
+            console.log("ActionLogClient is not initialized!");
+            return;
+        }
+
+        this.actionLogClient.send(JSON.stringify({
+            "sub_logger": subLogger,
+            "command": command,
+            "value": value
+        }));
     }
 }

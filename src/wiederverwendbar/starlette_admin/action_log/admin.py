@@ -1,3 +1,4 @@
+import json
 import logging
 
 from jinja2 import PackageLoader
@@ -31,6 +32,22 @@ class ActionLogAdmin(MultiPathAdmin):
 
             # add websocket to action logger
             action_logger.add_websocket(websocket)
+
+        async def on_receive(self, websocket: WebSocket, data: str):
+            # get logger
+            action_logger = await ActionLogger.get_logger(websocket)
+            if action_logger is None:
+                return
+
+            # parse received data
+            response_obj = action_logger.parse_response_obj(data)
+            if response_obj is None:
+                # close websocket
+                await websocket.close(code=1008)
+                return
+
+            # send response to logger
+            action_logger.send_response_to_sub_logger(response_obj)
 
         async def on_disconnect(self, websocket: WebSocket, close_code: int):
             # get logger
