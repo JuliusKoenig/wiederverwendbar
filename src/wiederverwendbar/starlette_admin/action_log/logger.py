@@ -156,22 +156,26 @@ class _SubLoggerCommand:
 
 class StepCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger, step: int, steps: Optional[int] = None):
-        super().__init__(logger, "step", step=step, steps=steps)
+        super().__init__(logger=logger, command="step", step=step, steps=steps)
 
 
 class NextStepCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger):
-        super().__init__(logger, "next_step")
+        super().__init__(logger=logger, command="next_step")
 
 
 class IncreaseStepsCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger, steps: int):
-        super().__init__(logger, "increase_steps", steps=steps)
+        super().__init__(logger=logger, command="increase_steps", steps=steps)
 
 
 class FormCommand(_SubLoggerCommand):
-    def __init__(self, logger: logging.Logger, submit_btn_text: str, abort_btn_text: str, form: str):
-        super().__init__(logger, "form", submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, form=form)
+    def __init__(self, logger: logging.Logger, form: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None):
+        if submit_btn_text is None:
+            submit_btn_text = "Submit"
+        if abort_btn_text is None:
+            abort_btn_text = "Abort"
+        super().__init__(logger=logger, command="form", form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
 
     def __call__(self, timeout: int = -1) -> Union[bool, dict[str, Any]]:
         if isinstance(self.logger, ActionSubLogger):
@@ -187,14 +191,28 @@ class FormCommand(_SubLoggerCommand):
         return asyncio.run(action_sub_logger.form_data(timeout=timeout))
 
 
+class YesNoCommand(FormCommand):
+    def __init__(self, logger: logging.Logger, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None):
+        form = f"""<form>
+            <div class="mt-3">
+                <p>{text}</p>
+            </div>
+            </form>"""
+        if submit_btn_text is None:
+            submit_btn_text = "Yes"
+        if abort_btn_text is None:
+            abort_btn_text = "No"
+        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
+
+
 class FinalizeCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger, success: bool, on_success_msg: Optional[str] = None, on_error_msg: Optional[str] = None):
-        super().__init__(logger, "finalize", success=success, on_success_msg=on_success_msg, on_error_msg=on_error_msg)
+        super().__init__(logger=logger, command="finalize", success=success, on_success_msg=on_success_msg, on_error_msg=on_error_msg)
 
 
 class ExitCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger):
-        super().__init__(logger, "exit")
+        super().__init__(logger=logger, command="exit")
 
 
 class ActionLoggerResponseObj(BaseModel):
@@ -479,17 +497,29 @@ class ActionSubLogger(logging.Logger):
 
         NextStepCommand(logger=self)
 
-    def form(self, submit_btn_text: str, abort_btn_text: str, form: str) -> FormCommand:
+    def form(self, form: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None) -> FormCommand:
         """
         Send form to frontend.
 
+        :param form: Form HTML.
         :param submit_btn_text: Text of submit button.
         :param abort_btn_text: Text of cancel button.
-        :param form: Form HTML.
         :return: Form data.
         """
 
-        return FormCommand(logger=self, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, form=form)
+        return FormCommand(logger=self, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
+
+    def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None) -> YesNoCommand:
+        """
+        Send yes/no form to frontend.
+
+        :param text: Text of yes/no form.
+        :param submit_btn_text: Text of submit button.
+        :param abort_btn_text: Text of cancel button.
+        :return: Form data.
+        """
+
+        return YesNoCommand(logger=self, text=text, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
 
     async def await_response(self, timeout: int = -1) -> Union[bool, ActionLoggerResponseObj]:
         """

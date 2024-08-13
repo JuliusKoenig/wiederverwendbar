@@ -86,8 +86,6 @@ class TestView(ModelView):
 
                 # send form
                 form_data = FormCommand(module_logger,
-                                        "Weiter",
-                                        "Abbrechen",
                                         """<form>
             <div class="mt-3">
                 <input type="hidden" name="hidden">
@@ -106,7 +104,11 @@ class TestView(ModelView):
                     </label>
                 </div>
             </div>
-        </form>""")()
+        </form>""",
+                                        "Weiter",
+                                        "Abbrechen")()
+
+                result = sub_logger.yes_no("Möchtest du fortfahren?")()
 
                 await asyncio.sleep(2)
                 # sub_logger.next_step()

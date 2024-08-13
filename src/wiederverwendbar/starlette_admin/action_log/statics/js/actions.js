@@ -464,16 +464,9 @@ class ActionManager {
                 // get form data
                 let formData = Object.fromEntries(new FormData($("#" + self.actionLogFormBodyIdPrefix + subLogger + " form").get(0)).entries());
 
-                // check if form data is empty
-                let result = true;
-                if (Object.keys(formData).length === 0) {
-                    alert("Form data is empty!");
-                    result = false;
-                }
-
                 // create form response object
                 let formResponseObj = {
-                    "result": result,
+                    "result": true,
                     "form_data": formData
                 };
 
