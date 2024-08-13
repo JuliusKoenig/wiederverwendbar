@@ -1,6 +1,13 @@
 # Changelog
 
 
+## release/v0.4.3 (2024-08-13)
+
+### Add
+
+* Add: form request for ActionLog. [Julius Koenig]
+
+
 ## release/v0.4.2 (2024-08-12)
 
 ### Add
