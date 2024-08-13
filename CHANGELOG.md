@@ -1,6 +1,13 @@
 # Changelog
 
 
+## release/v0.4.5 (2024-08-13)
+
+### Add
+
+* Add: YesNoCommand for ActionLog. [Julius Koenig]
+
+
 ## release/v0.4.4 (2024-08-13)
 
 ### Add
