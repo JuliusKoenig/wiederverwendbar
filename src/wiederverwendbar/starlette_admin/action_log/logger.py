@@ -173,7 +173,7 @@ class FormCommand(_SubLoggerCommand):
     def __init__(self, logger: logging.Logger, submit_btn_text: str, abort_btn_text: str, form: str):
         super().__init__(logger, "form", submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, form=form)
 
-    def __call__(self, timeout: int = -1) -> dict[str, Any]:
+    def __call__(self, timeout: int = -1) -> Union[bool, dict[str, Any]]:
         if isinstance(self.logger, ActionSubLogger):
             return asyncio.run(self.logger.form_data(timeout=timeout))
         action_sub_loggers = ActionSubLoggerContext.get_from_stack(inspect.stack())
@@ -534,7 +534,14 @@ class ActionSubLogger(logging.Logger):
         if response_obj.command != ActionLoggerResponseObj.Command.FORM:
             raise ValueError("Response object is not form.")
 
-        return response_obj.value
+        # check "result" key is bool
+        if not isinstance(response_obj.value["result"], bool):
+            raise ValueError("Invalid result.")
+
+        if len(response_obj.value["form_data"]) == 0 or not response_obj.value["result"]:
+            return response_obj.value["result"]
+
+        return response_obj.value["form_data"]
 
     def finalize(self,
                  success: bool = True,
