@@ -1,6 +1,17 @@
 # Changelog
 
 
+## release/v0.4.4 (2024-08-13)
+
+### Add
+
+* Add: push-tags pdm command. [Julius Koenig]
+
+### Fix
+
+* Form data result. [Julius Koenig]
+
+
 ## release/v0.4.3 (2024-08-13)
 
 ### Add
