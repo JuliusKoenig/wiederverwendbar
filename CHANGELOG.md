@@ -1,6 +1,19 @@
 # Changelog
 
 
+## release/v0.4.6 (2024-08-14)
+
+### Add
+
+* Add: form for ActionLogger. [Julius Koenig]
+
+### Fix
+
+* ActionLogger outside of debug mode, ugly hack to make asyncio.run. [Julius Koenig]
+
+* On multiple forms "onclick" event is triggered multiple times. [Julius Koenig]
+
+
 ## release/v0.4.5 (2024-08-13)
 
 ### Add
