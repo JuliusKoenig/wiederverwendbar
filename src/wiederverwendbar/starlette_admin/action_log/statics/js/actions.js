@@ -10,6 +10,7 @@ class ActionManager {
      * @param {function(string, jQuery, string)} onError - A callback function to handle error responses.
      */
     constructor(actionUrl, rowActionUrl, appendQueryParams, onSuccess, onError) {
+        this.actionLogStarted = false;
         this.rowActionUrl = rowActionUrl;
         this.actionUrl = actionUrl;
         this.appendQueryParams = appendQueryParams;
@@ -21,8 +22,16 @@ class ActionManager {
         this.modalLoadingDoc = $("#modal-loading-doc");
         this.actionSpinner = $("#action-spinner");
         this.actionSpinnerText = $("#action-spinner-text");
+        this.actionLogContentBody = $("#action-log-content-body");
         this.actionLogAccordion = $("#action-log-accordion");
+        this.actionLogFormContainer = $("#action-log-form-container")
+        this.actionLogFormBody = $("#action-log-form-body")
+        this.actionLogFormAbort = $("#action-log-form-abort")
+        this.actionLogFormSubmit = $("#action-log-form-submit")
         this.modalLoadingClose = $("#modal-loading-close");
+
+        // hide actionLogFormContainer
+        this.actionLogFormContainer.hide();
 
         // define accordion item template html
         this.accordionItemTemplate = `<div class="accordion-item">
@@ -52,7 +61,9 @@ class ActionManager {
                     <div id="{{action-log-progress-}}" class="progress progress-sm" style="display: none">
                         <div id="{{action-log-progress-bar-}}" class="progress-bar" role="progressbar"></div>
                     </div>
-                    <textarea id="{{action-log-textarea-}}" class="form-control mb-1" name="action-log" placeholder="Empty Log" readonly></textarea>
+                    <div id="{{action-log-content-body-}}">
+                        <textarea id="{{action-log-textarea-}}" class="form-control mb-1" name="action-log" placeholder="Empty Log" readonly></textarea>
+                    </div>
                     <div id="{{action-log-form-container-}}">
                         <div id="{{action-log-form-body-}}"></div>
                         <div class="row mt-1">
@@ -72,6 +83,7 @@ class ActionManager {
         this.actionLogAccordionCollapseIdPrefix = "action-log-accordion-collapse-";
         this.actionLogProgressIdPrefix = "action-log-progress-";
         this.actionLogProgressBarIdPrefix = "action-log-progress-bar-";
+        this.actionLogContentBodyIdPrefix = "action-log-content-body-";
         this.actionLogTextareaIdPrefix = "action-log-textarea-";
         this.actionLogCopyIdPrefix = "action-log-copy-";
         this.actionLogFormContainerIdPrefix = "action-log-form-container-";
@@ -239,23 +251,28 @@ class ActionManager {
             this.modalLoadingDoc.removeClass("modal-full-width");
         }
 
-        // show 'action-spinner'
+        // show 'actionSpinner'
         this.actionSpinner.show();
 
-        // show 'action-spinner-text'
+        // show 'actionSpinnerText'
         this.actionSpinnerText.show();
 
-        // hide 'action-log-accordion'
-        this.actionLogAccordion.hide();
+        // hide 'actionLogContentBody'
+        this.actionLogContentBody.hide();
 
         // empty actionLogAccordion
         this.actionLogAccordion.html("");
 
-        // hide 'modal-loading-close' button
+        // hide actionLogFormContainer
+        this.actionLogFormContainer.hide();
+
+        // hide 'modalLoadingClose' button
         this.modalLoadingClose.hide();
 
-        // show 'modal-loading'
+        // show 'modalLoading'
         this.modalLoading.modal("show");
+
+        this.actionLogStarted = false;
     }
 
     initActionLog() {
@@ -269,23 +286,25 @@ class ActionManager {
             this.modalLoadingDoc.addClass("modal-full-width");
         }
 
-        // hide 'action-spinner'
+        // hide 'actionSpinner'
         this.actionSpinner.hide();
 
-        // hide 'action-spinner-text'
+        // hide 'actionSpinnerText'
         this.actionSpinnerText.hide();
 
-        // show 'action-log-accordion'
-        this.actionLogAccordion.show();
+        // show 'actionLogContentBody'
+        this.actionLogContentBody.show();
 
         // empty actionLogAccordion
         this.actionLogAccordion.html("");
 
-        // hide 'modal-loading-close' button
+        // hide 'modalLoadingClose' button
         this.modalLoadingClose.hide();
 
-        // show 'modal-loading'
+        // show 'modalLoading'
         this.modalLoading.modal("show");
+
+        this.actionLogStarted = true;
     }
 
     copyClipboard(actionLogTextAreaId) {
@@ -316,12 +335,18 @@ class ActionManager {
         let command = data["command"];
         let value = data["value"];
 
-        if (command === "start") {
-            // check if action log is initialized
-            if (this.subLoggerNames.length === 0) {
-                this.initActionLog();
-            }
+        // check if it is a global command
+        let globalCommand = false;
+        if (subLogger === "") {
+            globalCommand = true;
+        }
 
+        // check if action log is initialized
+        if (!this.actionLogStarted) {
+            this.initActionLog();
+        }
+
+        if (command === "start" && !globalCommand) {
             // check if subLogger is in subLoggerNames
             if (this.subLoggerNames.includes(subLogger)) {
                 alert("SubLogger already exists: " + subLogger);
@@ -337,6 +362,7 @@ class ActionManager {
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogAccordionCollapseIdPrefix + "}}", this.actionLogAccordionCollapseIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogProgressIdPrefix + "}}", this.actionLogProgressIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogProgressBarIdPrefix + "}}", this.actionLogProgressBarIdPrefix + subLogger);
+            accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogContentBodyIdPrefix + "}}", this.actionLogContentBodyIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogTextareaIdPrefix + "}}", this.actionLogTextareaIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogCopyIdPrefix + "}}", this.actionLogCopyIdPrefix + subLogger);
             accordionTemplate = accordionTemplate.replaceAll("{{" + this.actionLogFormContainerIdPrefix + "}}", this.actionLogFormContainerIdPrefix + subLogger);
@@ -387,7 +413,7 @@ class ActionManager {
 
             // add subLogger to subLoggerNames
             this.subLoggerNames.push(subLogger);
-        } else if (command === "log") {
+        } else if (command === "log" && !globalCommand) {
             // check if subLogger is in subLoggerNames
             if (!this.subLoggerNames.includes(subLogger)) {
                 alert("SubLogger does not exist: " + subLogger);
@@ -410,7 +436,7 @@ class ActionManager {
             // scroll to bottom
             actionLogTextArea.scrollTop(actionLogTextArea[0].scrollHeight);
 
-        } else if (command === "step") {
+        } else if (command === "step" && !globalCommand) {
             // check if subLogger is in subLoggerNames
             if (!this.subLoggerNames.includes(subLogger)) {
                 alert("SubLogger does not exist: " + subLogger);
@@ -428,7 +454,7 @@ class ActionManager {
             actionLogProgressBar.width(value + "%");
         } else if (command === "form") {
             // check if subLogger is in subLoggerNames
-            if (!this.subLoggerNames.includes(subLogger)) {
+            if (!this.subLoggerNames.includes(subLogger) && !globalCommand) {
                 alert("SubLogger does not exist: " + subLogger);
                 return;
             }
@@ -438,23 +464,30 @@ class ActionManager {
             let formBtnSubmitText = value["submit_btn_text"];
             let formBtnAbortText = value["abort_btn_text"];
 
-            // get text area
-            let actionLogTextArea = $("#" + this.actionLogTextareaIdPrefix + subLogger);
+            let actionLogContentBody;
+            let formContainer;
+            let formBody;
+            let formSubmit;
+            let formAbort;
+            if (globalCommand) {
+                actionLogContentBody = this.actionLogContentBody;
+                formContainer = this.actionLogFormContainer;
+                formBody = this.actionLogFormBody;
+                formSubmit = this.actionLogFormSubmit;
+                formAbort = this.actionLogFormAbort;
+            } else {
+                actionLogContentBody = $("#" + this.actionLogContentBodyIdPrefix + subLogger);
+                formContainer = $("#" + this.actionLogFormContainerIdPrefix + subLogger);
+                formBody = $("#" + this.actionLogFormBodyIdPrefix + subLogger);
+                formSubmit = $("#" + this.actionLogFormSubmitIdPrefix + subLogger);
+                formAbort = $("#" + this.actionLogFormAbortIdPrefix + subLogger);
+            }
 
-            // hide text area
-            actionLogTextArea.hide();
-
-            // get form container
-            let formContainer = $("#" + this.actionLogFormContainerIdPrefix + subLogger);
-
-            // get form body
-            let formBody = $("#" + this.actionLogFormBodyIdPrefix + subLogger);
+            // hide content body
+            actionLogContentBody.hide();
 
             // set form body
             formBody.html(formHtml);
-
-            // get form submit button
-            let formSubmit = $("#" + this.actionLogFormSubmitIdPrefix + subLogger);
 
             // set form submit button text
             formSubmit.text(formBtnSubmitText);
@@ -463,7 +496,7 @@ class ActionManager {
             formSubmit.off("click");
             formSubmit.on("click", function (_) {
                 // get form data
-                let formData = Object.fromEntries(new FormData($("#" + self.actionLogFormBodyIdPrefix + subLogger + " form").get(0)).entries());
+                let formData = Object.fromEntries(new FormData(formBody.find("form")[0]).entries());
 
                 // create form response object
                 let formResponseObj = {
@@ -477,12 +510,9 @@ class ActionManager {
                 // hide form container
                 formContainer.hide();
 
-                // show text area
-                actionLogTextArea.show();
+                // show content body
+                actionLogContentBody.show();
             });
-
-            // get form abort button
-            let formAbort = $("#" + this.actionLogFormAbortIdPrefix + subLogger);
 
             // set form abort button text
             formAbort.text(formBtnAbortText);
@@ -502,13 +532,13 @@ class ActionManager {
                 // hide form container
                 formContainer.hide();
 
-                // show text area
-                actionLogTextArea.show();
+                // show content body
+                actionLogContentBody.show();
             });
 
             // show form container
             formContainer.show();
-        } else if (command === "finalize") {
+        } else if (command === "finalize" && !globalCommand) {
             // check if subLogger is in subLoggerNames
             if (!this.subLoggerNames.includes(subLogger)) {
                 alert("SubLogger does not exist: " + subLogger);
@@ -540,7 +570,7 @@ class ActionManager {
                 actionLogProgressBar.addClass("bg-red");
             }
         } else {
-            alert("Unknown command received - subLogger: " + subLogger + " command: " + command + " value: " + value);
+            alert("Unknown command received - subLogger: '" + subLogger + "' command: '" + command + "' value: '" + value + "'");
         }
     }
 

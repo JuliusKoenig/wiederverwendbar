@@ -1,4 +1,3 @@
-import json
 import logging
 
 from jinja2 import PackageLoader
@@ -47,7 +46,7 @@ class ActionLogAdmin(MultiPathAdmin):
                 return
 
             # send response to logger
-            action_logger.send_response_to_sub_logger(response_obj)
+            action_logger.send_response_to_logger(response_obj)
 
         async def on_disconnect(self, websocket: WebSocket, close_code: int):
             # get logger

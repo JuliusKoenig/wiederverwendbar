@@ -1,5 +1,6 @@
 from wiederverwendbar.starlette_admin.action_log import (WebsocketHandler,
-                                                         ActionLoggerResponseObj,
+                                                         ActionLoggerCommand,
+                                                         ActionLoggerResponse,
                                                          ActionSubLogger,
                                                          ActionSubLoggerContext,
                                                          ActionLogger,

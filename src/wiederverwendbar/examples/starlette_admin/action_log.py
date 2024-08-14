@@ -9,7 +9,6 @@ from starlette.requests import Request
 from starlette_admin.contrib.mongoengine import Admin, ModelView
 from starlette_admin.actions import action
 from mongoengine import connect, Document, StringField
-from starlette_admin.exceptions import ActionFailed
 
 from wiederverwendbar.starlette_admin import ActionLogAdmin, ActionLogger
 
@@ -94,8 +93,10 @@ class TestView(ModelView):
                 sub_logger.info("Test Aktion step 3")
                 await asyncio.sleep(2)
 
-            sub_action_2_logger = action_logger.new_sub_logger("sub_action_2", "Sub Action 2", steps=3)
-            sub_action_3_logger = action_logger.new_sub_logger("sub_action_3", "Sub Action 3", steps=3)
+            sub_action_2_logger = action_logger.new_sub_logger("sub_action_2", "Sub Action 2")
+            sub_action_2_logger.steps = 3
+            sub_action_3_logger = action_logger.new_sub_logger("sub_action_3", "Sub Action 3")
+            sub_action_3_logger.steps = 3
             sub_action_2_logger.info("Test Aktion startet ...")
             sub_action_3_logger.info("Test Aktion startet ...")
             await asyncio.sleep(2)

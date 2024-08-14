@@ -7,7 +7,18 @@
                     <div id="action-spinner" class="spinner-border text-primary" role="status"></div>
                     <span id="action-spinner-text" class="ms-2">{{ _("Loading") }}...</span>
                 </div>
-                <div id="action-log-accordion" class="accordion"></div>
+                <div id="action-log-content-body">
+                    <div id="action-log-accordion" class="accordion"></div>
+                </div>
+                <div id="action-log-form-container">
+                    <div id="action-log-form-body"></div>
+                    <div class="row mt-1">
+                        <div class="col">
+                            <button id="action-log-form-abort" type="button" class="btn btn-red float-end" aria-label="Abort"></button>
+                            <button id="action-log-form-submit" type="button" class="btn float-end me-2" aria-label="Submit"></button>
+                        </div>
+                    </div>
+                </div>
                 <button id="modal-loading-close" type="button" class="btn btn-red fa-solid fa-x fa-pull-right mt-3" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
         </div>

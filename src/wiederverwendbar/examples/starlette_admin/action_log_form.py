@@ -73,6 +73,32 @@ class TestView(ModelView):
     # submit_btn_class="btn-success")
     async def test_action_action_log(self, request: Request, pk: list[str]) -> str:
         with ActionLogger(request, parent=logger) as action_logger:
+            # send form
+            action_logger_form_data = FormCommand(action_logger,
+                                    """<form>
+        <div class="mt-3">
+            <input type="hidden" name="hidden">
+            <div>
+                <label class="form-check">
+                    <input type="radio" class="form-check-input" name="action" value="choice1" checked>
+                    <span class="form-check-label">Choice 1</span>
+                </label>
+                <label class="form-check">
+                    <input type="radio" class="form-check-input" name="action" value="choice2">
+                    <span class="form-check-label">Choice 2</span>
+                </label>
+                <label class="form-check">
+                    <input type="radio" class="form-check-input" name="action" value="choice3">
+                    <span class="form-check-label">Choice 3</span>
+                </label>
+            </div>
+        </div>
+    </form>""",
+                                    "Weiter",
+                                    "Abbrechen")()
+
+            action_logger_yes_no = action_logger.yes_no("Möchtest du fortfahren?")()
+
             # use context manager to ensure that the logger is finalized
             with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3) as sub_logger:
                 sub_logger.info("Test Aktion startet ...")
@@ -85,7 +111,7 @@ class TestView(ModelView):
                 module_logger = logging.getLogger("module_logger")
 
                 # send form
-                form_data = FormCommand(module_logger,
+                sub_logger_form_data = FormCommand(module_logger,
                                         """<form>
             <div class="mt-3">
                 <input type="hidden" name="hidden">
@@ -108,17 +134,17 @@ class TestView(ModelView):
                                         "Weiter",
                                         "Abbrechen")()
 
-                result = sub_logger.yes_no("Möchtest du fortfahren?")()
+                sub_logger_yes_no = sub_logger.yes_no("Möchtest du fortfahren?")()
 
                 await asyncio.sleep(2)
-                # sub_logger.next_step()
-                # sub_logger.steps += 100
-                # for i in range(1, 100):
-                #     sub_logger.info(f"Test Aktion step 2 - {i}")
-                #     sub_logger.next_step()
-                #     await asyncio.sleep(0.1)
-                # sub_logger.info("Test Aktion step 3")
-                # await asyncio.sleep(2)
+                sub_logger.next_step()
+                sub_logger.steps += 100
+                for i in range(1, 100):
+                    sub_logger.info(f"Test Aktion step 2 - {i}")
+                    sub_logger.next_step()
+                    await asyncio.sleep(0.1)
+                sub_logger.info("Test Aktion step 3")
+                await asyncio.sleep(2)
 
         return "Test Aktion erfolgreich."
 
