@@ -1,5 +1,6 @@
 import logging
 
+import nest_asyncio # ToDo: ugly hack to make asyncio.run work outside of debug mode, remove if it's not needed anymore
 from jinja2 import PackageLoader
 from starlette.routing import WebSocketRoute
 from starlette.endpoints import WebSocketEndpoint
@@ -7,6 +8,7 @@ from starlette.websockets import WebSocket
 
 from wiederverwendbar.starlette_admin.admin import MultiPathAdmin
 from wiederverwendbar.starlette_admin.action_log.logger import ActionLogger
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,3 +62,5 @@ class ActionLogAdmin(MultiPathAdmin):
     def init_routes(self) -> None:
         super().init_routes()
         self.routes.append(WebSocketRoute(path="/ws/action_log/{action_log_key}", endpoint=self.ActionLogEndpoint, name="action_log"))  # noqa
+
+        nest_asyncio.apply() # ToDo: ugly hack to make asyncio.run work outside of debug mode, remove if it's not needed anymore

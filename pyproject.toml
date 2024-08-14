@@ -50,6 +50,7 @@ nicegui = [
 starlette-admin = [
     "starlette-admin[i18n]>=0.14.1",
     "pillow>=10.4.0",
+    "nest-asyncio>=1.6.0",
 ]
 
 [build-system]

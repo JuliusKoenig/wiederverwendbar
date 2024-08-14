@@ -75,27 +75,27 @@ class TestView(ModelView):
         with ActionLogger(request, parent=logger) as action_logger:
             # send form
             action_logger_form_data = FormCommand(action_logger,
-                                    """<form>
-        <div class="mt-3">
-            <input type="hidden" name="hidden">
-            <div>
-                <label class="form-check">
-                    <input type="radio" class="form-check-input" name="action" value="choice1" checked>
-                    <span class="form-check-label">Choice 1</span>
-                </label>
-                <label class="form-check">
-                    <input type="radio" class="form-check-input" name="action" value="choice2">
-                    <span class="form-check-label">Choice 2</span>
-                </label>
-                <label class="form-check">
-                    <input type="radio" class="form-check-input" name="action" value="choice3">
-                    <span class="form-check-label">Choice 3</span>
-                </label>
-            </div>
-        </div>
-    </form>""",
-                                    "Weiter",
-                                    "Abbrechen")()
+                                                  """<form>
+                      <div class="mt-3">
+                          <input type="hidden" name="hidden">
+                          <div>
+                              <label class="form-check">
+                                  <input type="radio" class="form-check-input" name="action" value="choice1" checked>
+                                  <span class="form-check-label">Choice 1</span>
+                              </label>
+                              <label class="form-check">
+                                  <input type="radio" class="form-check-input" name="action" value="choice2">
+                                  <span class="form-check-label">Choice 2</span>
+                              </label>
+                              <label class="form-check">
+                                  <input type="radio" class="form-check-input" name="action" value="choice3">
+                                  <span class="form-check-label">Choice 3</span>
+                              </label>
+                          </div>
+                      </div>
+                  </form>""",
+                                                  "Weiter",
+                                                  "Abbrechen")()
 
             action_logger_yes_no = action_logger.yes_no("Möchtest du fortfahren?")()
 
@@ -112,27 +112,27 @@ class TestView(ModelView):
 
                 # send form
                 sub_logger_form_data = FormCommand(module_logger,
-                                        """<form>
-            <div class="mt-3">
-                <input type="hidden" name="hidden">
-                <div>
-                    <label class="form-check">
-                        <input type="radio" class="form-check-input" name="action" value="choice1" checked>
-                        <span class="form-check-label">Choice 1</span>
-                    </label>
-                    <label class="form-check">
-                        <input type="radio" class="form-check-input" name="action" value="choice2">
-                        <span class="form-check-label">Choice 2</span>
-                    </label>
-                    <label class="form-check">
-                        <input type="radio" class="form-check-input" name="action" value="choice3">
-                        <span class="form-check-label">Choice 3</span>
-                    </label>
-                </div>
-            </div>
-        </form>""",
-                                        "Weiter",
-                                        "Abbrechen")()
+                                                   """<form>
+                       <div class="mt-3">
+                           <input type="hidden" name="hidden">
+                           <div>
+                               <label class="form-check">
+                                   <input type="radio" class="form-check-input" name="action" value="choice1" checked>
+                                   <span class="form-check-label">Choice 1</span>
+                               </label>
+                               <label class="form-check">
+                                   <input type="radio" class="form-check-input" name="action" value="choice2">
+                                   <span class="form-check-label">Choice 2</span>
+                               </label>
+                               <label class="form-check">
+                                   <input type="radio" class="form-check-input" name="action" value="choice3">
+                                   <span class="form-check-label">Choice 3</span>
+                               </label>
+                           </div>
+                       </div>
+                   </form>""",
+                                                   "Weiter",
+                                                   "Abbrechen")()
 
                 sub_logger_yes_no = sub_logger.yes_no("Möchtest du fortfahren?")()
 
