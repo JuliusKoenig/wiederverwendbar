@@ -8,6 +8,7 @@ from starlette.routing import Route
 from starlette.requests import Request
 from starlette_admin.contrib.mongoengine import ModelView
 from starlette_admin.actions import action
+from starlette_admin.views import CustomView, Link
 from mongoengine import connect, Document, StringField
 
 from wiederverwendbar.starlette_admin import AuthAdminSettings, MongoengineAuthAdmin
@@ -48,9 +49,9 @@ class Test(Document):
     test_str = StringField()
 
 
-class TestView(ModelView):
+class TestModelView(ModelView):
     def __init__(self):
-        super().__init__(document=Test, icon="fa fa-server", name="Test", label="Test")
+        super().__init__(document=Test, icon="fa fa-server", name="TestModel", label="TestModel")
 
     actions = ["delete", "test_action_normal", "test_action_action_log"]
 
@@ -75,8 +76,32 @@ class TestView(ModelView):
         return "Test Aktion erfolgreich."
 
 
+class TestCustomView(CustomView):
+    def __init__(self):
+        super().__init__(
+            label="TestCustom",
+            icon="fa-solid fa-wrench",
+            path="/",
+            template_path="index.html",
+            name="TestCustom",
+            methods=None,
+            add_to_menu=True,
+        )
+
+class TestLinkView(Link):
+    def __init__(self):
+        super().__init__(
+            label="TestLink",
+            icon="fa-solid fa-wrench",
+            url="/",
+            target="_blank",
+        )
+
+
 # Add views to admin#
-admin.add_view(TestView())
+admin.add_view(TestModelView())
+admin.add_view(TestCustomView())
+admin.add_view(TestLinkView())
 
 # Mount admin to app
 admin.mount_to(app)

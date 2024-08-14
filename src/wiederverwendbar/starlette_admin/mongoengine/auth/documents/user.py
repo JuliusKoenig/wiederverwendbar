@@ -22,6 +22,7 @@ class User(Document):
     sessions: list[Any] = ListField(ReferenceField("Session"))
     avatar: ImageGridFsProxy = ImageField(size=(100, 100))
     company_logo: str = StringField()
+    acls: list[Any] = ListField(ReferenceField("AccessControlList"))
 
     def __init__(self, *args, **values):
         super().__init__(*args, **values)
