@@ -460,6 +460,7 @@ class ActionManager {
             formSubmit.text(formBtnSubmitText);
 
             // set form submit button action
+            formSubmit.off("click");
             formSubmit.on("click", function (_) {
                 // get form data
                 let formData = Object.fromEntries(new FormData($("#" + self.actionLogFormBodyIdPrefix + subLogger + " form").get(0)).entries());
@@ -487,6 +488,7 @@ class ActionManager {
             formAbort.text(formBtnAbortText);
 
             // set form abort button action
+            formAbort.off("click");
             formAbort.on("click", function (_) {
                 // create form response object
                 let formResponseObj = {
