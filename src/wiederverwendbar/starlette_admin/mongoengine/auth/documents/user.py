@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Any
 
-from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ImageGridFsProxy, BooleanField
+from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ImageGridFsProxy, BooleanField, ValidationError
 from starlette.requests import Request
 
 from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
@@ -37,6 +37,37 @@ class User(Document):
         if len(sessions) != len(self.sessions):
             self.sessions = sessions
             self.save()
+
+    def save(
+        self,
+        force_insert=False,
+        validate=True,
+        clean=True,
+        write_concern=None,
+        cascade=None,
+        cascade_kwargs=None,
+        _refs=None,
+        save_condition=None,
+        signal_kwargs=None,
+        **kwargs,
+    ):
+        if "admin" in self._changed_fields:
+            if not self.admin:
+                # check this the last admin user
+                if User.objects(admin=True).count() == 1:
+                    raise ValidationError(errors={"admin": "You can't remove the last admin user."})
+        super().save(
+            force_insert=force_insert,
+            validate=validate,
+            clean=clean,
+            write_concern=write_concern,
+            cascade=cascade,
+            cascade_kwargs=cascade_kwargs,
+            _refs=_refs,
+            save_condition=save_condition,
+            signal_kwargs=signal_kwargs,
+            **kwargs,
+        )
 
     async def __admin_repr__(self, request: Request):
         return f"{self.username}"
