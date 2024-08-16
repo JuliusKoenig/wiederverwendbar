@@ -1,6 +1,7 @@
 import logging
+import string
 import warnings
-from typing import Optional, Sequence, Tuple, Any, Union, Literal
+from typing import Optional, Sequence, Tuple, Any, Union, Literal, Type
 
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -8,7 +9,7 @@ from starlette.requests import Request
 
 from starlette_admin.contrib.mongoengine import Admin
 from starlette_admin.i18n import I18nConfig
-from starlette_admin.views import CustomView, DropDown, Link, BaseModelView
+from starlette_admin.views import CustomView, DropDown, Link, BaseModelView, BaseView
 from starlette_admin.auth import BaseAuthProvider
 
 from wiederverwendbar.starlette_admin.admin import SettingsAdmin
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmin, Admin):
+    static_files_packages = [("wiederverwendbar", "starlette_admin/mongoengine/auth/statics")]
+
     def __init__(
             self,
             title: Optional[str] = None,
@@ -85,10 +88,9 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
         self.user_view = user_view or UserView(document=self.user_document, company_logo_choices_loader=self.user_company_logo_files_loader)
         self.session_view = session_view or SessionView(document=self.session_document)
         self.acl_view = acl_view or AccessControlListView(document=self.acl_document,
-                                                          read_specify_loader=lambda request: self._acl_specify_loader(request, mode="read"),
-                                                          create_specify_loader=lambda request: self._acl_specify_loader(request, mode="create"),
-                                                          edit_specify_loader=lambda request: self._acl_specify_loader(request, mode="edit"),
-                                                          delete_specify_loader=lambda request: self._acl_specify_loader(request, mode="delete"))
+                                                          reference_loader=self.acl_reference_loader,
+                                                          fields_loader=self.acl_fields_loader,
+                                                          actions_loader=self.acl_actions_loader)
 
         # set auth_provider
         if settings.admin_auth:
@@ -141,6 +143,67 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
                 else:
                     warnings.warn(f"Superuser with username '{settings.admin_superuser_username}' does not exist!", UserWarning)
 
+        # disable jinja2 cache - ToDo: i don't know, but without disabling the cache, i have problems with dynamic list loaders
+        self.templates.env.cache = None
+
+    @property
+    def _all_views(self) -> list[BaseView]:
+        all_views: list[BaseView] = []
+
+        def iterate_through_all_views(views: list):
+            for view in views:
+                if isinstance(view, DropDown):
+                    iterate_through_all_views(view.views)
+                elif isinstance(view, CustomView):
+                    all_views.append(view)
+                elif isinstance(view, Link):
+                    all_views.append(view)
+                elif isinstance(view, BaseModelView):
+                    all_views.append(view)
+                else:
+                    raise ValueError(f"Unknown view type: {type(view)}")
+
+        iterate_through_all_views(self._views)
+
+        return all_views
+
+    @property
+    def _view_identity_mapping(self) -> dict[BaseView, str]:
+        view_identity_mapping = {}
+        for view in self._all_views:
+            # get identity
+            if getattr(view, "identity", "") != "" and getattr(view, "identity", None) is not None:
+                _identity = getattr(view, "identity")
+            elif getattr(view, "name", "") != "" and getattr(view, "name", None) is not None:
+                _identity = getattr(view, "name")
+            else:
+                _identity = view.__class__.__name__
+
+            # convert identity to snake_case and remove special characters
+            identity = ""
+            for c in _identity:
+                if c in string.ascii_lowercase:
+                    identity += c
+                elif c in string.ascii_uppercase + string.digits:
+                    if identity != "":
+                        identity += "_"
+                    identity += c.lower()
+                else:
+                    if identity != "":
+                        identity += "_"
+
+            # check if identity is already used
+            if identity in view_identity_mapping.values():
+                raise ValueError(f"Identity '{identity}' is already used by '{[k for k, v in view_identity_mapping.items() if v == identity][0]}'")
+
+            view_identity_mapping[view] = identity
+
+        return view_identity_mapping
+
+    def setup_view(self, view: BaseView) -> None:
+        super().setup_view(view)
+        _ = self._view_identity_mapping
+
     def user_company_logo_files_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
         if not self.settings.admin_static_company_logo_dir:
             return []
@@ -153,55 +216,50 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
             company_logo_files.append((file.name, file.name))
         return company_logo_files
 
-    def _acl_specify_loader(self, request: Request, mode: Literal["read", "create", "edit", "delete"]) -> Sequence[Tuple[Any, str]]:
-        references: list[tuple[str, str]] = []
+    def acl_reference_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
+        references: list[tuple[str, str]] = [("all", "Alle")]
 
-        def iterate_through_all_views(views: list, key_prefix: str = ""):
-            if key_prefix != "":
-                key_prefix += "."
-
-            for view in views:
-                if isinstance(view, DropDown):
-                    iterate_through_all_views(view.views, key_prefix + view.label)
-                elif isinstance(view, CustomView):
-                    # skip if mode is "create", "edit" or "delete"
-                    if mode in ["create", "edit", "delete"]:
-                        continue
-                    references.append((f"{key_prefix}{view.name}", f"Ansicht {view.label}"))
-                elif isinstance(view, Link):
-                    # skip if mode is "create", "edit" or "delete"
-                    if mode in ["create", "edit", "delete"]:
-                        continue
-                    references.append((f"{key_prefix}{view.label}", f"Link {view.label}"))
-                elif isinstance(view, BaseModelView):
-                    # add model view to references
-                    references.append((f"{key_prefix}{view.name}.*", f"Objekt {view.label}"))
-
-                    # skip if view is self.acl_view
-                    if view == self.acl_view:
-                        continue
-
-                    # skip if mode is "delete"
-                    if mode == "delete":
-                        continue
-
-                    # add fields to references
-                    for field in view.fields:
-                        can = ["read", "create", "edit"]
-                        # check is field excluded
-                        if field.exclude_from_list and field.exclude_from_detail:
-                            can.remove("read")
-                        if field.exclude_from_create:
-                            can.remove("create")
-                        if field.exclude_from_edit:
-                            can.remove("edit")
-                        if mode not in can:
-                            continue
-
-                        references.append((f"{key_prefix}{view.name}.{field.name}", f"Objekt {view.label} - Feld {field.label}"))
-                else:
-                    raise ValueError(f"Unknown view type: {type(view)}")
-
-        iterate_through_all_views(self._views)
+        for view, identity in self._view_identity_mapping.items():
+            if isinstance(view, CustomView):
+                references.append((f"view.{identity}", f"Ansicht {view.label}"))
+            elif isinstance(view, Link):
+                references.append((f"link.{identity}", f"Link {view.label}"))
+            elif isinstance(view, BaseModelView):
+                references.append((f"object.{identity}", f"Objekt {view.label}"))
 
         return references
+
+    def acl_fields_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
+        fields: list[tuple[str, str]] = []
+
+        for view, identity in self._view_identity_mapping.items():
+            if isinstance(view, BaseModelView):
+                # skip if view is self.acl_view
+                if view == self.acl_view:
+                    continue
+
+                # add fields to fields
+                for field in view.fields:
+                    # skip if field is id
+                    if field.name == "id":
+                        continue
+                    # skip if field is not excluded from list
+                    if not field.exclude_from_list:
+                        continue
+                    fields.append((f"object.{identity}.{field.name}", f"{field.label}"))
+
+        return fields
+
+    def acl_actions_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
+        actions: list[tuple[str, str]] = []
+
+        for view, identity in self._view_identity_mapping.items():
+            if isinstance(view, BaseModelView):
+                # add actions to actions
+                for action in view.actions:
+                    # skip delete action
+                    if action == "delete":
+                        continue
+                    actions.append((f"object.{identity}.{action}", f"{action}"))
+
+        return actions

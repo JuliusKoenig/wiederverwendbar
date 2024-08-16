@@ -36,7 +36,6 @@ class UserView(MongoengineModelView):
         # set default values
         document = document or User
         icon = icon or "fa fa-user"
-        name = name or "User"
         label = label or "Benutzer"
 
         fields = []

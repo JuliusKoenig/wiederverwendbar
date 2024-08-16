@@ -1,4 +1,7 @@
-from typing import Type, Optional
+from typing import Type, Optional, Sequence
+
+from starlette.requests import Request
+from starlette_admin import RequestAction
 
 from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelConverter
 
@@ -9,15 +12,10 @@ from wiederverwendbar.starlette_admin.mongoengine.auth.fields import AccessContr
 
 class AccessControlListView(MongoengineModelView):
     exclude_fields_from_list = [AccessControlList.id,
-                                AccessControlList.users,
                                 AccessControlList.allow_read,
-                                AccessControlList.read_specify,
                                 AccessControlList.allow_create,
-                                AccessControlList.create_specify,
                                 AccessControlList.allow_update,
-                                AccessControlList.edit_specify,
-                                AccessControlList.allow_delete,
-                                AccessControlList.delete_specify]
+                                AccessControlList.allow_delete]
     exclude_fields_from_detail = [AccessControlList.id]
     exclude_fields_from_create = [AccessControlList.id]
     exclude_fields_from_edit = [AccessControlList.id]
@@ -25,10 +23,9 @@ class AccessControlListView(MongoengineModelView):
     def __init__(
             self,
             document: Type[AccessControlList],
-            read_specify_loader: callable,
-            create_specify_loader: callable,
-            edit_specify_loader: callable,
-            delete_specify_loader: callable,
+            reference_loader: callable,
+            fields_loader: callable,
+            actions_loader: callable,
             icon: Optional[str] = None,
             name: Optional[str] = None,
             label: Optional[str] = None,
@@ -38,19 +35,16 @@ class AccessControlListView(MongoengineModelView):
         # set default values
         document = document or AccessControlList
         icon = icon or "fa-solid fa-file-shield"
-        name = name or "ACL"
-        label = label or "ACL"
+        label = label or "Acls"
 
         fields = []
         for field_name in list(getattr(document, "_fields_ordered", [])):
-            if field_name == "read_specify":
-                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=read_specify_loader, multiple=True))
-            elif field_name == "create_specify":
-                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=create_specify_loader, multiple=True))
-            elif field_name == "edit_specify":
-                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=edit_specify_loader, multiple=True))
-            elif field_name == "delete_specify":
-                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=delete_specify_loader, multiple=True))
+            if field_name == "object":
+                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=reference_loader))
+            elif field_name == "specify_fields":
+                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=fields_loader, multiple=True))
+            elif field_name == "specify_actions":
+                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=actions_loader, multiple=True))
             else:
                 fields.append(field_name)
         self.fields = fields
@@ -64,6 +58,10 @@ class AccessControlListView(MongoengineModelView):
         for field in self.fields:
             if field.name == "users":
                 field.label = "Benutzer"
+            elif field.name == "object":
+                field.label = "Objekt"
+            elif field.name == "query_filter":
+                field.label = "Filter"
             elif field.name == "allow_read":
                 field.label = "Erlaube Lesen"
             elif field.name == "allow_create":
@@ -72,5 +70,17 @@ class AccessControlListView(MongoengineModelView):
                 field.label = "Erlaube Aktualisieren"
             elif field.name == "allow_delete":
                 field.label = "Erlaube Löschen"
-            elif field.name == "read_specify" or field.name == "create_specify" or field.name == "edit_specify" or field.name == "delete_specify":
-                field.label = "Spezifiziere"
+            elif field.name == "allow_execute":
+                field.label = "Erlaube Ausführen"
+            elif field.name == "specify_fields":
+                field.label = "Spezifische Felder"
+            elif field.name == "specify_actions":
+                field.label = "Spezifische Aktionen"
+
+    def _additional_js_links(
+        self, request: Request, action: RequestAction
+    ) -> Sequence[str]:
+        links = list(super()._additional_js_links(request, action))
+        if action == RequestAction.CREATE or action == RequestAction.EDIT:
+            links.append(request.url_for("admin:statics", path="js/acl_view.js"))
+        return links

@@ -8,9 +8,9 @@ from starlette.requests import Request
 from starlette_admin.contrib.mongoengine import ModelView
 from starlette_admin.actions import action
 from starlette_admin.views import CustomView, Link
-from mongoengine import connect, Document, StringField
+from mongoengine import connect, Document, StringField, IntField, FloatField, BooleanField, DictField
 
-from wiederverwendbar.starlette_admin import AuthAdminSettings, MongoengineAuthAdmin, User
+from wiederverwendbar.starlette_admin import AuthAdminSettings, MongoengineAuthAdmin
 
 # connect to database
 connect("test",
@@ -35,9 +35,15 @@ class Test(Document):
     meta = {"collection": "test"}
 
     test_str = StringField()
+    test_int = IntField()
+    test_float = FloatField()
+    test_bool = BooleanField()
+    test_dict = DictField()
 
 
 class TestModelView(ModelView):
+    exclude_fields_from_list = [Test.test_str, Test.test_int, Test.test_float, Test.test_bool, Test.test_dict]
+
     def __init__(self):
         super().__init__(document=Test, icon="fa fa-server", name="TestModel", label="TestModel")
 
@@ -64,14 +70,25 @@ class TestModelView(ModelView):
         return "Test Aktion erfolgreich."
 
 
-class TestCustomView(CustomView):
+class TestCustomView1(CustomView):
     def __init__(self):
         super().__init__(
-            label="TestCustom",
+            label="TestCustom1",
             icon="fa-solid fa-wrench",
             path="/",
             template_path="index.html",
-            name="TestCustom",
+            methods=None,
+            add_to_menu=True,
+        )
+
+
+class TestCustomView2(CustomView):
+    def __init__(self):
+        super().__init__(
+            label="TestCustom2",
+            icon="fa-solid fa-wrench",
+            path="/",
+            template_path="index.html",
             methods=None,
             add_to_menu=True,
         )
@@ -89,7 +106,8 @@ class TestLinkView(Link):
 
 # Add views to admin#
 admin.add_view(TestModelView())
-admin.add_view(TestCustomView())
+admin.add_view(TestCustomView1())
+admin.add_view(TestCustomView2())
 admin.add_view(TestLinkView())
 
 # Mount admin to app

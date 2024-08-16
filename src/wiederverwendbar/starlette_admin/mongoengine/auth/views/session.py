@@ -25,7 +25,6 @@ class SessionView(MongoengineModelView):
         # set default values
         document = document or Session
         icon = icon or "fa-solid fa-list"
-        name = name or "Session"
         label = label or "Sitzung"
 
         super().__init__(document=document,
