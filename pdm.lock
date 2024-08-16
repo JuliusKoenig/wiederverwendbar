@@ -5,7 +5,7 @@
 groups = ["default", "dev", "fastapi", "full", "mongoengine", "nicegui", "ping", "rich", "starlette-admin", "starlette_admin", "typer", "uvicorn"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:40953eb6f72d2994107f908ae4efd632dbdfc988d528dd503dcc8d89c7d32e15"
+content_hash = "sha256:4bc9cdc8a947abf224355b9bf3c35f08b920f46f0013fe4c95ad62fbc71fbb01"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -814,7 +814,7 @@ name = "nest-asyncio"
 version = "1.6.0"
 requires_python = ">=3.5"
 summary = "Patch asyncio to allow nested event loops"
-groups = ["starlette-admin"]
+groups = ["full", "starlette-admin"]
 files = [
     {file = "nest_asyncio-1.6.0-py3-none-any.whl", hash = "sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c"},
     {file = "nest_asyncio-1.6.0.tar.gz", hash = "sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe"},
