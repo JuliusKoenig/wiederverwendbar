@@ -1,7 +1,7 @@
 import logging
 import string
 import warnings
-from typing import Optional, Sequence, Tuple, Any, Union, Literal, Type
+from typing import Optional, Sequence, Tuple, Any, Union
 
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -133,11 +133,11 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
         # check if superuser is set
         if settings.admin_superuser_username is not None:
             # check if superuser exists
-            if not self.user_document.objects(username=settings.admin_superuser_username).first():
+            if not self.user_document.objects(username=settings.admin_superuser_username, admin=True).first():
                 if settings.admin_superuser_auto_create:
                     # create superuser
                     logger.info(f"Creating superuser with username '{settings.admin_superuser_username}' and password '{settings.admin_superuser_username}'")
-                    superuser = self.user_document(username=settings.admin_superuser_username)
+                    superuser = self.user_document(admin=True, username=settings.admin_superuser_username)
                     superuser.password = settings.admin_superuser_username
                     superuser.save()
                 else:

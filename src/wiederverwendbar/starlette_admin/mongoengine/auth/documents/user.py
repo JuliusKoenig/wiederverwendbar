@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Any
 
-from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ImageGridFsProxy
+from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ImageGridFsProxy, BooleanField
 from starlette.requests import Request
 
 from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
@@ -15,12 +15,13 @@ class User(Document):
 
     meta = {"collection": "user"}
 
+    avatar: ImageGridFsProxy = ImageField(size=(100, 100))
+    admin: bool = BooleanField(default=False, required=True)
     username: str = StringField(min_length=3, max_length=32, required=True, unique=True)
     password_doc: HashedPasswordDocument = EmbeddedDocumentField(HashedPasswordDocument)
     password_change_time: Optional[datetime] = DateTimeField()
     password_expiration_time: Optional[datetime] = DateTimeField()
     sessions: list[Any] = ListField(ReferenceField("Session"))
-    avatar: ImageGridFsProxy = ImageField(size=(100, 100))
     company_logo: str = StringField()
     acls: list[Any] = ListField(ReferenceField("AccessControlList"))
 
