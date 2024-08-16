@@ -1,4 +1,3 @@
-import logging
 import asyncio
 
 import uvicorn
@@ -11,13 +10,7 @@ from starlette_admin.actions import action
 from starlette_admin.views import CustomView, Link
 from mongoengine import connect, Document, StringField
 
-from wiederverwendbar.starlette_admin import AuthAdminSettings, MongoengineAuthAdmin
-
-logger = logging.getLogger(__name__)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-logger.addHandler(ch)
-logger.setLevel(logging.DEBUG)
+from wiederverwendbar.starlette_admin import AuthAdminSettings, MongoengineAuthAdmin, User
 
 # connect to database
 connect("test",
@@ -34,13 +27,8 @@ app = Starlette(
     ],
 )
 
-
-class MyAdmin(MongoengineAuthAdmin):
-    ...
-
-
 # Create admin
-admin = MyAdmin(settings=AuthAdminSettings(admin_debug=True, admin_auth=True, admin_static_dir="statics", admin_superuser_auto_create=True))
+admin = MongoengineAuthAdmin(settings=AuthAdminSettings(admin_debug=True, admin_auth=True, admin_static_dir="statics", admin_superuser_auto_create=True))
 
 
 class Test(Document):
@@ -87,6 +75,7 @@ class TestCustomView(CustomView):
             methods=None,
             add_to_menu=True,
         )
+
 
 class TestLinkView(Link):
     def __init__(self):
