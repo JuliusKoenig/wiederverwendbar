@@ -46,8 +46,11 @@ class User(Document):
 
     @password.setter
     def password(self, value: str) -> None:
+        if value is None or value == "":
+            return
+
         # set password
-        self.password_doc = HashedPasswordDocument.hash_password(value)
+        self.password_doc = self.HashedPasswordDocument.hash_password(value)
 
         # set password change time
         self.password_change_time = datetime.now()
