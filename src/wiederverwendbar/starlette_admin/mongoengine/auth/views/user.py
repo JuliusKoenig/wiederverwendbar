@@ -5,6 +5,7 @@ from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelC
 from starlette_admin.fields import PasswordField, EnumField
 
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
+from wiederverwendbar.starlette_admin.mongoengine.helper import get_document_field
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
 
 
@@ -41,9 +42,10 @@ class UserView(MongoengineModelView):
         fields = []
         for field_name in list(getattr(document, "_fields_ordered", [])):
             if field_name == "password_doc":
-                fields.append(PasswordField(name="password"))
+                fields.append(PasswordField(name="password", required=get_document_field(document=document, field_name=field_name).required))
             elif field_name == "company_logo":
-                fields.append(EnumField(name=field_name, choices_loader=company_logo_choices_loader))
+                fields.append(
+                    EnumField(name=field_name, choices_loader=company_logo_choices_loader, required=get_document_field(document=document, field_name=field_name).required))
             else:
                 fields.append(field_name)
         self.fields = fields
@@ -55,7 +57,7 @@ class UserView(MongoengineModelView):
                          identity=identity,
                          converter=converter)
         for field in self.fields:
-            if field.name == "username":
+            if field.name == "name":
                 field.label = "Benutzername"
             elif field.name == "password":
                 field.label = "Passwort"
@@ -67,3 +69,11 @@ class UserView(MongoengineModelView):
                 field.label = "Profilbild"
             elif field.name == "company_logo":
                 field.label = "Firmenlogo"
+            elif field.name == "sessions":
+                field.label = "Sitzungen"
+            elif field.name == "admin":
+                field.label = "Administrator"
+            elif field.name == "groups":
+                field.label = "Gruppen"
+            elif field.name == "acls":
+                field.label = "Zugriffskontrolllisten"

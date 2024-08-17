@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from mongoengine import Document, ReferenceField, DateTimeField, StringField, CASCADE
+from mongoengine import Document, signals, DoesNotExist, ReferenceField, DateTimeField, StringField
 from starlette.requests import Request
 
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
@@ -11,14 +11,24 @@ from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 class Session(Document):
     meta = {"collection": "session"}
 
-    user: User = ReferenceField(User, required=True, reverse_delete_rule=CASCADE)
+    user: User = ReferenceField(User, required=True)
     app_name: str = StringField(regex=r"^[a-zA-Z0-9_-]+$", required=True)
     user_agent: str = StringField(default="")
     created: datetime = DateTimeField(default=datetime.now, required=True)
     last_access: datetime = DateTimeField()
 
+    @classmethod
+    def post_delete(cls, sender, document, **kwargs):
+        # delete session from user
+        try:
+            _ = document.user
+        except DoesNotExist:
+            return
+        document.user.sessions.remove(document)
+        document.user.save()
+
     async def __admin_repr__(self, request: Request):
-        return f"{await self.user.__admin_repr__(request)} - {self.id})"
+        return f"{self.id} - (username={self.user.name})"
 
     @classmethod
     def get_session_from_request(cls, request: Request) -> Optional["Session"]:
@@ -49,3 +59,5 @@ class Session(Document):
             return None
 
         return session
+
+signals.post_delete.connect(Session.post_delete, sender=Session)

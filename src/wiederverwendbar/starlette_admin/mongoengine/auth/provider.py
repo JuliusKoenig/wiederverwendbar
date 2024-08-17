@@ -45,7 +45,7 @@ class MongoengineAdminAuthProvider(AuthProvider):
         settings = AuthAdminSettings.from_request(request=request)
 
         # get user from database
-        user = self.user_document_cls.objects(username=username).first()
+        user = self.user_document_cls.objects(name=username).first()
         if user is None:
             if settings.admin_debug:
                 raise FormValidationError({"username": "User not found!"})
@@ -127,7 +127,7 @@ class MongoengineAdminAuthProvider(AuthProvider):
         # get avatar url
         avatar_url = get_grid_fs_url(session.user.avatar, request=request)
 
-        return AdminUser(username=session.user.username, photo_url=avatar_url)
+        return AdminUser(username=session.user.name, photo_url=avatar_url)
 
     async def logout(self, request: Request, response: Response) -> Response:
         #

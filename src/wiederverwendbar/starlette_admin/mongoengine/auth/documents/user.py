@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Any
 
-from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ImageGridFsProxy, BooleanField, ValidationError
+from mongoengine import Document, signals, ValidationError, StringField, DateTimeField, EmbeddedDocumentField, ReferenceField, ListField, ImageField, ImageGridFsProxy, BooleanField
 from starlette.requests import Request
 
 from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
@@ -17,7 +17,8 @@ class User(Document):
 
     avatar: ImageGridFsProxy = ImageField(size=(100, 100))
     admin: bool = BooleanField(default=False, required=True)
-    username: str = StringField(min_length=3, max_length=32, required=True, unique=True)
+    name: str = StringField(min_length=3, max_length=32, required=True, unique=True)
+    groups: list[Any] = ListField(ReferenceField("Group"))
     password_doc: HashedPasswordDocument = EmbeddedDocumentField(HashedPasswordDocument)
     password_change_time: Optional[datetime] = DateTimeField()
     password_expiration_time: Optional[datetime] = DateTimeField()
@@ -25,52 +26,77 @@ class User(Document):
     company_logo: str = StringField()
     acls: list[Any] = ListField(ReferenceField("AccessControlList"))
 
-    def __init__(self, *args, **values):
-        super().__init__(*args, **values)
+    @classmethod
+    def pre_save(cls, sender, document, **kwargs):
+        changed_fields = getattr(document, "_changed_fields", [])
 
-        # cleanup sessions they don't exist anymore
-        sessions = []
-        for session in self.sessions:
-            if type(session) is not self.session_document_cls:
-                continue
-            sessions.append(session)
-        if len(sessions) != len(self.sessions):
-            self.sessions = sessions
-            self.save()
-
-    def save(
-        self,
-        force_insert=False,
-        validate=True,
-        clean=True,
-        write_concern=None,
-        cascade=None,
-        cascade_kwargs=None,
-        _refs=None,
-        save_condition=None,
-        signal_kwargs=None,
-        **kwargs,
-    ):
-        if "admin" in self._changed_fields:
-            if not self.admin:
+        # check if admin user is removed
+        if "admin" in changed_fields:
+            if not document.admin:
                 # check this the last admin user
-                if User.objects(admin=True).count() == 1:
+                if document.is_last_admin:
                     raise ValidationError(errors={"admin": "You can't remove the last admin user."})
-        super().save(
-            force_insert=force_insert,
-            validate=validate,
-            clean=clean,
-            write_concern=write_concern,
-            cascade=cascade,
-            cascade_kwargs=cascade_kwargs,
-            _refs=_refs,
-            save_condition=save_condition,
-            signal_kwargs=signal_kwargs,
-            **kwargs,
-        )
+
+    @classmethod
+    def post_save(cls, sender, document, **kwargs):
+        # refresh groups
+        # add user to all groups
+        for group in document.groups:
+            if document not in group.users:
+                group.users.append(document)
+                group.save()
+        # remove user from all groups not in groups
+        group_document_cls = getattr(document, "_fields")["groups"].field.document_type_obj
+        for group in group_document_cls.objects(users__in=[document]):
+            if group in document.groups:
+                continue
+            group.users.remove(document)
+            group.save()
+
+        # refresh acls
+        # add user to all acls
+        for acl in document.acls:
+            if document not in acl.users:
+                acl.users.append(document)
+                acl.save()
+        # remove user from all acls not in acls
+        acl_document_cls = getattr(document, "_fields")["acls"].field.document_type_obj
+        for acl in acl_document_cls.objects(users__in=[document]):
+            if acl in document.acls:
+                continue
+            acl.users.remove(document)
+            acl.save()
+
+    @classmethod
+    def pre_delete(cls, sender, document, **kwargs):
+        # check if admin user is removed
+        if document.admin:
+            # check this the last admin user
+            if document.is_last_admin:
+                raise ValidationError(errors={"admin": "You can't remove the last admin user."})
+
+    @classmethod
+    def post_delete(cls, sender, document, **kwargs):
+        # delete all sessions with this user
+        for session in document.sessions:
+            session.delete()
+
+        # remove user from all groups
+        for group in document.groups:
+            group.users.remove(document)
+            group.save()
+
+        # remove user from all acls
+        for acl in document.acls:
+            acl.users.remove(document)
+            acl.save()
 
     async def __admin_repr__(self, request: Request):
-        return f"{self.username}"
+        return f"{self.name}"
+
+    @property
+    def is_last_admin(self) -> bool:
+        return User.objects(admin=True).count() == 1
 
     @property
     def password(self) -> HashedPasswordDocument:
@@ -92,10 +118,6 @@ class User(Document):
             if self.password_change_time > self.password_expiration_time:
                 self.password_expiration_time = None
 
-    @property
-    def session_document_cls(self) -> type[Any]:
-        return getattr(self, "_fields")["sessions"].field.document_type_obj
-
     def create_session_from_request(self, request: Request) -> Any:
         # get settings
         settings = AuthAdminSettings.from_request(request=request)
@@ -103,12 +125,20 @@ class User(Document):
         # get user-agent
         user_agent = request.headers.get("User-Agent", "")
 
-        session = self.session_document_cls(user=self,
-                                            app_name=settings.admin_name,
-                                            user_agent=user_agent,
-                                            last_access=datetime.now())
+        session_document_cls = getattr(self, "_fields")["sessions"].field.document_type_obj
+
+        session = session_document_cls(user=self,
+                                       app_name=settings.admin_name,
+                                       user_agent=user_agent,
+                                       last_access=datetime.now())
         session.save()
         self.sessions.append(session)
         self.save()
 
         return session
+
+
+signals.pre_save.connect(User.pre_save, sender=User)
+signals.post_save.connect(User.post_save, sender=User)
+signals.pre_delete.connect(User.pre_delete, sender=User)
+signals.post_delete.connect(User.post_delete, sender=User)

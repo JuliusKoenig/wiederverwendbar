@@ -5,7 +5,7 @@
 groups = ["default", "dev", "fastapi", "full", "mongoengine", "nicegui", "ping", "rich", "starlette-admin", "starlette_admin", "typer", "uvicorn"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:bf4a352a274d7a3c4659fb6366a13778916e2a43b32f6dc7b786d239f5ad8722"
+content_hash = "sha256:bef63afa507504e9cba4d1ad686e437ba5001c7606ede6818ea68e51ce4734f1"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -222,6 +222,17 @@ groups = ["full", "nicegui"]
 files = [
     {file = "bidict-0.23.1-py3-none-any.whl", hash = "sha256:5dae8d4d79b552a71cbabc7deb25dfe8ce710b17ff41711e13010ead2abfc3e5"},
     {file = "bidict-0.23.1.tar.gz", hash = "sha256:03069d763bc387bbd20e7d49914e75fc4132a41937fa3405417e1a5a2d006d71"},
+]
+
+[[package]]
+name = "blinker"
+version = "1.8.2"
+requires_python = ">=3.8"
+summary = "Fast, simple object-to-object and broadcast signaling"
+groups = ["full", "starlette-admin"]
+files = [
+    {file = "blinker-1.8.2-py3-none-any.whl", hash = "sha256:1779309f71bf239144b9399d06ae925637cf6634cf6bd131104184531bf67c01"},
+    {file = "blinker-1.8.2.tar.gz", hash = "sha256:8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83"},
 ]
 
 [[package]]

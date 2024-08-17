@@ -15,15 +15,17 @@ from starlette_admin.auth import BaseAuthProvider
 from wiederverwendbar.starlette_admin.admin import SettingsAdmin
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 from wiederverwendbar.starlette_admin.drop_down_icon_view.admin import DropDownIconViewAdmin
-from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
-from wiederverwendbar.starlette_admin.mongoengine.auth.views.acl import AccessControlListView
-from wiederverwendbar.starlette_admin.mongoengine.auth.views.auth import AuthView
 from wiederverwendbar.starlette_admin.mongoengine.boolean_also_field.admin import BooleanAlsoAdmin
 from wiederverwendbar.starlette_admin.mongoengine.auth.provider import MongoengineAdminAuthProvider
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.group import Group
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.session import Session
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.acl import AccessControlListView
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.auth import AuthView
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.group import GroupView
 from wiederverwendbar.starlette_admin.mongoengine.auth.views.session import SessionView
 from wiederverwendbar.starlette_admin.mongoengine.auth.views.user import UserView
-from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,8 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
             auth_view: Union[None, AuthView, bool] = None,
             user_document: Optional[type[User]] = None,
             user_view: Optional[UserView] = None,
+            group_document: Optional[type[Group]] = None,
+            group_view: Optional[GroupView] = None,
             session_document: Optional[type[Session]] = None,
             session_view: Optional[SessionView] = None,
             acl_document: Optional[type[AccessControlList]] = None,
@@ -77,20 +81,22 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
                                           domain=settings.admin_session_domain))
 
         # set documents
-        self.user_document = user_document or User
-        self.session_document = session_document or Session
         self.acl_document = acl_document or AccessControlList
+        self.group_document = group_document or Group
+        self.session_document = session_document or Session
+        self.user_document = user_document or User
 
         # set views
-        if auth_view is None:
-            auth_view = AuthView()
-        self.auth_view = auth_view
-        self.user_view = user_view or UserView(document=self.user_document, company_logo_choices_loader=self.user_company_logo_files_loader)
-        self.session_view = session_view or SessionView(document=self.session_document)
         self.acl_view = acl_view or AccessControlListView(document=self.acl_document,
                                                           reference_loader=self.acl_reference_loader,
                                                           fields_loader=self.acl_fields_loader,
                                                           actions_loader=self.acl_actions_loader)
+        if auth_view is None:
+            auth_view = AuthView()
+        self.auth_view = auth_view
+        self.group_view = group_view or GroupView(document=self.group_document, company_logo_choices_loader=self.company_logo_files_loader)
+        self.session_view = session_view or SessionView(document=self.session_document)
+        self.user_view = user_view or UserView(document=self.user_document, company_logo_choices_loader=self.company_logo_files_loader)
 
         # set auth_provider
         if settings.admin_auth:
@@ -123,25 +129,26 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
 
         # create views
         if self.auth_view:
-            self.auth_view.views = [self.user_view, self.session_view, self.acl_view]
+            self.auth_view.views = [self.user_view, self.group_view, self.session_view, self.acl_view]
             self.add_view(self.auth_view)
         else:
             self.add_view(self.user_view)
+            self.add_view(self.group_view)
             self.add_view(self.session_view)
             self.add_view(self.acl_view)
 
         # check if superuser is set
-        if settings.admin_superuser_username is not None:
+        if settings.admin_superuser_name is not None:
             # check if superuser exists
-            if not self.user_document.objects(username=settings.admin_superuser_username, admin=True).first():
+            if not self.user_document.objects(name=settings.admin_superuser_name, admin=True).first():
                 if settings.admin_superuser_auto_create:
                     # create superuser
-                    logger.info(f"Creating superuser with username '{settings.admin_superuser_username}' and password '{settings.admin_superuser_username}'")
-                    superuser = self.user_document(admin=True, username=settings.admin_superuser_username)
-                    superuser.password = settings.admin_superuser_username
+                    logger.info(f"Creating superuser with username '{settings.admin_superuser_name}' and password '{settings.admin_superuser_name}'")
+                    superuser = self.user_document(admin=True, name=settings.admin_superuser_name)
+                    superuser.password = settings.admin_superuser_name
                     superuser.save()
                 else:
-                    warnings.warn(f"Superuser with username '{settings.admin_superuser_username}' does not exist!", UserWarning)
+                    warnings.warn(f"Superuser with username '{settings.admin_superuser_name}' does not exist!", UserWarning)
 
         # disable jinja2 cache - ToDo: i don't know, but without disabling the cache, i have problems with dynamic list loaders
         self.templates.env.cache = None
@@ -204,7 +211,7 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
         super().setup_view(view)
         _ = self._view_identity_mapping
 
-    def user_company_logo_files_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
+    def company_logo_files_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
         if not self.settings.admin_static_company_logo_dir:
             return []
         company_logo_files = []

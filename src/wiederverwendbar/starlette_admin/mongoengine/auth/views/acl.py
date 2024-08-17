@@ -6,6 +6,7 @@ from starlette_admin import RequestAction
 from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelConverter
 
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
+from wiederverwendbar.starlette_admin.mongoengine.helper import get_document_field
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
 from wiederverwendbar.starlette_admin.mongoengine.auth.fields import AccessControlListReferenceField
 
@@ -39,16 +40,24 @@ class AccessControlListView(MongoengineModelView):
         # set default values
         document = document or AccessControlList
         icon = icon or "fa-solid fa-file-shield"
-        label = label or "Acls"
+        label = label or "Zugriffskontrolllisten"
 
         fields = []
         for field_name in list(getattr(document, "_fields_ordered", [])):
             if field_name == "object":
-                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=reference_loader))
+                fields.append(AccessControlListReferenceField(name=field_name,
+                                                              choices_loader=reference_loader,
+                                                              required=get_document_field(document=document, field_name=field_name).required))
             elif field_name == "specify_fields":
-                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=fields_loader, multiple=True))
+                fields.append(AccessControlListReferenceField(name=field_name,
+                                                              choices_loader=fields_loader,
+                                                              required=get_document_field(document=document, field_name=field_name).required,
+                                                              multiple=True))
             elif field_name == "specify_actions":
-                fields.append(AccessControlListReferenceField(name=field_name, choices_loader=actions_loader, multiple=True))
+                fields.append(AccessControlListReferenceField(name=field_name,
+                                                              choices_loader=actions_loader,
+                                                              required=get_document_field(document=document, field_name=field_name).required,
+                                                              multiple=True))
             else:
                 fields.append(field_name)
         self.fields = fields
@@ -62,6 +71,8 @@ class AccessControlListView(MongoengineModelView):
         for field in self.fields:
             if field.name == "users":
                 field.label = "Benutzer"
+            elif field.name == "groups":
+                field.label = "Gruppen"
             elif field.name == "object":
                 field.label = "Objekt"
             elif field.name == "query_filter":
@@ -82,7 +93,7 @@ class AccessControlListView(MongoengineModelView):
                 field.label = "Spezifische Aktionen"
 
     def _additional_js_links(
-        self, request: Request, action: RequestAction
+            self, request: Request, action: RequestAction
     ) -> Sequence[str]:
         links = list(super()._additional_js_links(request, action))
         if action == RequestAction.CREATE or action == RequestAction.EDIT:

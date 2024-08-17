@@ -1,6 +1,8 @@
+from dataclasses import field
 from typing import Union, Optional
 
 from mongoengine import GridFSProxy, ImageGridFsProxy
+from mongoengine.base import BaseDocument, BaseField
 from starlette.requests import Request
 
 
@@ -18,3 +20,8 @@ def get_grid_fs_url(file: Union[GridFSProxy, ImageGridFsProxy], request: Request
     )
     url_str = str(url)
     return url_str
+
+
+def get_document_field(document: type[BaseDocument], field_name: str) -> BaseField:
+    fields = getattr(document, "_fields")
+    return fields[field_name]
