@@ -12,10 +12,14 @@ from wiederverwendbar.starlette_admin.mongoengine.auth.fields import AccessContr
 
 class AccessControlListView(MongoengineModelView):
     exclude_fields_from_list = [AccessControlList.id,
-                                AccessControlList.allow_read,
+                                AccessControlList.query_filter,
+                                AccessControlList.allow_detail,
                                 AccessControlList.allow_create,
                                 AccessControlList.allow_update,
-                                AccessControlList.allow_delete]
+                                AccessControlList.specify_fields,
+                                AccessControlList.allow_delete,
+                                AccessControlList.allow_execute,
+                                AccessControlList.specify_actions]
     exclude_fields_from_detail = [AccessControlList.id]
     exclude_fields_from_create = [AccessControlList.id]
     exclude_fields_from_edit = [AccessControlList.id]
@@ -62,18 +66,18 @@ class AccessControlListView(MongoengineModelView):
                 field.label = "Objekt"
             elif field.name == "query_filter":
                 field.label = "Filter"
-            elif field.name == "allow_read":
-                field.label = "Erlaube Lesen"
+            elif field.name == "allow_detail":
+                field.label = "Erlaube Detailansicht"
             elif field.name == "allow_create":
                 field.label = "Erlaube Erstellen"
             elif field.name == "allow_update":
                 field.label = "Erlaube Aktualisieren"
+            elif field.name == "specify_fields":
+                field.label = "Spezifische Felder"
             elif field.name == "allow_delete":
                 field.label = "Erlaube Löschen"
             elif field.name == "allow_execute":
                 field.label = "Erlaube Ausführen"
-            elif field.name == "specify_fields":
-                field.label = "Spezifische Felder"
             elif field.name == "specify_actions":
                 field.label = "Spezifische Aktionen"
 

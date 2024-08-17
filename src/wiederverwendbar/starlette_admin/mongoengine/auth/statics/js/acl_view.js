@@ -50,13 +50,12 @@ registerFieldInitializer(function (element) {
         JSON.parse(queryFilterInput.val())
     );
 
-
-    // get input with id "allow_read"
-    const allowRead = $(element).find("input#allow_read");
-    if (allowRead.length === 0) {
-        throw ("Input with id allow_read not found");
+    // get input with id "allow_detail"
+    const allowDetail = $(element).find("input#allow_detail");
+    if (allowDetail.length === 0) {
+        throw ("Input with id allow_detail not found");
     }
-    const allowReadParent = allowRead.parent().parent().parent();
+    const allowDetailParent = allowDetail.parent().parent().parent();
 
     // get input with id "allow_create"
     const allowCreate = $(element).find("input#allow_create");
@@ -128,20 +127,11 @@ registerFieldInitializer(function (element) {
         }
     }
 
-    // get value of the current selected object
-    let currentSelectedObject = object.val();
-
     // register change event for object select
     object.change(function () {
-        // get value of selected object
-        const selectedObject = $(this).val();
-
-        // get type of selected object
-        const objectType = selectedObject.split(".")[0];
-
         // hide all elements
         queryFilterParent.hide();
-        allowReadParent.hide();
+        allowDetailParent.hide();
         allowCreateParent.hide();
         allowUpdateParent.hide();
         allowDeleteParent.hide();
@@ -150,30 +140,28 @@ registerFieldInitializer(function (element) {
         specifyActionsParent.hide();
 
         // show elements if object is selected
-        if (selectedObject !== "") {
-            if (objectType === "object") {
-                queryFilterParent.show();
-                specifyFieldsParent.show();
-                specifyActionsParent.show();
-            }
-            if (objectType === "all" || objectType === "object") {
-                allowReadParent.show();
+        if (object.val() !== "") {
+            if (object.val().split(".")[0] === "all" || object.val().split(".")[0] === "object") {
+                allowDetailParent.show();
                 allowCreateParent.show();
                 allowUpdateParent.show();
                 allowDeleteParent.show();
                 allowExecuteParent.show();
             }
+            if (object.val().split(".")[0] === "object") {
+                queryFilterParent.show();
+            }
         }
 
         // reset form if selected object has changed
-        if (currentSelectedObject !== selectedObject) {
+        if (currentSelectedObject !== object.val()) {
             // empty queryFilterEditor
             queryFilterEditor.setText("{}");
             queryFilterInput.val("{}");
 
-            // uncheck allow_read
-            allowRead.prop("checked", false);
-            allowRead.trigger("change");
+            // uncheck allow_detail
+            allowDetail.prop("checked", false);
+            allowDetail.trigger("change");
 
             // uncheck allow_create
             allowCreate.prop("checked", false);
@@ -207,7 +195,7 @@ registerFieldInitializer(function (element) {
             const text = specifyFieldsOptionsTexts[i];
 
             // skip if value is not starting with selected object
-            if (!value.startsWith(selectedObject + ".")) {
+            if (!value.startsWith(object.val() + ".")) {
                 continue;
             }
 
@@ -228,6 +216,9 @@ registerFieldInitializer(function (element) {
         // trigger change event for specify_fields
         specifyFields.trigger("change");
 
+        // trigger change event for allow_detail
+        allowDetail.trigger("change");
+
         // empty specify_actions
         specifyActions.empty();
 
@@ -237,7 +228,7 @@ registerFieldInitializer(function (element) {
             const text = specifyActionsOptionsTexts[i];
 
             // skip if value is not starting with selected object
-            if (!value.startsWith(selectedObject + ".")) {
+            if (!value.startsWith(object.val() + ".")) {
                 continue;
             }
 
@@ -255,12 +246,50 @@ registerFieldInitializer(function (element) {
             specifyActions.append(option);
         }
 
-        // trigger change event for specify_fields
-        specifyFields.trigger("change");
+        // trigger change event for specify_actions
+        specifyActions.trigger("change");
+
+        // show/hide allowExecuteParent if specify_actions is empty or not
+        if (specifyActions.find("option").length === 0 && object.val().split(".")[0] !== "all") {
+            allowExecuteParent.hide();
+        } else {
+            allowExecuteParent.show();
+        }
+
+        // trigger change event for allow_execute
+        allowExecute.trigger("change");
 
         // set current selected object
-        currentSelectedObject = selectedObject;
+        currentSelectedObject = object.val();
     });
+
+    // register change event for allow_detail
+    allowDetail.change(function () {
+        const value = allowDetail.is(":checked");
+
+        // show/hide specify_fields_parent if allow_detail is checked or not
+        if (value && object.val().split(".")[0] !== "all") {
+            specifyFieldsParent.show();
+        } else {
+            specifyFieldsParent.hide();
+        }
+    });
+
+
+    // register change event for allow_execute
+    allowExecute.change(function () {
+        const value = allowExecute.is(":checked");
+
+        // show/hide specify_actions_parent if allow_execute is checked or not
+        if (value && object.val().split(".")[0] !== "all") {
+            specifyActionsParent.show();
+        } else {
+            specifyActionsParent.hide();
+        }
+    });
+
+    // get value of the current selected object
+    let currentSelectedObject = object.val();
 
     // trigger change event for object select
     object.trigger("change");
