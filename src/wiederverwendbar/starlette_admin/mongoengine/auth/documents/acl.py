@@ -7,7 +7,7 @@ from wiederverwendbar.mongoengine.fields.boolean_also_field import BooleanAlsoFi
 
 
 class AccessControlList(Document):
-    meta = {"collection": "acl"}
+    meta = {"collection": "auth.acl"}
 
     name: str = StringField(required=True, unique=True)
     users: list[Any] = ListField(ReferenceField("User"))

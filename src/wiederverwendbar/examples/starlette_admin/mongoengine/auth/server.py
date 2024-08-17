@@ -75,7 +75,7 @@ class TestCustomView1(CustomView):
         super().__init__(
             label="TestCustom1",
             icon="fa-solid fa-wrench",
-            path="/",
+            path="/test_custom1",
             template_path="index.html",
             methods=None,
             add_to_menu=True,
@@ -87,7 +87,7 @@ class TestCustomView2(CustomView):
         super().__init__(
             label="TestCustom2",
             icon="fa-solid fa-wrench",
-            path="/",
+            path="/test_custom2",
             template_path="index.html",
             methods=None,
             add_to_menu=True,

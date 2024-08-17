@@ -1,9 +1,10 @@
-from typing import Any
+from typing import Any, Optional
 
 from mongoengine import Document, signals, StringField, ReferenceField, ListField
 from starlette.requests import Request
 
 from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
 
 
 class Group(Document):
@@ -11,12 +12,12 @@ class Group(Document):
         def __str__(self):
             return ""
 
-    meta = {"collection": "group"}
+    meta = {"collection": "auth.group"}
 
     name: str = StringField(min_length=3, max_length=32, required=True, unique=True)
     company_logo: str = StringField()
     users: list[Any] = ListField(ReferenceField("User"))
-    acls: list[Any] = ListField(ReferenceField("AccessControlList"))
+    acls: list[AccessControlList] = ListField(ReferenceField(AccessControlList))
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):
@@ -62,6 +63,20 @@ class Group(Document):
 
     async def __admin_repr__(self, request: Request):
         return f"{self.name}"
+
+    def get_acls(self, object_filter: Optional[str] = None) -> list[AccessControlList]:
+        acls = []
+        # get acls from group
+        for acl in self.acls:
+            # skip if acl already in acls
+            if acl in acls:
+                continue
+            # if object_filter is not None, check if acl has object
+            if object_filter is not None:
+                if object_filter != acl.object and acl.object != "all":
+                    continue
+            acls.append(acl)
+        return acls
 
 
 signals.post_save.connect(Group.post_save, sender=Group)

@@ -5,6 +5,7 @@ from mongoengine import Document, signals, ValidationError, StringField, DateTim
 from starlette.requests import Request
 
 from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 
 
@@ -13,7 +14,7 @@ class User(Document):
         def __str__(self):
             return ""
 
-    meta = {"collection": "user"}
+    meta = {"collection": "auth.user"}
 
     avatar: ImageGridFsProxy = ImageField(size=(100, 100))
     admin: bool = BooleanField(default=False, required=True)
@@ -24,7 +25,7 @@ class User(Document):
     password_expiration_time: Optional[datetime] = DateTimeField()
     sessions: list[Any] = ListField(ReferenceField("Session"))
     company_logo: str = StringField()
-    acls: list[Any] = ListField(ReferenceField("AccessControlList"))
+    acls: list[AccessControlList] = ListField(ReferenceField(AccessControlList))
 
     @classmethod
     def pre_save(cls, sender, document, **kwargs):
@@ -125,8 +126,7 @@ class User(Document):
         # get user-agent
         user_agent = request.headers.get("User-Agent", "")
 
-        session_document_cls = getattr(self, "_fields")["sessions"].field.document_type_obj
-
+        session_document_cls = getattr(self.__class__.sessions, "field").document_type
         session = session_document_cls(user=self,
                                        app_name=settings.admin_name,
                                        user_agent=user_agent,
@@ -136,6 +136,23 @@ class User(Document):
         self.save()
 
         return session
+
+    def get_acls(self, object_filter: Optional[str] = None) -> list[AccessControlList]:
+        acls = []
+        # get acls from groups
+        for group in self.groups:
+            acls.extend(group.get_acls(object_filter=object_filter))
+        # get acls from user
+        for acl in self.acls:
+            # skip if acl already in acls
+            if acl in acls:
+                continue
+            # if identity is not None, check if acl has identity
+            if object_filter is not None:
+                if object_filter != acl.object and acl.object != "all":
+                    continue
+            acls.append(acl)
+        return acls
 
 
 signals.pre_save.connect(User.pre_save, sender=User)

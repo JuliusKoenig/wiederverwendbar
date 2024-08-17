@@ -33,6 +33,63 @@ logger = logging.getLogger(__name__)
 class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmin, Admin):
     static_files_packages = [("wiederverwendbar", "starlette_admin/mongoengine/auth/statics")]
 
+    class AclsWrapper:
+        def __init__(self, admin: "MongoengineAuthAdmin", view: BaseView, method: Union[str, callable]):
+            self.admin = admin
+            self.view = view
+
+            # get method name
+            if callable(method):
+                method_name = method.__name__
+            elif type(method) is str:
+                method_name = method
+            else:
+                raise ValueError(f"Method must be a string or a callable, but is '{type(method)}'")
+
+            # get view method and admin method
+            self.view_method = getattr(view.__class__, method_name, None)
+            self.admin_method = getattr(admin, method_name, None)
+            if self.view_method is None and self.admin_method is None:
+                raise ValueError(f"Method '{method_name}' not found in view '{view}' or admin '{admin}'")
+
+        def __call__(self, *args, **kwargs) -> bool:
+            request = args[0]
+            if not isinstance(request, Request):
+                raise ValueError(f"First argument must be an instance of {Request.__name__}")
+
+            if self.view_method is not None:
+                # execute view method
+                view_method_result = self.view_method(self.view, *args, **kwargs)
+                if not view_method_result:
+                    return False
+
+            if self.admin_method is not None:
+                # get session
+                session = self.admin.session_document.get_session_from_request(request)
+                if session is None:
+                    raise ValueError("Session not found!")
+
+                # check if user is admin
+                if session.user.admin:
+                    return True
+                else:
+                    # get identity of view
+                    identity = self.admin._view_identity_mapping[self.view]
+
+                    # get acls
+                    acls = session.get_acls(object_filter=identity)
+
+                # if no acls are found, return False
+                if not acls:
+                    return False
+
+                # execute admin method
+                admin_method_result = self.admin_method(*args, view=self.view, acls=acls, **kwargs)
+                if not admin_method_result:
+                    return False
+
+            return True
+
     def __init__(
             self,
             title: Optional[str] = None,
@@ -199,6 +256,15 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
                     if identity != "":
                         identity += "_"
 
+            if isinstance(view, CustomView):
+                identity = f"view.{identity}"
+            elif isinstance(view, Link):
+                identity = f"link.{identity}"
+            elif isinstance(view, BaseModelView):
+                identity = f"object.{identity}"
+            else:
+                raise ValueError(f"Unknown view type: {type(view)}")
+
             # check if identity is already used
             if identity in view_identity_mapping.values():
                 raise ValueError(f"Identity '{identity}' is already used by '{[k for k, v in view_identity_mapping.items() if v == identity][0]}'")
@@ -208,8 +274,63 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
         return view_identity_mapping
 
     def setup_view(self, view: BaseView) -> None:
+        if not isinstance(view, BaseView):
+            raise ValueError(f"view must be an instance of {BaseView.__name__}")
+
         super().setup_view(view)
+
+        # check if all view identities are unique
         _ = self._view_identity_mapping
+
+        # set base view rights
+        if isinstance(view, CustomView) or isinstance(view, Link) or isinstance(view, BaseModelView):
+            view.is_accessible = self.AclsWrapper(self, view, view.is_accessible)
+
+        # set model view rights
+        if isinstance(view, BaseModelView):
+            # view.is_action_allowed = self.AclsWrapper(self, view, view.is_action_allowed) # ToDo implement in asyncio
+            # view.is_row_action_allowed = self.AclsWrapper(self, view, view.is_row_action_allowed) # ToDo implement in asyncio
+            view.can_view_details = self.AclsWrapper(self, view, view.can_view_details)
+            view.can_create = self.AclsWrapper(self, view, view.can_create)
+            view.can_edit = self.AclsWrapper(self, view, view.can_edit)
+            view.can_delete = self.AclsWrapper(self, view, view.can_delete)
+
+    def is_accessible(self, request: Request, view: BaseView, acls: list[AccessControlList]) -> bool:
+        return True
+
+    def is_action_allowed(self, request: Request, view: BaseView, acls: list[AccessControlList]) -> bool:
+        raise NotImplementedError
+
+    def is_row_action_allowed(self, request: Request, view: BaseView, acls: list[AccessControlList]) -> bool:
+        raise NotImplementedError
+
+    def can_view_details(self, request: Request, view: BaseView, acls: list[AccessControlList]) -> bool:
+        for acl in acls:
+            if acl.allow_detail:
+                return True
+        return False
+
+    def can_create(self, request: Request, view: BaseView, acls: list[AccessControlList]) -> bool:
+        can_view_details = self.can_view_details(request, view, acls)
+        if can_view_details:
+            for acl in acls:
+                if acl.allow_create:
+                    return True
+        return False
+
+    def can_edit(self, request: Request, view: BaseView, acls: list[AccessControlList]) -> bool:
+        can_view_details = self.can_view_details(request, view, acls)
+        if can_view_details:
+            for acl in acls:
+                if acl.allow_update:
+                    return True
+        return False
+
+    def can_delete(self, request: Request, view: BaseView, acls: list[AccessControlList]) -> bool:
+        for acl in acls:
+            if acl.allow_delete:
+                return True
+        return False
 
     def company_logo_files_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
         if not self.settings.admin_static_company_logo_dir:
@@ -228,11 +349,11 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
 
         for view, identity in self._view_identity_mapping.items():
             if isinstance(view, CustomView):
-                references.append((f"view.{identity}", f"Ansicht {view.label}"))
+                references.append((identity, f"Ansicht {view.label}"))
             elif isinstance(view, Link):
-                references.append((f"link.{identity}", f"Link {view.label}"))
+                references.append((identity, f"Link {view.label}"))
             elif isinstance(view, BaseModelView):
-                references.append((f"object.{identity}", f"Objekt {view.label}"))
+                references.append((identity, f"Objekt {view.label}"))
 
         return references
 

@@ -4,12 +4,13 @@ from typing import Optional
 from mongoengine import Document, signals, DoesNotExist, ReferenceField, DateTimeField, StringField
 from starlette.requests import Request
 
+from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
 from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 
 
 class Session(Document):
-    meta = {"collection": "session"}
+    meta = {"collection": "auth.session"}
 
     user: User = ReferenceField(User, required=True)
     app_name: str = StringField(regex=r"^[a-zA-Z0-9_-]+$", required=True)
@@ -59,5 +60,9 @@ class Session(Document):
             return None
 
         return session
+
+    def get_acls(self, object_filter: Optional[str] = None) -> list[AccessControlList]:
+        return self.user.get_acls(object_filter=object_filter)
+
 
 signals.post_delete.connect(Session.post_delete, sender=Session)
