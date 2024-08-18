@@ -1,9 +1,8 @@
-from typing import Type, Optional, Union
+from typing import Type, Optional
 
 from starlette.requests import Request
 from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelConverter
 
-from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.session import Session
 from wiederverwendbar.starlette_admin.mongoengine.auth.views.model import ModelView
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
@@ -43,8 +42,8 @@ class SessionView(ModelView, MongoengineModelView):
             elif field.name == "last_access":
                 field.label = "Letzter Zugriff"
 
-    def can_create(self, request: Request, acls: Union[None, list[AccessControlList]] = None) -> bool:
+    def can_create(self, request: Request) -> bool:
         return False
 
-    def can_edit(self, request: Request, acls: Union[None, list[AccessControlList]] = None) -> bool:
+    def can_edit(self, request: Request) -> bool:
         return False

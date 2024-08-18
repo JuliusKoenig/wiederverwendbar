@@ -1,9 +1,6 @@
-from typing import Union
-
 from starlette.requests import Request
 
 from starlette_admin.base import BaseView as StarletteAdminBaseView
-from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
 
 
 class BaseView(StarletteAdminBaseView):
@@ -17,9 +14,7 @@ class BaseView(StarletteAdminBaseView):
         if not result:
             return False
 
-        acls = self.admin.acl_base_logic(view=self, request=request)
+        acls = self.admin.is_accessible(view=self, request=request)
         if type(acls) is bool:
             return acls
-        if len(acls) == 0:
-            return False
         return True

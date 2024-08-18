@@ -37,8 +37,6 @@ logger = logging.getLogger(__name__)
 class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmin, Admin):
     static_files_packages = [("wiederverwendbar", "starlette_admin/mongoengine/auth/statics")]
 
-
-
     def __init__(
             self,
             title: Optional[str] = None,
@@ -234,24 +232,6 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
         # check if all view identities are unique
         _ = self.view_identity_mapping
 
-    def acl_base_logic(self, view: BaseView, request: Request) -> Union[bool, list[AccessControlList]]:
-        # get session
-        session = self.session_document.get_session_from_request(request)
-        if session is None:
-            raise ValueError("Session not found!")
-
-        # check if user is admin
-        if session.user.admin:
-            return True
-
-        # get identity of view
-        identity = self.view_identity_mapping[view]
-
-        # get acls
-        acls = session.get_acls(object_filter=identity)
-
-        return acls
-
     def company_logo_files_loader(self, request: Request) -> Sequence[Tuple[Any, str]]:
         if not self.settings.admin_static_company_logo_dir:
             return []
@@ -311,3 +291,166 @@ class MongoengineAuthAdmin(SettingsAdmin, DropDownIconViewAdmin, BooleanAlsoAdmi
                     actions.append((f"{identity}.{action}", f"{action}"))
 
         return actions
+
+    def acl_base_logic(self, view: BaseView, request: Request) -> Union[bool, list[AccessControlList]]:
+        # get session
+        session = self.session_document.get_session_from_request(request)
+        if session is None:
+            raise ValueError("Session not found!")
+
+        # check if user is admin
+        if session.user.admin:
+            return True
+
+        # get identity of view
+        identity = self.view_identity_mapping[view]
+
+        # get acls
+        acls = session.get_acls(object_filter=identity)
+
+        return acls
+
+    def is_accessible(self, view: BaseView, request: Request) -> Union[bool, list[AccessControlList]]:
+        acls = self.acl_base_logic(view=view, request=request)
+        if type(acls) is bool:
+            return acls  # admin case
+        if len(acls) == 0:
+            return False  # no acl is set to this view for user
+        return acls
+
+    async def is_action_allowed(self, view: BaseView, request: Request, name: str) -> Union[bool, list[AccessControlList]]:
+        # get acls by checking if view is accessible
+        acls = self.is_accessible(view=view, request=request)
+        if type(acls) is bool:
+            return acls
+
+        # handle default actions
+        if name == "delete":
+            return self.can_delete(view=view, request=request, acls=acls)
+
+        # get view identity
+        identity = self.view_identity_mapping[view]
+
+        # check if action is allowed by acls
+        allowed = False
+        for acl in acls:
+            if acl.allow_execute:
+                if len(acl.specify_actions) == 0:
+                    allowed = True
+                    break
+                else:
+                    if f"{identity}.{name}" in acl.specify_actions:
+                        allowed = True
+                        break
+        if not allowed:
+            return False
+        return acls
+
+    async def is_row_action_allowed(self, view: BaseView, request: Request, name: str) -> Union[bool, list[AccessControlList]]:
+        # get acls by checking if view is accessible
+        acls = self.is_accessible(view=view, request=request)
+        if type(acls) is bool:
+            return acls
+
+        # handle default actions
+        if name == "view":
+            return self.can_view_details(view=view, request=request, acls=acls)
+        elif name == "edit":
+            return self.can_edit(view=view, request=request, acls=acls)
+        elif name == "delete":
+            return self.can_delete(view=view, request=request, acls=acls)
+
+        # get view identity
+        identity = self.view_identity_mapping[view]
+
+        # check if action is allowed by acls
+        allowed = False
+        for acl in acls:
+            if acl.allow_execute:
+                if len(acl.specify_actions) == 0:
+                    allowed = True
+                    break
+                else:
+                    if f"{identity}.{name}" in acl.specify_actions:
+                        allowed = True
+                        break
+        if not allowed:
+            return False
+        return acls
+
+    def can_view_details(self, view: BaseView, request: Request, acls: Union[None, list[AccessControlList]] = None) -> Union[bool, list[AccessControlList]]:
+        # get acls by checking if view is accessible
+        if acls is None:
+            acls = self.is_accessible(view=view, request=request)
+        if type(acls) is bool:  # admin case
+            return acls
+
+        # check if action is allowed by acls
+        allowed = False
+        for acl in acls:
+            if acl.allow_detail:
+                allowed = True
+                break
+        if not allowed:
+            return False
+        return acls
+
+    def can_create(self, view: BaseView, request: Request, acls: Union[None, list[AccessControlList]] = None) -> Union[bool, list[AccessControlList]]:
+        # get acls by checking if view is accessible
+        if acls is None:
+            acls = self.is_accessible(view=view, request=request)
+        if type(acls) is bool:
+            return acls
+
+        # check if view details is allowed
+        can_view_details = self.can_view_details(view=view, request=request, acls=acls)
+        if not can_view_details:
+            return False
+
+        # check if action is allowed by acls
+        allowed = False
+        for acl in acls:
+            if acl.allow_create:
+                allowed = True
+                break
+        if not allowed:
+            return False
+        return acls
+
+    def can_edit(self, view: BaseView, request: Request, acls: Union[None, list[AccessControlList]] = None) -> Union[bool, list[AccessControlList]]:
+        # get acls by checking if view is accessible
+        if acls is None:
+            acls = self.is_accessible(view=view, request=request)
+        if type(acls) is bool:
+            return acls
+
+        # check if view details is allowed
+        can_view_details = self.can_view_details(view=view, request=request, acls=acls)
+        if not can_view_details:
+            return False
+
+        # check if action is allowed by acls
+        allowed = False
+        for acl in acls:
+            if acl.allow_update:
+                allowed = True
+                break
+        if not allowed:
+            return False
+        return acls
+
+    def can_delete(self, view: BaseView, request: Request, acls: Union[None, list[AccessControlList]] = None) -> Union[bool, list[AccessControlList]]:
+        # get acls by checking if view is accessible
+        acls = self.is_accessible(view=view, request=request)
+        if type(acls) is bool:
+            return acls
+
+        # check if action is allowed by acls
+        allowed = False
+        for acl in acls:
+            if acl.allow_delete:
+                allowed = True
+                break
+        if not allowed:
+            return False
+        return acls
