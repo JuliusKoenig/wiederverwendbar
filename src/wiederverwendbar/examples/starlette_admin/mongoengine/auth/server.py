@@ -5,12 +5,13 @@ from starlette.applications import Starlette
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
 from starlette.requests import Request
-from starlette_admin.contrib.mongoengine import ModelView
 from starlette_admin.actions import action
-from starlette_admin.views import CustomView, Link
 from mongoengine import connect, Document, StringField, IntField, FloatField, BooleanField, DictField
 
 from wiederverwendbar.starlette_admin import AuthAdminSettings, MongoengineAuthAdmin
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.custom import CustomView
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.link import Link
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.model import ModelView
 
 # connect to database
 connect("test",

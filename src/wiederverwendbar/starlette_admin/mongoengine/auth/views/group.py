@@ -5,11 +5,12 @@ from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelC
 from starlette_admin.fields import EnumField
 
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.group import Group
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.model import ModelView
 from wiederverwendbar.starlette_admin.mongoengine.helper import get_document_field
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
 
 
-class GroupView(MongoengineModelView):
+class GroupView(ModelView, MongoengineModelView):
     exclude_fields_from_list = [Group.id,
                                 Group.company_logo,
                                 Group.acls]

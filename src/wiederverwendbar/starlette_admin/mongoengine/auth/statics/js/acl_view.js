@@ -268,7 +268,7 @@ registerFieldInitializer(function (element) {
         const value = allowDetail.is(":checked");
 
         // show/hide specify_fields_parent if allow_detail is checked or not
-        if (value && object.val().split(".")[0] !== "all") {
+        if (value && specifyFields.find("option").length > 0 && object.val().split(".")[0] !== "all") {
             specifyFieldsParent.show();
         } else {
             specifyFieldsParent.hide();

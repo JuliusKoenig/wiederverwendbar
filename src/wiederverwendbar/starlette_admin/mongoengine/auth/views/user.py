@@ -5,11 +5,12 @@ from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelC
 from starlette_admin.fields import PasswordField, EnumField
 
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.model import ModelView
 from wiederverwendbar.starlette_admin.mongoengine.helper import get_document_field
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
 
 
-class UserView(MongoengineModelView):
+class UserView(ModelView, MongoengineModelView):
     exclude_fields_from_list = [User.id,
                                 "password",
                                 User.sessions,

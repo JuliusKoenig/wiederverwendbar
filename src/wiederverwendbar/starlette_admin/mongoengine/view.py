@@ -2,7 +2,6 @@ from typing import Any, Dict, Type, Optional
 import mongoengine as me
 
 from starlette.requests import Request
-from starlette_admin import action
 from starlette_admin import RequestAction
 from starlette_admin.contrib.mongoengine import ModelView as BaseModelView
 from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelConverter

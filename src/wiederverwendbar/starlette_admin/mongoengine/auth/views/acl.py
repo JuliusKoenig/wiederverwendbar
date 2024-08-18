@@ -6,12 +6,13 @@ from starlette_admin import RequestAction
 from starlette_admin.contrib.mongoengine.converters import BaseMongoEngineModelConverter
 
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.acl import AccessControlList
+from wiederverwendbar.starlette_admin.mongoengine.auth.views.model import ModelView
 from wiederverwendbar.starlette_admin.mongoengine.helper import get_document_field
 from wiederverwendbar.starlette_admin.mongoengine.view import MongoengineModelView
 from wiederverwendbar.starlette_admin.mongoengine.auth.fields import AccessControlListReferenceField
 
 
-class AccessControlListView(MongoengineModelView):
+class AccessControlListView(ModelView, MongoengineModelView):
     exclude_fields_from_list = [AccessControlList.id,
                                 AccessControlList.query_filter,
                                 AccessControlList.allow_detail,
