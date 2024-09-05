@@ -21,6 +21,7 @@ class ActionThread(threading.Thread):
                  steps: Optional[int] = None,
                  on_success_msg: Optional[str] = None,
                  on_error_msg: Optional[str] = "Something went wrong.",
+                 end_steps: Optional[int] = None,
                  show_errors: Optional[bool] = None,
                  halt_on_error: Optional[bool] = None,
                  use_context_logger_level: bool = True,
@@ -47,6 +48,7 @@ class ActionThread(threading.Thread):
         self._steps = steps
         self._on_success_msg = on_success_msg
         self._on_error_msg = on_error_msg
+        self._end_steps = end_steps
         self._show_errors = show_errors
         self._halt_on_error = halt_on_error
         self._use_context_logger_level = use_context_logger_level
@@ -64,6 +66,7 @@ class ActionThread(threading.Thread):
                                             steps=self._steps,
                                             on_success_msg=self._on_success_msg,
                                             on_error_msg=self._on_error_msg,
+                                            end_steps=self._end_steps,
                                             show_errors=self._show_errors,
                                             halt_on_error=self._halt_on_error,
                                             use_context_logger_level=self._use_context_logger_level,
