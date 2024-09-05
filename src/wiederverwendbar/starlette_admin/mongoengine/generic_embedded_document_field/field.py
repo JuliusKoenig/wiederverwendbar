@@ -89,7 +89,7 @@ class GenericEmbeddedDocumentField(sa.BaseField):
         # add doc name to serialized value at detail and edit view
         if "__doc_name__" in doc_data:
             raise ValueError(f"Field name '__doc_name__' is reserved")
-        if action == RequestAction.EDIT or action == RequestAction.DETAIL:
+        if action in (RequestAction.DETAIL, RequestAction.CREATE, RequestAction.EDIT):
             doc_data["__doc_name__"] = doc_name
 
         return doc_data
@@ -128,7 +128,7 @@ class GenericEmbeddedDocumentField(sa.BaseField):
         # add doc name to serialized value at detail and edit view
         if "__doc_name__" in serialized_value:
             raise ValueError(f"Field name '__doc_name__' is reserved")
-        if action == RequestAction.EDIT or action == RequestAction.DETAIL:
+        if action in (RequestAction.DETAIL, RequestAction.CREATE, RequestAction.EDIT):
             serialized_value["__doc_name__"] = doc_name
         return serialized_value
 
