@@ -98,7 +98,7 @@ class YesNoCommand(FormCommand):
 
 
 class FinalizeCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionSubLogger", logging.Logger], success: bool, on_success_msg: Optional[str] = None, on_error_msg: Optional[str] = None):
+    def __init__(self, logger: Union["ActionSubLogger", logging.Logger], success: bool, on_success_msg: Optional[str] = None, on_error_msg: Optional[str] = None, ):
         super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="finalize", success=success, on_success_msg=on_success_msg,
                          on_error_msg=on_error_msg)
 
@@ -201,7 +201,8 @@ class ActionSubLogger(logging.Logger):
         self._started: bool = False
         self._steps: Optional[int] = None
         self._step: int = 0
-        self._error_msg: Optional[str] = None
+        self._error_occurred: bool = False
+        self._finalize_msg: Optional[str] = None
         self._response_obj: Union[None, bool, ActionLoggerResponse] = None
 
         # check if logger already exists
@@ -348,18 +349,32 @@ class ActionSubLogger(logging.Logger):
                 if self.exited:
                     raise ValueError("ActionSubLogger already exited.")
                 success = values["success"]
-                msg = values["on_success_msg"] if success else values["on_error_msg"]
+                self._error_occurred = not success
+                self._finalize_msg = values["on_success_msg"] if success else values["on_error_msg"]
+                contexts = ActionSubLoggerContext.get_from_stack(inspect.stack())
+                current_context: Union[None, ActionSubLoggerContext, LoggingContext] = None
+                if len(contexts) > 0:
+                    current_context = contexts[-1]
+                if not isinstance(current_context, ActionSubLoggerContext) and current_context is not None:
+                    raise ValueError("Wrong context.")
+
                 if success:
+                    if self._finalize_msg is None:
+                        if current_context is not None:
+                            self._finalize_msg = current_context.on_success_msg
+                    if self._finalize_msg is None:
+                        self._finalize_msg = "Success."
+                    self.log(logging.INFO, self.finalize_msg)
                     if self.steps is not None:
                         if self.step < self.steps:
                             self.step = self.steps
-                if msg is not None:
-                    if success:
-                        self.log(logging.INFO, msg)
-                    else:
-                        self.log(logging.ERROR, msg)
-                if not success:
-                    self._error_msg = "Something went wrong." if values["on_error_msg"] is None else values["on_error_msg"]
+                else:
+                    if self._finalize_msg is None:
+                        if current_context is not None:
+                            self._finalize_msg = current_context.on_error_msg
+                    if self._finalize_msg is None:
+                        self._finalize_msg ="Something went wrong."
+                    self.log(logging.ERROR, self.finalize_msg)
 
                 command["value"] = success
                 record.command = command
@@ -530,7 +545,7 @@ class ActionSubLogger(logging.Logger):
     def finalize(self,
                  success: bool = True,
                  on_success_msg: Optional[str] = None,
-                 on_error_msg: Optional[str] = "Something went wrong.") -> None:
+                 on_error_msg: Optional[str] = None) -> None:
         """
         Finalize sub logger. Also send finalize command to websocket.
 
@@ -562,6 +577,16 @@ class ActionSubLogger(logging.Logger):
         return not self.is_logger_exist(name=self.name)
 
     @property
+    def finalize_msg(self) -> str:
+        """
+        Get finalize message.
+
+        :return: Finalize message.
+        """
+
+        return self._finalize_msg
+
+    @property
     def error_occurred(self) -> bool:
         """
         Check if error occurred.
@@ -569,17 +594,7 @@ class ActionSubLogger(logging.Logger):
         :return: True if error occurred, otherwise False.
         """
 
-        return self._error_msg is not None
-
-    @property
-    def error_msg(self) -> Optional[str]:
-        """
-        Get error message.
-
-        :return: Error message.
-        """
-
-        return self._error_msg
+        return self._error_occurred
 
 
 class ActionSubLoggerContext(LoggingContext):
@@ -592,7 +607,7 @@ class ActionSubLoggerContext(LoggingContext):
                  formatter: Optional[logging.Formatter] = None,
                  steps: Optional[int] = None,
                  on_success_msg: Optional[str] = None,
-                 on_error_msg: Optional[str] = "Something went wrong.",
+                 on_error_msg: Optional[str] = None,
                  show_errors: Optional[bool] = None,
                  halt_on_error: Optional[bool] = None,
                  use_context_logger_level: bool = True,
@@ -762,12 +777,12 @@ class ActionLogger:
             raise ActionFailed(exception_str)
 
         # check if error occurred in sub logger
-        error_msg = ""
+        finalize_msg = ""
         for sub_logger in self._sub_logger:
             if sub_logger.error_occurred:
-                error_msg += f"{sub_logger.title}: {sub_logger.error_msg}\n"
-        if error_msg:
-            raise ActionFailed(error_msg)
+                finalize_msg += f"{sub_logger.title}: {sub_logger.finalize_msg}\n"
+        if finalize_msg:
+            raise ActionFailed(finalize_msg)
 
     def __del__(self):
         if not self.exited:
@@ -950,7 +965,7 @@ class ActionLogger:
                    formatter: Optional[logging.Formatter] = None,
                    steps: Optional[int] = None,
                    on_success_msg: Optional[str] = None,
-                   on_error_msg: Optional[str] = "Something went wrong.",
+                   on_error_msg: Optional[str] = None,
                    show_errors: Optional[bool] = None,
                    halt_on_error: Optional[bool] = None,
                    use_context_logger_level: bool = True,
