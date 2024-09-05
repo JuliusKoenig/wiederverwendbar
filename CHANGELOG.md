@@ -1,6 +1,19 @@
 # Changelog
 
 
+## release/v0.4.7 (2024-09-05)
+
+### Add
+
+* Add: post_init.py. [Julius Koenig]
+
+### Fix
+
+* Wiederverwendbar/starlette_admin/mongoengine/generic_embedded_document_field/field.py - Field name '__doc_name__' not found. [Julius Koenig]
+
+* Add nest_asyncio to full install mode. [Julius Koenig]
+
+
 ## release/v0.4.6 (2024-08-14)
 
 ### Add
