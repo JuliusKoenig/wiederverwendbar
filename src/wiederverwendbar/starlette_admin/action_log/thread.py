@@ -86,7 +86,11 @@ class ActionThread(threading.Thread):
                     self._sub_logger.finalize(success=False, on_error_msg="Thread timed out.")
             await asyncio.sleep(0.1)
 
-    def payload(self) -> bool:
+    def payload(self, *args, **kwargs) -> bool:
+        if args:
+            self._payload_args = args
+        if kwargs:
+            self._payload_kwargs = kwargs
         if self._payload is None:
             raise NotImplementedError("Payload not implemented.")
         return self._payload(*self._payload_args, **self._payload_kwargs)
