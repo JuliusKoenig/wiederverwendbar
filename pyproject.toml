@@ -6,8 +6,8 @@ authors = [
     { name = "Julius Koenig", email = "info@bastelquartier.de" },
 ]
 dependencies = [
-    "pydantic>=2.8.2",
-    "pydantic-settings>=2.4.0",
+    "pydantic>=2.9.1",
+    "pydantic-settings>=2.5.2",
     "devtools>=0.12.2",
 ]
 requires-python = ">=3.9"
@@ -16,37 +16,39 @@ license = { text = "GPL-3.0" }
 
 [project.optional-dependencies]
 full = [
-    "rich>=13.7.1",
-    "typer>=0.12.3",
+    "rich>=13.8.1",
+    "typer>=0.12.5",
     "pythonping>=1.1.4",
-    "mongoengine>=0.28.2",
-    "nicegui>=1.4.30",
-    "uvicorn>=0.30.4",
-    "fastapi>=0.109.2",
+    "mongoengine>=0.29.0",
+    "nicegui>=2.1.0",
+    "uvicorn>=0.30.6",
+    "fastapi>=0.114.2",
     "starlette-admin[i18n]>=0.14.1",
     "pillow>=10.4.0",
     "nest-asyncio>=1.6.0",
+    "blinker>=1.8.2",
 ]
 rich = [
-    "rich>=13.7.1",
+    "rich>=13.8.1",
 ]
 typer = [
-    "typer>=0.12.3",
+    "typer>=0.12.5",
 ]
 ping = [
     "pythonping>=1.1.4",
 ]
 mongoengine = [
-    "mongoengine>=0.28.2",
+    "mongoengine>=0.29.0",
+    "blinker>=1.8.2",
 ]
 uvicorn = [
-    "uvicorn>=0.30.4",
+    "uvicorn>=0.30.6",
 ]
 fastapi = [
-    "fastapi>=0.109.2",
+    "fastapi>=0.114.2",
 ]
 nicegui = [
-    "nicegui>=1.4.30",
+    "nicegui>=2.1.0",
 ]
 starlette-admin = [
     "starlette-admin[i18n]>=0.14.1",
