@@ -1,6 +1,31 @@
 # Changelog
 
 
+## release/v0.5.0 (2024-09-15)
+
+### Add
+
+* Add: automatic_reference to mongoengine. [Julius Koenig]
+
+* Add: end_step attr for FinalizeCommand. [Julius Koenig]
+
+### Changes
+
+* Drop ActionLog.Thread - allow inline payload params. [Julius Koenig]
+
+* ActionLog.Thread - allow inline payload params. [Julius Koenig]
+
+### Fix
+
+* ActionLogger finalize msg. [Julius Koenig]
+
+### Other
+
+* Merge remote-tracking branch 'origin/main' [Julius Koenig]
+
+* Wip. [Julius Koenig]
+
+
 ## release/v0.4.7 (2024-09-05)
 
 ### Add
