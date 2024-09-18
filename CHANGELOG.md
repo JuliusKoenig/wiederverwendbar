@@ -1,6 +1,13 @@
 # Changelog
 
 
+## release/v0.5.1 (2024-09-18)
+
+### Add
+
+* Add: mongoengine.MongoengineDb. [Julius Koenig]
+
+
 ## release/v0.5.0 (2024-09-15)
 
 ### Add
