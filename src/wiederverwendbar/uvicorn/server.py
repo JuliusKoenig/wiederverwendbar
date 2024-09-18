@@ -30,6 +30,7 @@ class UvicornServer:
                  ssl_ca_certs: Optional[str] = None,
                  ssl_ciphers: Optional[str] = None,
                  auto_run: Optional[bool] = True,
+                 server_react_to_keyboard_interrupt: Optional[bool] = True,
                  settings: UvicornServerSettings = None):
         """
         Create a new Uvicorn Server
@@ -51,6 +52,7 @@ class UvicornServer:
         :param ssl_ca_certs: SSL CA Certs
         :param ssl_ciphers: SSL Ciphers
         :param auto_run: Auto Run on creation
+        :param server_react_to_keyboard_interrupt: React to Keyboard Interrupt
         :param settings: Uvicorn Server Settings
         """
 
@@ -79,6 +81,7 @@ class UvicornServer:
         self.ssl_ca_certs: Optional[str] = str(ssl_ca_certs or self.settings.server_ssl_ca_certs)
         self.ssl_ciphers: Optional[str] = ssl_ciphers or self.settings.server_ssl_ciphers
         self.auto_run: bool = auto_run or self.settings.server_auto_run
+        self.react_to_keyboard_interrupt = server_react_to_keyboard_interrupt or self.settings.server_react_to_keyboard_interrupt
 
         logger.debug(f"Create {self}")
 
@@ -96,6 +99,16 @@ class UvicornServer:
         """
 
         logger.info(f"Run {self}")
+        if not self.react_to_keyboard_interrupt:
+            self._run()
+        else:
+            try:
+                self._run()
+            except KeyboardInterrupt:
+                logger.info(f"Keyboard Interrupt {self}")
+        logger.info(f"Stop {self}")
+
+    def _run(self):
         uvicorn.run(self.app,
                     host=str(self.host),
                     port=self.port,
