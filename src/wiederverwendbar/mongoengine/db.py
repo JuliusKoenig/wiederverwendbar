@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Optional, Union
 from ipaddress import IPv4Address
 
@@ -7,6 +8,7 @@ from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from mongoengine import DEFAULT_CONNECTION_NAME, connect, disconnect
 
+from wiederverwendbar.mongoengine.backup import dump, restore
 from wiederverwendbar.mongoengine.settings import MongoengineSettings
 
 logger = logging.getLogger(__name__)
@@ -154,3 +156,23 @@ class MongoengineDb:
         disconnect(alias=self.name)
         self._client = None
         self._db = None
+
+    def dump(self: Database, path: Union[str, Path], overwrite: bool = False) -> None:
+        """
+        MongoDB Dump
+        :param path: Database dump path
+        :param overwrite: Overwrite existing files
+        :return: None
+        """
+
+        dump(db=self.db, path=path, overwrite=overwrite)
+
+    def restore(self: Database, path: Union[str, Path], overwrite: bool = False) -> None:
+        """
+        MongoDB Restore
+        :param path: Database dump path
+        :param overwrite: Overwrite existing collections
+        :return: None
+        """
+
+        restore(db=self.db, path=path, overwrite=overwrite)
