@@ -1,6 +1,13 @@
 # Changelog
 
 
+## release/v0.5.2 (2024-09-18)
+
+### Other
+
+* Add uvicorn.UvicornServer. [Julius Koenig]
+
+
 ## release/v0.5.1 (2024-09-18)
 
 ### Add
