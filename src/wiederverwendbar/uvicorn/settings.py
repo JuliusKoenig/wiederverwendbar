@@ -14,7 +14,7 @@ class UvicornServerSettings(BaseModel):
     server_reload_includes: Union[None, list[str], str] = Field(default=None, title="Server Reload Includes", description="File patterns to include")
     server_reload_excludes: Union[None, list[str], str] = Field(default=None, title="Server Reload Excludes", description="File patterns to exclude")
     server_reload_delay: float = Field(default=0.25, title="Server Reload Delay", ge=0.1, description="Server Delay between reloads")
-    server_server_workers: int = Field(default=1, title="Server Workers", ge=1, le=100, description="Server Number of worker processes")
+    server_workers: int = Field(default=1, title="Server Workers", ge=1, le=100, description="Server Number of worker processes")
     server_ssl_keyfile: Optional[FilePath] = Field(default=None, title="Server SSL Keyfile", description="Server SSL Keyfile")
     server_ssl_certfile: Optional[FilePath] = Field(default=None, title="Server SSL Certfile", description="Server SSL Certfile")
     server_ssl_keyfile_password: Optional[str] = Field(default=None, title="Server SSL Keyfile Password", description="Server SSL Keyfile Password")

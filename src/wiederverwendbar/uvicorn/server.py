@@ -64,7 +64,7 @@ class UvicornServer:
         self.reload_includes: Union[list[str], str, None] = reload_includes or self.settings.server_reload_includes
         self.reload_excludes: Union[list[str], str, None] = reload_excludes or self.settings.server_reload_excludes
         self.reload_delay: float = reload_delay or self.settings.server_reload_delay
-        self.workers: int = workers or self.settings.server_server_workers
+        self.workers: int = workers or self.settings.server_workers
         ssl_keyfile = ssl_keyfile or self.settings.server_ssl_keyfile
         if ssl_keyfile:
             ssl_keyfile = str(ssl_keyfile)
