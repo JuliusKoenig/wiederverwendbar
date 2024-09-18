@@ -35,12 +35,12 @@ class MongoengineDb:
         self.settings: MongoengineSettings = settings or MongoengineSettings()
         self.host: Union[IPv4Address, str] = host or self.settings.db_host
         self.port: int = port or self.settings.db_port
-        self.name: str = name or self.settings.db_name
+        self.db_name: str = name or self.settings.db_name
         self.username: str = username or self.settings.db_username
         self.password: str = password or self.settings.db_password
         self.auth_source: str = auth_source or self.settings.db_auth_source
         self.timeout: int = timeout or self.settings.db_timeout
-        self.test: bool = test or self.settings.db_test
+        self.db_test: bool = test or self.settings.db_test
         self.auto_connect: bool = auto_connect or self.settings.db_auto_connect
 
         logger.debug(f"Create {self}")
@@ -109,7 +109,8 @@ class MongoengineDb:
         if self.is_connected:
             raise RuntimeError(f"Already connected to {self}")
 
-        self._client = connect(alias=self.name,
+        self._client = connect(db=self.db_name,
+                               alias=self.name,
                                host=self.host,
                                port=self.port,
                                username=self.username,
@@ -117,6 +118,9 @@ class MongoengineDb:
                                authSource=self.auth_source,
                                serverSelectionTimeoutMS=self.timeout)
         self._db = self.client[self.name]
+
+        if self.db_test:
+            self.test()
 
     def test(self):
         """
