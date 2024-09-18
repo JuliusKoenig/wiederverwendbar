@@ -1,14 +1,13 @@
-from typing import Optional
+from typing import Optional, Union
+from ipaddress import IPv4Address
 
-from pydantic import BaseModel
-
-from wiederverwendbar.pydantic.printable_settings import Field
+from wiederverwendbar.pydantic.printable_settings import PrintableSettings, Field
 
 
-class MongoengineSettings(BaseModel):
-    db_host: str = Field(default="localhost",
-                         title="Database Host",
-                         description="Host to connect to database")
+class MongoengineSettings(PrintableSettings):
+    db_host: Union[IPv4Address, str] = Field(default="127.0.0.1",
+                                             title="Database Host",
+                                             description="Host to connect to database")
     db_port: int = Field(default=27017,
                          title="Database Port",
                          ge=0,

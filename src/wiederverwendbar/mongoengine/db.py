@@ -1,5 +1,6 @@
 import logging
-from typing import Optional
+from typing import Optional, Union
+from ipaddress import IPv4Address
 
 from pymongo import MongoClient
 from pymongo.database import Database
@@ -12,7 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 class MongoengineDb:
-    def __init__(self, name: Optional[str] = None, settings: Optional[MongoengineSettings] = None):
+    def __init__(self,
+                 name: Optional[str] = None,
+                 host: Union[None, IPv4Address, str] = None,
+                 port: Optional[int] = None,
+                 username: Optional[str] = None,
+                 password: Optional[str] = None,
+                 auth_source: Optional[str] = None,
+                 timeout: Optional[int] = None,
+                 test: Optional[bool] = None,
+                 auto_connect: Optional[bool] = None,
+                 settings: Optional[MongoengineSettings] = None):
         """
         Create a new Mongoengine Database
 
@@ -20,18 +31,17 @@ class MongoengineDb:
         :param settings: Mongoengine Settings
         """
 
-        self.name = name or DEFAULT_CONNECTION_NAME
-        self.settings = settings or MongoengineSettings()
-
-        self.host = self.settings.db_host
-        self.port = self.settings.db_port
-        self.name = self.settings.db_name
-        self.username = self.settings.db_username
-        self.password = self.settings.db_password
-        self.auth_source = self.settings.db_auth_source
-        self.timeout = self.settings.db_timeout
-        self.test = self.settings.db_test
-        self.auto_connect = self.settings.db_auto_connect
+        self.name: str = name or DEFAULT_CONNECTION_NAME
+        self.settings: MongoengineSettings = settings or MongoengineSettings()
+        self.host: Union[IPv4Address, str] = host or self.settings.db_host
+        self.port: int = port or self.settings.db_port
+        self.name: str = name or self.settings.db_name
+        self.username: str = username or self.settings.db_username
+        self.password: str = password or self.settings.db_password
+        self.auth_source: str = auth_source or self.settings.db_auth_source
+        self.timeout: int = timeout or self.settings.db_timeout
+        self.test: bool = test or self.settings.db_test
+        self.auto_connect: bool = auto_connect or self.settings.db_auto_connect
 
         logger.debug(f"Create {self}")
 
