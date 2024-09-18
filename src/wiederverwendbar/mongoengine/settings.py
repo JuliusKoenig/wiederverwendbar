@@ -14,7 +14,7 @@ class MongoengineSettings(BaseModel):
                          ge=0,
                          le=65535,
                          description="Port to connect to database")
-    db_name: str = Field(default=...,
+    db_name: str = Field(default="test",
                          title="Database Name",
                          description="Name of the database")
     db_username: Optional[str] = Field(default=None,
@@ -24,8 +24,17 @@ class MongoengineSettings(BaseModel):
                                        title="Database Password",
                                        description="Password to connect to database",
                                        secret=True)
+    db_auth_source: str = Field(default="admin",
+                                title="Database Auth Source",
+                                description="Auth source to connect to database")
     db_timeout: int = Field(default=1000,
                             title="Database Timeout",
                             ge=0,
                             le=60000,
                             description="Timeout to connect to database in milliseconds")
+    db_test: bool = Field(default=False,
+                          title="Database Test",
+                          description="Test database connection on connect")
+    db_auto_connect: bool = Field(default=True,
+                                  title="Database Auto Connect",
+                                  description="Auto connect to database on startup")
