@@ -1,6 +1,13 @@
 # Changelog
 
 
+## release/v0.5.5 (2024-09-19)
+
+### Add
+
+* Add: DomainField, PortField. [Julius Koenig]
+
+
 ## release/v0.5.4 (2024-09-19)
 
 ### Add
