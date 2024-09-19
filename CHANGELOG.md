@@ -1,7 +1,16 @@
 # Changelog
 
 
-## release/v0.5.3 (2024-09-18)
+## release/v0.5.4 (2024-09-19)
+
+### Add
+
+* Add: route.py. [Julius Koenig]
+
+* Add: run_command.py. [Julius Koenig]
+
+
+## release/v0.5.3 (2024-09-19)
 
 ### Add
 
