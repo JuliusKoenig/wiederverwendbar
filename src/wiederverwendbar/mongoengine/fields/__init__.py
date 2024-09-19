@@ -1,5 +1,7 @@
 from wiederverwendbar.mongoengine.fields.boolean_also_field import BooleanAlsoField
+from wiederverwendbar.mongoengine.fields.domain_field import DomainField
 from wiederverwendbar.mongoengine.fields.ipv4_address_field import IPv4AddressField
 from wiederverwendbar.mongoengine.fields.ipv4_network_field import IPv4NetworkField
+from wiederverwendbar.mongoengine.fields.port_field import PortField
 from wiederverwendbar.mongoengine.fields.with_instance_field import WithInstanceField
 
