@@ -14,8 +14,8 @@ class AdminSettings(BaseModel):
     admin_name: str = Field(default="admin", pattern=r"^[a-zA-Z0-9_-]+$", title="Admin Name", description="The name of the admin panel.")
     admin_base_url: str = Field(default="/admin", title="Admin Base URL", description="The base URL of the admin panel.")
     admin_route_name: str = Field(default="admin", title="Admin Route Name", description="The route name of the admin panel.")
-    admin_logo_url: Optional[str] = Field(default=None, title="Admin Logo URL", description="The URL of the admin panel logo.")
-    admin_login_logo_url: Optional[str] = Field(default=None, title="Admin Login Logo URL", description="The URL of the admin panel login logo.")
+    admin_logo_url: Optional[str] = Field(default="logo.png", title="Admin Logo URL", description="The URL of the admin panel logo.")
+    admin_login_logo_url: Optional[str] = Field(default="logo.png", title="Admin Login Logo URL", description="The URL of the admin panel login logo.")
     admin_templates_dir: DirectoryPath = Field(default=..., title="Admin Templates Directory", description="The directory of the admin panel templates.")
     admin_static_dir: Optional[DirectoryPath] = Field(default=None, title="Admin static Directory", description="The directory of the admin panel static.")
     admin_debug: bool = Field(default=False, title="Admin Debug", description="Whether the admin panel is in debug mode.")
@@ -32,7 +32,7 @@ class AdminSettings(BaseModel):
     admin_language_header_name: str = Field(default="Accept-Language", title="Admin Language Header Name", description="The name of the admin panel language header.")
     admin_language_available: Optional[list[Language]] = Field(default=None, title="Admin Language Available",
                                                                description="The available languages of the admin panel.")
-    admin_favicon_url: Optional[str] = Field(default=None, title="Admin Favicon URL", description="The URL of the admin panel favicon.")
+    admin_favicon_url: Optional[str] = Field(default="favicon.ico", title="Admin Favicon URL", description="The URL of the admin panel favicon.")
 
     def __init__(self, /, **data: Any):
         data["admin_templates_dir"] = data.get("admin_templates_dir", Path("templates"))
@@ -41,6 +41,26 @@ class AdminSettings(BaseModel):
         # check if admin_static_dir is set
         if self.admin_static_dir is None:
             warnings.warn("Admin static directory is not set. Please set it to the directory of the admin panel static.", UserWarning)
+        else:
+            if not self.admin_static_dir.is_dir():
+                raise FileNotFoundError(f"Admin static directory {self.admin_static_dir} is not a directory.")
+
+            admin_logo_file = self.admin_static_dir / self.admin_logo_url
+            if admin_logo_file.is_file():
+                self.admin_logo_url = f"{self.admin_base_url}/statics/{self.admin_logo_url}"
+            else:
+                self.admin_logo_url = None
+            admin_login_logo_file = self.admin_static_dir / self.admin_login_logo_url
+            if admin_login_logo_file.is_file():
+                self.admin_login_logo_url = f"{self.admin_base_url}/statics/{self.admin_login_logo_url}"
+            else:
+                self.admin_login_logo_url = None
+            admin_favicon_file = self.admin_static_dir / self.admin_favicon_url
+            if admin_favicon_file.is_file():
+                self.admin_favicon_url = f"{self.admin_base_url}/statics/{self.admin_favicon_url}"
+            else:
+                self.admin_favicon_url = None
+
 
     @classmethod
     def from_request(cls, request: Request):
