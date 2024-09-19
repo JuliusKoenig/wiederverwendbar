@@ -1,6 +1,23 @@
 # Changelog
 
 
+## release/v0.5.3 (2024-09-18)
+
+### Add
+
+* Add: UvicornServer server_react_to_keyboard_interrupt. [Julius Koenig]
+
+* Add: MongoengineDb restore, dump. [Julius Koenig]
+
+### Changes
+
+* Var server_server_workers to server_workers. [Julius Koenig]
+
+### Fix
+
+* MongoengineDb. [Julius Koenig]
+
+
 ## release/v0.5.2 (2024-09-18)
 
 ### Other
