@@ -75,7 +75,7 @@ class ActionThread(threading.Thread):
                                             ignore_loggers_like=self._ignore_loggers_like,
                                             handle_origin_logger=self._handle_origin_logger) as sub_logger:
             self._sub_logger = sub_logger
-            result = self.payload()
+            result = bool(self.payload())
             self._sub_logger.finalize(success=result)
 
     async def wait(self, timeout: int = -1):
