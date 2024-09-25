@@ -60,9 +60,7 @@ class IncreaseStepsCommand(_SubLoggerCommand):
 class FormCommand(_SubLoggerCommand):
     def __init__(self, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger], form: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None):
         if submit_btn_text is None:
-            submit_btn_text = "Submit"
-        if abort_btn_text is None:
-            abort_btn_text = "Abort"
+            submit_btn_text = "OK"
         if not isinstance(logger, ActionLogger) and not isinstance(logger, ActionSubLogger):
             action_sub_loggers = ActionSubLoggerContext.get_from_stack(inspect.stack())
             action_sub_logger_context: Optional[ActionSubLoggerContext] = None
@@ -82,6 +80,15 @@ class FormCommand(_SubLoggerCommand):
         else:
             raise ValueError("Logger must be an instance of ActionLogger or ActionSubLogger.")
 
+
+class ConfirmCommand(FormCommand):
+    def __init__(self, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger], text: str, submit_btn_text: Optional[str] = None):
+        form = f"""<form>
+            <div class="mt-3">
+                <p>{text}</p>
+            </div>
+            </form>"""
+        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text)
 
 class YesNoCommand(FormCommand):
     def __init__(self, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger], text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None):
@@ -523,6 +530,17 @@ class ActionSubLogger(logging.Logger):
         """
 
         return FormCommand(logger=self, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
+
+    def confirm(self, text: str, submit_btn_text: Optional[str] = None) -> ConfirmCommand:
+        """
+        Send confirm form to frontend.
+
+        :param text: Text of confirm form.
+        :param submit_btn_text: Text of submit button.
+        :return: Form data.
+        """
+
+        return ConfirmCommand(logger=self, text=text, submit_btn_text=submit_btn_text)
 
     def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None) -> YesNoCommand:
         """

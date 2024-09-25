@@ -515,7 +515,12 @@ class ActionManager {
             });
 
             // set form abort button text
-            formAbort.text(formBtnAbortText);
+            if (formBtnAbortText === null) {
+                formAbort.hide();
+            } else {
+                formAbort.show();
+                formAbort.text(formBtnAbortText);
+            }
 
             // set form abort button action
             formAbort.off("click");

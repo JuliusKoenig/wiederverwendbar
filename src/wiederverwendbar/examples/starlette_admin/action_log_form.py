@@ -102,37 +102,15 @@ class TestView(ModelView):
             # use context manager to ensure that the logger is finalized
             with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3) as sub_logger:
                 sub_logger.info("Test Aktion startet ...")
-                # sub_logger.debug("Debug")
-                # sub_logger.info("Test Aktion step 1")
-                # await asyncio.sleep(2)
-                # sub_logger.next_step()
-                # sub_logger.info("Test Aktion step 2")
+                sub_logger.debug("Debug")
+                sub_logger.info("Test Aktion step 1")
+                await asyncio.sleep(2)
+                sub_logger.next_step()
+                sub_logger.info("Test Aktion step 2")
 
-                module_logger = logging.getLogger("module_logger")
+                # send form with positive/negative buttons
+                sub_logger_confirm = sub_logger.confirm("Information")()
 
-                # send form
-                sub_logger_form_data = FormCommand(module_logger,
-                                                   """<form>
-                       <div class="mt-3">
-                           <input type="hidden" name="hidden">
-                           <div>
-                               <label class="form-check">
-                                   <input type="radio" class="form-check-input" name="action" value="choice1" checked>
-                                   <span class="form-check-label">Choice 1</span>
-                               </label>
-                               <label class="form-check">
-                                   <input type="radio" class="form-check-input" name="action" value="choice2">
-                                   <span class="form-check-label">Choice 2</span>
-                               </label>
-                               <label class="form-check">
-                                   <input type="radio" class="form-check-input" name="action" value="choice3">
-                                   <span class="form-check-label">Choice 3</span>
-                               </label>
-                           </div>
-                       </div>
-                   </form>""",
-                                                   "Weiter",
-                                                   "Abbrechen")()
 
                 sub_logger_yes_no = sub_logger.yes_no("Möchtest du fortfahren?")()
 
