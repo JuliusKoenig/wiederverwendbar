@@ -62,6 +62,21 @@ class MongoengineDb:
             self.disconnect()
 
     @property
+    def connection_string(self) -> str:
+        """
+        Get the Connection String
+
+        :return: str
+        """
+
+        connection_string = "mongodb://"
+        if self.username and self.password:
+            connection_string += f"{self.username}:{self.password}@"
+        connection_string += f"{self.host}:{self.port}/{self.db_name}?authSource={self.auth_source}"
+
+        return connection_string
+
+    @property
     def client(self) -> MongoClient:
         """
         Get the Database Client
