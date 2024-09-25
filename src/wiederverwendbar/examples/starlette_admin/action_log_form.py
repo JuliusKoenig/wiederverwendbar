@@ -8,8 +8,9 @@ from starlette.routing import Route
 from starlette.requests import Request
 from starlette_admin.contrib.mongoengine import Admin, ModelView
 from starlette_admin.actions import action
-from mongoengine import connect, Document, StringField
+from mongoengine import Document, StringField
 
+from wiederverwendbar.mongoengine import MongoengineDbSingleton
 from wiederverwendbar.starlette_admin import ActionLogAdmin, ActionLogger, FormCommand
 
 logger = logging.getLogger(__name__)
@@ -19,9 +20,7 @@ logger.addHandler(ch)
 logger.setLevel(logging.DEBUG)
 
 # connect to database
-connect("test",
-        host="localhost",
-        port=27017)
+MongoengineDbSingleton(init=True)
 
 # Create starlette app
 app = Starlette(

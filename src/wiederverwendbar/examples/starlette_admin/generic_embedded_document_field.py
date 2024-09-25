@@ -4,15 +4,14 @@ import uvicorn
 from starlette.applications import Starlette
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
-from mongoengine import connect, Document, EmbeddedDocument, StringField, IntField, FloatField, BooleanField, ListField, DictField, EmbeddedDocumentField, \
+from mongoengine import Document, EmbeddedDocument, StringField, IntField, FloatField, BooleanField, ListField, DictField, EmbeddedDocumentField, \
     GenericEmbeddedDocumentField
 
+from wiederverwendbar.mongoengine import MongoengineDbSingleton
 from wiederverwendbar.starlette_admin import GenericEmbeddedAdmin, GenericEmbeddedConverter, GenericEmbeddedDocumentView
 
 # connect to database
-connect("test",
-        host="localhost",
-        port=27017)
+MongoengineDbSingleton(init=True)
 
 # Create starlette app
 app = Starlette(

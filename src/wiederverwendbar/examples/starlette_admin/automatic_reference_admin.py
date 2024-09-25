@@ -2,17 +2,15 @@ import uvicorn
 from starlette.applications import Starlette
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
-from mongoengine import connect
 
 from starlette_admin.contrib.mongoengine.admin import Admin
 from starlette_admin.contrib.mongoengine.view import ModelView
 
 from wiederverwendbar.examples.mongoengine.automatic_reference import Test1, Test2
+from wiederverwendbar.mongoengine import MongoengineDbSingleton
 
 # connect to database
-connect("test",
-        host="localhost",
-        port=27017)
+MongoengineDbSingleton(init=True)
 
 # Create starlette app
 app = Starlette(
