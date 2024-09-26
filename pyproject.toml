@@ -6,7 +6,7 @@ authors = [
     { name = "Julius Koenig", email = "info@bastelquartier.de" },
 ]
 dependencies = [
-    "pydantic>=2.9.1",
+    "pydantic>=2.9.2",
     "pydantic-settings>=2.5.2",
     "devtools>=0.12.2",
 ]
@@ -19,10 +19,10 @@ full = [
     "rich>=13.8.1",
     "typer>=0.12.5",
     "pythonping>=1.1.4",
-    "mongoengine>=0.29.0",
+    "mongoengine>=0.29.1",
     "nicegui>=2.1.0",
     "uvicorn>=0.30.6",
-    "fastapi>=0.114.2",
+    "fastapi>=0.115.0",
     "starlette-admin[i18n]>=0.14.1",
     "pillow>=10.4.0",
     "blinker>=1.8.2",
@@ -38,14 +38,14 @@ ping = [
     "pythonping>=1.1.4",
 ]
 mongoengine = [
-    "mongoengine>=0.29.0",
+    "mongoengine>=0.29.1",
     "blinker>=1.8.2",
 ]
 uvicorn = [
     "uvicorn>=0.30.6",
 ]
 fastapi = [
-    "fastapi>=0.114.2",
+    "fastapi>=0.115.0",
 ]
 nicegui = [
     "nicegui>=2.1.0",
