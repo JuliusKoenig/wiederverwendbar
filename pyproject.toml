@@ -25,8 +25,8 @@ full = [
     "fastapi>=0.114.2",
     "starlette-admin[i18n]>=0.14.1",
     "pillow>=10.4.0",
-    "nest-asyncio>=1.6.0",
     "blinker>=1.8.2",
+    "kombu>=5.4.2",
 ]
 rich = [
     "rich>=13.8.1",
@@ -53,7 +53,7 @@ nicegui = [
 starlette-admin = [
     "starlette-admin[i18n]>=0.14.1",
     "pillow>=10.4.0",
-    "nest-asyncio>=1.6.0",
+    "kombu>=5.4.2",
 ]
 
 [build-system]

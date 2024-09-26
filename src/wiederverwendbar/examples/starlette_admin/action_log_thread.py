@@ -12,6 +12,7 @@ from starlette.requests import Request
 from starlette_admin.contrib.mongoengine import Admin, ModelView
 from starlette_admin.actions import action
 from mongoengine import Document, StringField
+from kombu import Connection
 
 from wiederverwendbar.mongoengine import MongoengineDbSingleton
 from wiederverwendbar.starlette_admin import ActionLogAdmin, ActionLogger
@@ -24,6 +25,9 @@ logger.setLevel(logging.DEBUG)
 
 # connect to database
 MongoengineDbSingleton(init=True)
+
+# create kombu connection
+kombu_connection = Connection(MongoengineDbSingleton().connection_string)
 
 # Create starlette app
 app = Starlette(
@@ -41,7 +45,7 @@ class MyAdmin(Admin, ActionLogAdmin):
 
 
 # Create admin
-admin = MyAdmin(title="Test Admin")
+admin = MyAdmin(title="Test Admin", kombu_connection=kombu_connection)
 
 
 class Test(Document):

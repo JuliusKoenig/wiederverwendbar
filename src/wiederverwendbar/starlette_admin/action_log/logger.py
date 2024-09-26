@@ -1,22 +1,26 @@
+import asyncio
 import inspect
 import json
 import logging
-import asyncio
 import string
-import threading
 import time
 import traceback
 from enum import Enum
+from threading import Thread
 from typing import Optional, Union, Any
+from socket import timeout as socket_timeout
+from warnings import warn
 
 from pydantic import BaseModel, ValidationError
 from starlette.requests import Request
-from starlette.websockets import WebSocket, WebSocketState
+from starlette.websockets import WebSocket
 from starlette_admin.exceptions import ActionFailed
+from kombu import Connection, Exchange, Queue, Message
 
 from wiederverwendbar.logger.context import LoggingContext
 
 LOGGER = logging.getLogger(__name__)
+KOMBU_EXCHANGE_NAME = "action_log"
 
 
 class _SubLoggerCommand:
@@ -74,9 +78,9 @@ class FormCommand(_SubLoggerCommand):
         super().__init__(logger=logger, allowed_logger_cls=[ActionLogger, ActionSubLogger, logging.Logger], command="form", form=form, submit_btn_text=submit_btn_text,
                          abort_btn_text=abort_btn_text)
 
-    def __call__(self, timeout: int = -1) -> Union[bool, dict[str, Any]]:
+    async def __call__(self, timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
         if isinstance(self.logger, ActionLogger) or isinstance(self.logger, ActionSubLogger):
-            return asyncio.run(self.logger.form_data(timeout=timeout))
+            return await self.logger.form_data(timeout=timeout)
         else:
             raise ValueError("Logger must be an instance of ActionLogger or ActionSubLogger.")
 
@@ -89,6 +93,7 @@ class ConfirmCommand(FormCommand):
             </div>
             </form>"""
         super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text)
+
 
 class YesNoCommand(FormCommand):
     def __init__(self, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger], text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None):
@@ -129,14 +134,14 @@ class ExitCommand(_SubLoggerCommand):
 
 class ActionLoggerCommand(BaseModel):
     class Command(str, Enum):
-        EXIT = "exit"
-        FINALIZE = "finalize"
-        FORM = "form"
-        INCREASE_STEPS = "increase_steps"
-        LOG = "log"
-        NEXT_STEP = "next_step"
         START = "start"
+        INCREASE_STEPS = "increase_steps"
         STEP = "step"
+        NEXT_STEP = "next_step"
+        LOG = "log"
+        FORM = "form"
+        FINALIZE = "finalize"
+        EXIT = "exit"
 
     sub_logger: str
     command: Command
@@ -554,21 +559,21 @@ class ActionSubLogger(logging.Logger):
 
         return YesNoCommand(logger=self, text=text, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
 
-    async def await_response(self, timeout: int = -1) -> Union[bool, ActionLoggerResponse]:
+    async def await_response(self, timeout: Optional[float] = None) -> Union[bool, ActionLoggerResponse]:
         """
         Fetch response from frontend.
 
-        :param timeout: Timeout in seconds. If -1, no timeout will be set.
+        :param timeout: Timeout in seconds.
         :return: Form data.
         """
 
         return await self.action_logger._await_response(logger=self, timeout=timeout)
 
-    async def form_data(self, timeout: int = -1) -> Union[bool, dict[str, Any]]:
+    async def form_data(self, timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
         """
         Fetch form data from frontend.
 
-        :param timeout: Timeout in seconds. If -1, no timeout will be set.
+        :param timeout: Timeout in seconds.
         :return: Form data.
         """
 
@@ -761,7 +766,7 @@ class ActionLogger:
     _action_loggers: list["ActionLogger"] = []
 
     def __init__(self,
-                 action_log_key_request_or_websocket: Union[str, Request],
+                 request_or_websocket: Union[Request],
                  log_level: int = logging.NOTSET,
                  parent: Optional[logging.Logger] = None,
                  formatter: Optional[logging.Formatter] = None,
@@ -772,18 +777,17 @@ class ActionLogger:
         """
         Create new action logger.
 
-        :param action_log_key_request_or_websocket: Action log key, request or websocket.
+        :param request_or_websocket: request or websocket.
         :param log_level: Log level of action logger. If None, parent log level will be used. If parent is None, logging.INFO will be used.
         :param parent: Parent logger. If None, logger will be added to module logger.
         :param formatter: Formatter of action logger. If None, default formatter will be used.
         :param show_errors: Show errors in frontend.
         :param halt_on_error: Halt on error.
-        :param wait_for_websocket: Wait for websocket to be connected.
-        :param wait_for_websocket_timeout: Timeout in seconds.
+        :param wait_for_websocket: Wait for websocket to be connected. For this feature, await must be used.
+        :param wait_for_websocket_timeout: Timeout in seconds. For this feature, await must be used.
         """
 
-        self.lock = threading.Lock()
-        self.action_log_key = self.get_action_key(action_log_key_request_or_websocket)
+        self.action_log_key = self.get_action_key(request_or_websocket=request_or_websocket)
         self.show_errors = show_errors
         self.halt_on_error = halt_on_error
 
@@ -803,23 +807,55 @@ class ActionLogger:
         # set formatter
         self.formatter = formatter
 
-        self._global_buffer: list[str] = []  # global websocket buffer
-        self._websockets: dict[WebSocket, list[str]] = {}  # websocket, websocket_buffer
         self._sub_logger: list[ActionSubLogger] = []
         self._response_obj: Union[None, bool, ActionLoggerResponse] = None
 
         # add action logger to action loggers
         self._action_loggers.append(self)
 
-        # wait for websocket
-        if wait_for_websocket:
+        # get kombu connection
+        self._kombu_connection = self.get_kombu_connection(request_or_websocket=request_or_websocket)
+
+        # create exchange and queues from websocket request
+        self._exchange, self._start_queue, self._log_queue, self._response_queue, self._exit_queue = ActionLogger.get_action_log_queues(request_or_websocket=request_or_websocket)
+
+        # create producer
+        self._producer = self._kombu_connection.Producer(serializer='json')
+
+        # create exit thread
+        self._exit_thread_obj = Thread(target=self._exit_thread)
+
+        self._wait_for_websocket = wait_for_websocket
+        self._wait_for_websocket_timeout = wait_for_websocket_timeout
+
+    def __await__(self):
+        async def _await() -> "ActionLogger":
+            if not self._wait_for_websocket:
+                return self
+
             current_try = 0
-            while len(self._websockets) == 0:
-                if current_try >= wait_for_websocket_timeout:
-                    raise ValueError("No websocket connected.")
-                current_try += 1
-                LOGGER.debug(f"[{current_try}/{wait_for_websocket_timeout}] Waiting for websocket...")
-                asyncio.run(asyncio.sleep(1))
+            connected = False
+
+            def start_event(body: dict[str, Any], message: Message):
+                nonlocal connected
+                connected = True
+
+                message.ack()
+
+            with self._kombu_connection.Consumer([self._start_queue], callbacks=[start_event]):
+                while len(self._sub_logger) == 0:
+                    if connected:
+                        break
+                    if current_try >= self._wait_for_websocket_timeout:
+                        raise ValueError("No websocket connected.")
+
+                    current_try += 1
+                    LOGGER.debug(f"[{current_try}/{self._wait_for_websocket_timeout}] Waiting for websocket...")
+                    await asyncio.sleep(1)
+
+            return self
+        return _await().__await__()
+
 
     def __enter__(self) -> "ActionLogger":
         return self
@@ -853,112 +889,99 @@ class ActionLogger:
             self.exit()
 
     @classmethod
-    async def get_logger(cls, action_log_key_request_or_websocket: Union[str, Request, WebSocket]) -> Optional["ActionLogger"]:
-        """
-        Get action logger by action log key or request.
-
-        :param action_log_key_request_or_websocket: Action log key, request or websocket.
-        :return: Action logger.
-        """
-
-        for _action_logger in cls._action_loggers:
-            if _action_logger.action_log_key == cls.get_action_key(action_log_key_request_or_websocket):
-                return _action_logger
-        return None
-
-    @classmethod
-    def get_action_key(cls, action_log_key_request_or_websocket: Union[str, Request, WebSocket]) -> str:
+    def get_action_key(cls, request_or_websocket: Union[Request, WebSocket]) -> str:
         """
         Get action log key from request or websocket.
 
-        :param action_log_key_request_or_websocket: Action log key, request or websocket.
+        :param request_or_websocket: Action log key, request or websocket.
         :return: Action log key.
         """
 
-        if isinstance(action_log_key_request_or_websocket, Request):
-            action_log_key = action_log_key_request_or_websocket.query_params.get("actionLogKey", None)
+        if isinstance(request_or_websocket, Request):
+            action_log_key = request_or_websocket.query_params.get("actionLogKey", None)
             if action_log_key is None:
                 raise ValueError("No action log key provided.")
-        elif isinstance(action_log_key_request_or_websocket, WebSocket):
-            action_log_key = action_log_key_request_or_websocket.path_params.get("action_log_key", None)
+        elif isinstance(request_or_websocket, WebSocket):
+            action_log_key = request_or_websocket.path_params.get("action_log_key", None)
             if action_log_key is None:
                 raise ValueError("No action log key provided.")
-        elif isinstance(action_log_key_request_or_websocket, str):
-            action_log_key = action_log_key_request_or_websocket
         else:
             raise ValueError("Invalid action log key or request.")
         return action_log_key
 
     @classmethod
-    async def wait_for_logger(cls, action_log_key_request_or_websocket: Union[str, Request, WebSocket], timeout: int = 5) -> "ActionLogger":
+    def get_kombu_connection(cls, request_or_websocket: Union[Request, WebSocket]) -> Connection:
+        return request_or_websocket.app.state.kombu_connection
+
+    @classmethod
+    def get_action_log_exchange(cls, request_or_websocket: Union[Request, WebSocket]) -> Exchange:
+        exchange = Exchange(KOMBU_EXCHANGE_NAME, "direct", durable=True)
+        exchange = exchange.bind(cls.get_kombu_connection(request_or_websocket))
+        exchange.declare()
+        return exchange
+
+    @classmethod
+    def get_action_log_queues(cls, request_or_websocket: Union[Request, WebSocket]) -> tuple[Exchange, Queue, Queue, Queue, Queue]:
+        # get kombu connection
+        connection = cls.get_kombu_connection(request_or_websocket=request_or_websocket)
+
+        # get action log exchange
+        exchange = cls.get_action_log_exchange(request_or_websocket=request_or_websocket)
+
+        # get action log key
+        action_log_key = cls.get_action_key(request_or_websocket)
+
+        # create exit queue
+        start_queue_name = f"{action_log_key}_start"
+        start_queue = Queue(start_queue_name, exchange=exchange, routing_key=start_queue_name)
+        start_queue = start_queue.bind(connection)
+        start_queue.declare()
+
+        # create log queue
+        log_queue_name = f"{action_log_key}_log"
+        log_queue = Queue(log_queue_name, exchange=exchange, routing_key=log_queue_name)
+        log_queue = log_queue.bind(connection)
+        log_queue.declare()
+
+        # create response queue
+        response_queue_name = f"{action_log_key}_response"
+        response_queue = Queue(response_queue_name, exchange=exchange, routing_key=response_queue_name)
+        response_queue = response_queue.bind(connection)
+        response_queue.declare()
+
+        # create exit queue
+        exit_queue_name = f"{action_log_key}_exit"
+        exit_queue = Queue(exit_queue_name, exchange=exchange, routing_key=exit_queue_name)
+        exit_queue = exit_queue.bind(connection)
+        exit_queue.declare()
+
+        return exchange, start_queue, log_queue, response_queue, exit_queue
+
+    @classmethod
+    def parse_response_obj(cls, data: Union[str, dict[str, Any]]) -> Union[None, ActionLoggerResponse]:
         """
-        Wait for action logger to be created by WebSocket connection. If action logger not found, a dummy logger will be created or an error will be raised.
+        Parse response object.
 
-        :param action_log_key_request_or_websocket: Action log key, request or websocket.
-        :param timeout: Timeout in seconds.
-        :return: Action logger.
-        """
-
-        # get action logger
-        action_logger = None
-        current_try = 0
-        while current_try < timeout:
-            action_logger = await cls.get_logger(cls.get_action_key(action_log_key_request_or_websocket))
-
-            # if action logger found, break
-            if action_logger is not None:
-                break
-            current_try += 1
-            LOGGER.debug(f"[{current_try}/{timeout}] Waiting for action logger...")
-            await asyncio.sleep(1)
-
-        # check if action logger finally found
-        if action_logger is None:
-            raise ValueError("ActionLogger not found.")
-
-        return action_logger
-
-    def add_websocket(self, websocket: WebSocket) -> None:
-        """
-        Add websocket to action logger. All global buffer will be sent to websocket buffer. After that, all buffered records will be sent to websocket.
-
-        :param websocket: Websocket
-        :return: None
-        """
-
-        with self.lock:
-            # add websocket to action logger
-            if websocket in self._websockets.keys():
-                raise ValueError("Websocket already exists.")
-
-            # create buffer for websocket
-            self._websockets[websocket] = []
-
-            # push all global buffer to websocket buffer
-            for record in self._global_buffer:
-                self._websockets[websocket].append(record)
-
-            # send all buffered records to websocket
-            self._send_all()
-
-    def remove_websocket(self, websocket: WebSocket) -> None:
-        """
-        Remove websocket from action logger. All buffered records will be sent to websocket.
-
-        :param websocket: Websocket
-        :return: None
+        :param data: Data
+        :return: Response object
         """
 
-        with self.lock:
-            # remove websocket from action logger
-            if websocket not in self._websockets.keys():
-                raise ValueError("Websocket not exists.")
+        # parse to dict
+        if type(data) is str:
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError as e:
+                LOGGER.error(f"JSONDecodeError while parsing response object: {e}")
+                return None
 
-            # send all buffered records to websocket
-            self._send_all()
+        # create response object
+        try:
+            response_obj = ActionLoggerResponse(**data)
+        except ValidationError as e:
+            LOGGER.error(f"ValidationError while parsing response object: {e}")
+            return None
 
-            # remove websocket from websocket buffer
-            del self._websockets[websocket]
+        return response_obj
 
     def new_sub_logger(self,
                        name: str,
@@ -984,25 +1007,24 @@ class ActionLogger:
         except ValueError:
             pass
 
-        with self.lock:
-            # create sub logger
-            action_sub_logger_cls = action_sub_logger_cls or ActionSubLogger
-            sub_logger = action_sub_logger_cls(action_logger=self, name=name, title=title, websocket_handler_cls=websocket_handler_cls)
+        # create sub logger
+        action_sub_logger_cls = action_sub_logger_cls or ActionSubLogger
+        sub_logger = action_sub_logger_cls(action_logger=self, name=name, title=title, websocket_handler_cls=websocket_handler_cls)
 
-            # set parent logger
-            parent = parent or self.parent
-            sub_logger.parent = parent
+        # set parent logger
+        parent = parent or self.parent
+        sub_logger.parent = parent
 
-            # set log level
-            if log_level == logging.NOTSET:
-                log_level = self.log_level
-                if parent is not None:
-                    if parent.level != logging.NOTSET:
-                        log_level = parent.level
-            sub_logger.setLevel(log_level)
+        # set log level
+        if log_level == logging.NOTSET:
+            log_level = self.log_level
+            if parent is not None:
+                if parent.level != logging.NOTSET:
+                    log_level = parent.level
+        sub_logger.setLevel(log_level)
 
-            self._sub_logger.append(sub_logger)
-            return sub_logger
+        self._sub_logger.append(sub_logger)
+        return sub_logger
 
     def get_sub_logger(self, sub_logger_name: str) -> ActionSubLogger:
         """
@@ -1110,43 +1132,7 @@ class ActionLogger:
         return YesNoCommand(logger=self, text=text, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
 
     @classmethod
-    async def _await_response(cls, logger: Union["ActionLogger", ActionSubLogger], timeout: int = -1) -> Union[bool, ActionLoggerResponse]:
-        if not isinstance(logger, ActionLogger) and not isinstance(logger, ActionSubLogger):
-            raise ValueError("Invalid logger.")
-
-        if not logger.awaiting_response:
-            raise ValueError("Logger is not awaiting form data.")
-
-        start_wait = time.perf_counter()
-        while logger.awaiting_response:
-            if timeout != -1:
-                if time.perf_counter() - start_wait > timeout:
-                    return False
-            await asyncio.sleep(0.001)
-
-        # get response object
-        response_obj = getattr(logger, "_response_obj")
-        setattr(logger, "_response_obj", None)
-        logger_name = getattr(logger, "sub_logger_name", "")
-
-        # check is response object is for this logger
-        if not response_obj.sub_logger == logger_name:
-            raise ValueError("The response object is not for this logger.")
-
-        return response_obj
-
-    async def await_response(self, timeout: int = -1) -> Union[bool, ActionLoggerResponse]:
-        """
-        Fetch response from frontend.
-
-        :param timeout: Timeout in seconds. If -1, no timeout will be set.
-        :return: Form data.
-        """
-
-        return await self._await_response(logger=self, timeout=timeout)
-
-    @classmethod
-    async def _form_data(cls, logger: Union["ActionLogger", ActionSubLogger], timeout: int = -1) -> Union[bool, dict[str, Any]]:
+    async def _form_data(cls, logger: Union["ActionLogger", ActionSubLogger], timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
         response_obj = await logger.await_response(timeout=timeout)
         if response_obj is False:
             return False
@@ -1164,11 +1150,11 @@ class ActionLogger:
 
         return response_obj.value["form_data"]
 
-    async def form_data(self, timeout: int = -1) -> Union[bool, dict[str, Any]]:
+    async def form_data(self, timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
         """
         Fetch form data from frontend.
 
-        :param timeout: Timeout in seconds. If -1, no timeout will be set.
+        :param timeout: Timeout in seconds.
         :return: Form data.
         """
 
@@ -1211,10 +1197,6 @@ class ActionLogger:
         if self.exited:
             raise ValueError("ActionLogger already exited.")
 
-        # remove websockets
-        for websocket in list(self._websockets.keys()):
-            self.remove_websocket(websocket)
-
         # exit sub loggers
         for sub_logger in self._sub_logger:
             if not sub_logger.exited:
@@ -1222,6 +1204,42 @@ class ActionLogger:
 
         # remove action logger from action loggers
         self._action_loggers.remove(self)
+
+        # exit thread
+        self._exit_thread_obj.start()
+
+    def _exit_thread(self):
+        """
+        Exit thread.
+
+        :return: None
+        """
+
+        exited = False
+
+        def exit_event(body: dict[str, Any], message: Message):
+            nonlocal exited
+
+            exited = True
+            message.ack()
+
+        with self._kombu_connection.Consumer([self._exit_queue], callbacks=[exit_event]):
+            while not exited:
+                print("Waiting for exit command...")
+                try:
+                    self._kombu_connection.drain_events(timeout=5)
+                except socket_timeout:
+                    if not exited:
+                        warn(f"Exiting action logger {self.action_log_key} timed out.", UserWarning)
+                        exited = True
+                if exited:
+                    break
+
+        # delete queues
+        self._start_queue.delete()
+        self._log_queue.delete()
+        self._response_queue.delete()
+        self._exit_queue.delete()
 
     @property
     def exited(self) -> bool:
@@ -1232,60 +1250,6 @@ class ActionLogger:
         """
 
         return self not in self._action_loggers
-
-    @classmethod
-    def parse_response_obj(cls, data: str) -> Union[None, ActionLoggerResponse]:
-        """
-        Parse response object.
-
-        :param data: Data
-        :return: Response object
-        """
-
-        # parse to dict
-        try:
-            response_obj_dict = json.loads(data)
-        except json.JSONDecodeError as e:
-            LOGGER.error(f"JSONDecodeError while parsing response object: {e}")
-            return None
-
-        # create response object
-        try:
-            response_obj = ActionLoggerResponse(**response_obj_dict)
-        except ValidationError as e:
-            LOGGER.error(f"ValidationError while parsing response object: {e}")
-            return None
-
-        return response_obj
-
-    def _send(self, websocket: WebSocket, command_json: str) -> None:
-        """
-        Send command to websocket.
-
-        :param websocket: Websocket
-        :param command_json: Command JSON
-        :return: None
-        """
-
-        # check websocket is connected
-        if websocket.client_state != WebSocketState.CONNECTED:
-            raise ValueError("Websocket is not connected.")
-
-        # send command message
-        asyncio.run(websocket.send_text(command_json))
-
-    def _send_all(self) -> None:
-        """
-        Send all buffered commands to all websockets.
-
-        :return: None
-        """
-
-        # send buffered records
-        for websocket in self._websockets.keys():
-            while self._websockets[websocket]:
-                buffered_command = self._websockets[websocket].pop(0)
-                self._send(websocket, buffered_command)
 
     def send_command(self, command: Union[dict[str, Any], ActionLoggerCommand]) -> None:
         """
@@ -1301,58 +1265,99 @@ class ActionLogger:
         if not isinstance(command, ActionLoggerCommand):
             raise ValueError("Invalid command.")
 
-        # convert command to json
-        command_json = command.model_dump_json()
+        # convert command to dict
+        command_dict = command.model_dump()
 
-        with self.lock:
-            # check if action logger or any sub logger is awaiting response
-            if self.awaiting_response:
-                raise ValueError("ActionLogger is awaiting response.")
-            for sub_logger in self._sub_logger:
-                if sub_logger.awaiting_response:
-                    raise ValueError("Sub logger is awaiting response.")
+        # check if action logger or any sub logger is awaiting response
+        if self.awaiting_response:
+            raise ValueError("ActionLogger is awaiting response.")
+        for sub_logger in self._sub_logger:
+            if sub_logger.awaiting_response:
+                raise ValueError("Sub logger is awaiting response.")
 
-            # get action logger or sub logger
-            if command.sub_logger == "":
-                logger = self
-            else:
-                logger = self.get_sub_logger(sub_logger_name=command.sub_logger)
+        # get action logger or sub logger
+        if command.sub_logger == "":
+            logger = self
+        else:
+            logger = self.get_sub_logger(sub_logger_name=command.sub_logger)
 
-            # set _response_obj to True if command is available in ActionLoggerResponse.Command
-            try:
-                ActionLoggerResponse.Command(command.command.value)
-                logger._response_obj = True
-            except ValueError:
-                logger._response_obj = None
+        # set _response_obj to True if command is available in ActionLoggerResponse.Command
+        try:
+            ActionLoggerResponse.Command(command.command.value)
+            logger._response_obj = True
+        except ValueError:
+            logger._response_obj = None
 
-            # add command to global buffer
-            self._global_buffer.append(command_json)
+        self._producer.publish(command_dict, exchange=self._exchange, routing_key=self._log_queue.name)
 
-            # add command to websocket buffer
-            for websocket in self._websockets.keys():
-                self._websockets[websocket].append(command_json)
+    @classmethod
+    async def _await_response(cls, logger: Union["ActionLogger", ActionSubLogger], timeout: Optional[float] = None) -> Union[bool, ActionLoggerResponse]:
+        if not isinstance(logger, ActionLogger) and not isinstance(logger, ActionSubLogger):
+            raise ValueError("Invalid logger.")
 
-            # send all
-            self._send_all()
+        if not logger.awaiting_response:
+            raise ValueError("Logger is not awaiting form data.")
 
-    def send_response_to_logger(self, response_obj: ActionLoggerResponse) -> None:
+        action_logger = logger if isinstance(logger, ActionLogger) else logger.action_logger
+
+        # wait for response
+        start_wait = time.perf_counter()
+        with action_logger._kombu_connection.Consumer([action_logger._response_queue], callbacks=[action_logger.send_response_to_logger]):
+            while logger.awaiting_response:
+                LOGGER.debug("awaiting response")
+                try:
+                    action_logger._kombu_connection.drain_events(timeout=0.001)
+                except socket_timeout:
+                    ...
+                await asyncio.sleep(0.001)
+                if timeout is None:
+                    continue
+                if time.perf_counter() - start_wait >= timeout:
+                    return False
+
+        # get response object
+        response_obj = getattr(logger, "_response_obj")
+        setattr(logger, "_response_obj", None)
+        logger_name = getattr(logger, "sub_logger_name", "")
+
+        # check is response object is for this logger
+        if not response_obj.sub_logger == logger_name:
+            raise ValueError("The response object is not for this logger.")
+
+        return response_obj
+
+    async def await_response(self, timeout: Optional[float] = None) -> Union[bool, ActionLoggerResponse]:
         """
-        Send response object to sub logger.
+        Fetch response from frontend.
 
-        :param response_obj: Response object
+        :param timeout: Timeout in seconds.
+        :return: Form data.
+        """
+
+        return await self._await_response(logger=self, timeout=timeout)
+
+    def send_response_to_logger(self, body: dict[str, Any], message: Message) -> None:
+        """
+        Send response object to logger or sub logger.
+
+        :param body: Body
+        :param message: Message
         :return: None
         """
 
-        with self.lock:
-            if response_obj.sub_logger == "":
-                logger = self
-            else:
-                # get sub logger
-                logger = self.get_sub_logger(sub_logger_name=response_obj.sub_logger)
+        message.ack()
 
-            # check if sub logger is awaiting response
-            if not logger.awaiting_response:
-                raise ValueError("Logger is not awaiting response.")
+        response_obj = self.parse_response_obj(body)
 
-            # set response object
-            setattr(logger, "_response_obj", response_obj)
+        if response_obj.sub_logger == "":
+            logger = self
+        else:
+            # get sub logger
+            logger = self.get_sub_logger(sub_logger_name=response_obj.sub_logger)
+
+        # check if sub logger is awaiting response
+        if not logger.awaiting_response:
+            raise ValueError("Logger is not awaiting response.")
+
+        # set response object
+        setattr(logger, "_response_obj", response_obj)

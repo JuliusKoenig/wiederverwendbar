@@ -9,6 +9,7 @@ from starlette.requests import Request
 from starlette_admin.contrib.mongoengine import Admin, ModelView
 from starlette_admin.actions import action
 from mongoengine import Document, StringField
+from kombu import Connection
 
 from wiederverwendbar.mongoengine import MongoengineDbSingleton
 from wiederverwendbar.starlette_admin import ActionLogAdmin, ActionLogger
@@ -21,6 +22,10 @@ logger.setLevel(logging.DEBUG)
 
 # connect to database
 MongoengineDbSingleton(init=True)
+
+# create kombu connection
+kombu_connection = Connection(MongoengineDbSingleton().connection_string)
+
 
 # Create starlette app
 app = Starlette(
@@ -38,7 +43,7 @@ class MyAdmin(Admin, ActionLogAdmin):
 
 
 # Create admin
-admin = MyAdmin(title="Test Admin")
+admin = MyAdmin(title="Test Admin", kombu_connection=kombu_connection)
 
 
 class Test(Document):
@@ -73,7 +78,7 @@ class TestView(ModelView):
     async def test_action_action_log(self, request: Request, pk: list[str]) -> str:
         with ActionLogger(request, parent=logger) as action_logger:
             # use context manager to ensure that the logger is finalized
-            with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3) as sub_logger:
+            with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3, ignore_loggers_like=["pymongo"]) as sub_logger:
                 sub_logger.info("Test Aktion startet ...")
                 sub_logger.debug("Debug")
                 sub_logger.info("Test Aktion step 1")
@@ -93,8 +98,9 @@ class TestView(ModelView):
                 await asyncio.sleep(2)
 
             sub_action_2_logger = action_logger.new_sub_logger("sub_action_2", "Sub Action 2")
-            sub_action_2_logger.steps = 3
+            sub_action_2_logger.start(steps=3)
             sub_action_3_logger = action_logger.new_sub_logger("sub_action_3", "Sub Action 3")
+            sub_action_3_logger.start()
             sub_action_3_logger.steps = 3
             sub_action_2_logger.info("Test Aktion startet ...")
             sub_action_3_logger.info("Test Aktion startet ...")
