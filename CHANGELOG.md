@@ -1,6 +1,29 @@
 # Changelog
 
 
+## release/v0.6.0 (2024-09-26)
+
+### Add
+
+* Add: kombu as channel system for ActionLog. [Julius Koenig]
+
+* Add: connection_string property to MongoengineDb. [Julius Koenig]
+
+* Add: ConfirmCommand. [Julius Koenig]
+
+### Changes
+
+* Update dependencies. [Julius Koenig]
+
+* Examples use MongoengineDbSingleton. [Julius Koenig]
+
+* Automatic static url build. [Julius Koenig]
+
+### Fix
+
+* ActionThread result is not bool. [Julius Koenig]
+
+
 ## release/v0.5.5 (2024-09-19)
 
 ### Add
