@@ -1,6 +1,13 @@
 # Changelog
 
 
+## release/v0.6.1 (2024-09-27)
+
+### Changes
+
+* Add nest-asyncio again, unfortunately it is furthermore  needed. [Julius Koenig]
+
+
 ## release/v0.6.0 (2024-09-26)
 
 ### Add
