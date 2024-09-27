@@ -62,7 +62,11 @@ class IncreaseStepsCommand(_SubLoggerCommand):
 
 
 class FormCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger], form: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None):
+    def __init__(self,
+                 logger: Union["ActionLogger", "ActionSubLogger", logging.Logger],
+                 form: str, submit_btn_text: Optional[str] = None,
+                 abort_btn_text: Optional[str] = None,
+                 default_values: Union[None, bool, dict[str, Any]] = None):
         if submit_btn_text is None:
             submit_btn_text = "OK"
         if not isinstance(logger, ActionLogger) and not isinstance(logger, ActionSubLogger):
@@ -71,9 +75,12 @@ class FormCommand(_SubLoggerCommand):
             for action_sub_logger_context in action_sub_loggers:
                 if isinstance(action_sub_logger_context, ActionSubLoggerContext):
                     break
-            if action_sub_logger_context is None:
-                raise ValueError(f"No action logger found. Did you use the {ActionSubLoggerContext.__name__} context manager?")
-            logger = action_sub_logger_context.context_logger
+            if action_sub_logger_context is not None:
+                logger = action_sub_logger_context.context_logger
+            else:
+                if default_values is None:
+                    raise ValueError(f"No action logger found. Did you use the {ActionSubLoggerContext.__name__} context manager? If not, you have to provide default values.")
+        self.default_values: Union[None, bool, dict[str, Any]]  = default_values
 
         super().__init__(logger=logger, allowed_logger_cls=[ActionLogger, ActionSubLogger, logging.Logger], command="form", form=form, submit_btn_text=submit_btn_text,
                          abort_btn_text=abort_btn_text)
@@ -81,8 +88,12 @@ class FormCommand(_SubLoggerCommand):
     def __call__(self, timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
         if isinstance(self.logger, ActionLogger) or isinstance(self.logger, ActionSubLogger):
             return asyncio.run(self.logger.form_data(timeout=timeout))
+        elif isinstance(self.logger, logging.Logger):
+            if self.default_values is None:
+                raise ValueError("No default values provided.")
+            return self.default_values
         else:
-            raise ValueError("Logger must be an instance of ActionLogger or ActionSubLogger.")
+            raise ValueError("Logger must be an instance of ActionLogger, ActionSubLogger or logging.Logger.")
 
 
 class ConfirmCommand(FormCommand):
@@ -92,11 +103,15 @@ class ConfirmCommand(FormCommand):
                 <p>{text}</p>
             </div>
             </form>"""
-        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text)
+        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text, default_values=True)
 
 
 class YesNoCommand(FormCommand):
-    def __init__(self, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger], text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None):
+    def __init__(self,
+                 logger: Union["ActionLogger", "ActionSubLogger", logging.Logger],
+                 text: str, submit_btn_text: Optional[str] = None,
+                 abort_btn_text: Optional[str] = None,
+                 default_value: Optional[bool] = None):
         form = f"""<form>
             <div class="mt-3">
                 <p>{text}</p>
@@ -106,7 +121,7 @@ class YesNoCommand(FormCommand):
             submit_btn_text = "Yes"
         if abort_btn_text is None:
             abort_btn_text = "No"
-        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
+        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, default_values=default_value)
 
 
 class FinalizeCommand(_SubLoggerCommand):
