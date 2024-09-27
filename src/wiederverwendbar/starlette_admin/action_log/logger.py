@@ -78,9 +78,9 @@ class FormCommand(_SubLoggerCommand):
         super().__init__(logger=logger, allowed_logger_cls=[ActionLogger, ActionSubLogger, logging.Logger], command="form", form=form, submit_btn_text=submit_btn_text,
                          abort_btn_text=abort_btn_text)
 
-    async def __call__(self, timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
+    def __call__(self, timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
         if isinstance(self.logger, ActionLogger) or isinstance(self.logger, ActionSubLogger):
-            return await self.logger.form_data(timeout=timeout)
+            return asyncio.run(self.logger.form_data(timeout=timeout))
         else:
             raise ValueError("Logger must be an instance of ActionLogger or ActionSubLogger.")
 
@@ -847,6 +847,7 @@ class ActionLogger:
                     if connected:
                         break
                     if current_try >= self._wait_for_websocket_timeout:
+                        self.exit()
                         raise ValueError("No websocket connected.")
 
                     current_try += 1
@@ -1225,7 +1226,6 @@ class ActionLogger:
 
         with self._kombu_connection.Consumer([self._exit_queue], callbacks=[exit_event]):
             while not exited:
-                print("Waiting for exit command...")
                 try:
                     self._kombu_connection.drain_events(timeout=5)
                 except socket_timeout:
@@ -1304,7 +1304,6 @@ class ActionLogger:
         start_wait = time.perf_counter()
         with action_logger._kombu_connection.Consumer([action_logger._response_queue], callbacks=[action_logger.send_response_to_logger]):
             while logger.awaiting_response:
-                LOGGER.debug("awaiting response")
                 try:
                     action_logger._kombu_connection.drain_events(timeout=0.001)
                 except socket_timeout:

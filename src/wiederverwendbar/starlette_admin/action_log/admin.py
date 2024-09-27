@@ -5,6 +5,7 @@ from threading import Thread, Lock
 from typing import Union, Any, Optional
 from socket import timeout as socket_timeout
 
+import nest_asyncio
 from jinja2 import PackageLoader
 from pydantic import ValidationError
 from starlette.applications import Starlette
@@ -156,6 +157,8 @@ class ActionLogAdmin(MultiPathAdmin):
     def init_routes(self) -> None:
         super().init_routes()
         self.routes.append(WebSocketRoute(path="/ws/action_log/{action_log_key}", endpoint=self.ActionLogEndpoint, name="action_log"))  # noqa
+
+        nest_asyncio.apply()  # ToDo: ugly hack to make asyncio.run work outside of debug mode, remove if it's not needed anymore
 
     def mount_to(self, app: Starlette) -> None:
         super().mount_to(app)

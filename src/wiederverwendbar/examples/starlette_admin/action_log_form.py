@@ -78,7 +78,7 @@ class TestView(ModelView):
     async def test_action_action_log(self, request: Request, pk: list[str]) -> str:
         with await ActionLogger(request, parent=logger) as action_logger:
             # send form
-            action_logger_form_data = await FormCommand(action_logger,
+            action_logger_form_data = FormCommand(action_logger,
                                                   """<form>
                       <div class="mt-3">
                           <input type="hidden" name="hidden">
@@ -101,7 +101,7 @@ class TestView(ModelView):
                                                   "Weiter",
                                                   "Abbrechen")()
 
-            action_logger_yes_no = await action_logger.yes_no("Möchtest du fortfahren?")()
+            action_logger_yes_no = action_logger.yes_no("Möchtest du fortfahren?")()
 
             # use context manager to ensure that the logger is finalized
             with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3, ignore_loggers_like=["pymongo"]) as sub_logger:
@@ -113,10 +113,10 @@ class TestView(ModelView):
                 sub_logger.info("Test Aktion step 2")
 
                 # send form with positive/negative buttons
-                sub_logger_confirm = await sub_logger.confirm("Information")()
+                sub_logger_confirm = sub_logger.confirm("Information")()
 
 
-                sub_logger_yes_no = await sub_logger.yes_no("Möchtest du fortfahren?")()
+                sub_logger_yes_no = sub_logger.yes_no("Möchtest du fortfahren?")()
 
                 await asyncio.sleep(2)
                 sub_logger.next_step()
