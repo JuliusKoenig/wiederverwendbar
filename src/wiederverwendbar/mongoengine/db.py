@@ -134,7 +134,7 @@ class MongoengineDb:
                                password=self.password,
                                authSource=self.auth_source,
                                serverSelectionTimeoutMS=self.timeout)
-        self._db = self.client[self.name]
+        self._db = self.client[self.db_name]
 
         if self.db_test:
             self.test()
