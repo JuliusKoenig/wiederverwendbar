@@ -52,8 +52,8 @@ class StepCommand(_SubLoggerCommand):
 
 
 class NextStepCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionSubLogger", logging.Logger]):
-        super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="next_step")
+    def __init__(self, logger: Union["ActionSubLogger", logging.Logger], steps: int = 1):
+        super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="next_step", steps=steps)
 
 
 class IncreaseStepsCommand(_SubLoggerCommand):
@@ -359,7 +359,8 @@ class ActionSubLogger(logging.Logger):
                     raise ValueError("ActionSubLogger not started.")
                 if self.exited:
                     raise ValueError("ActionSubLogger already exited.")
-                self.step += 1
+                steps = values["steps"]
+                self.step += steps
             elif command_name == "increase_steps":
                 if not self.started:
                     raise ValueError("ActionSubLogger not started.")
