@@ -1284,13 +1284,6 @@ class ActionLogger:
         # convert command to dict
         command_dict = command.model_dump()
 
-        # check if action logger or any sub logger is awaiting response
-        if self.awaiting_response:
-            raise ValueError("ActionLogger is awaiting response.")
-        for sub_logger in self._sub_logger:
-            if sub_logger.awaiting_response:
-                raise ValueError("Sub logger is awaiting response.")
-
         # get action logger or sub logger
         if command.sub_logger == "":
             logger = self
@@ -1302,7 +1295,7 @@ class ActionLogger:
             ActionLoggerResponse.Command(command.command.value)
             logger._response_obj = True
         except ValueError:
-            logger._response_obj = None
+            ...
 
         self._producer.publish(command_dict, exchange=self._exchange, routing_key=self._log_queue.name)
 
