@@ -9,7 +9,6 @@ dependencies = [
     "pydantic>=2.9.2",
     "pydantic-settings>=2.5.2",
     "devtools>=0.12.2",
-    "nest-asyncio>=1.6.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -28,6 +27,7 @@ full = [
     "pillow>=10.4.0",
     "blinker>=1.8.2",
     "kombu>=5.4.2",
+    "nest-asyncio>=1.6.0",
 ]
 rich = [
     "rich>=13.8.1",
@@ -55,6 +55,7 @@ starlette-admin = [
     "starlette-admin[i18n]>=0.14.1",
     "pillow>=10.4.0",
     "kombu>=5.4.2",
+    "nest-asyncio>=1.6.0",
 ]
 
 [build-system]
