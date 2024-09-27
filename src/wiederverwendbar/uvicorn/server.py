@@ -29,8 +29,9 @@ class UvicornServer:
                  ssl_cert_reqs: Optional[int] = None,
                  ssl_ca_certs: Optional[str] = None,
                  ssl_ciphers: Optional[str] = None,
-                 auto_run: Optional[bool] = True,
-                 server_react_to_keyboard_interrupt: Optional[bool] = True,
+                 auto_run: Optional[bool] = None,
+                 server_react_to_keyboard_interrupt: Optional[bool] = None,
+                 factory: Optional[bool] = None,
                  settings: UvicornServerSettings = None):
         """
         Create a new Uvicorn Server
@@ -53,6 +54,7 @@ class UvicornServer:
         :param ssl_ciphers: SSL Ciphers
         :param auto_run: Auto Run on creation
         :param server_react_to_keyboard_interrupt: React to Keyboard Interrupt
+        :param factory: Factory
         :param settings: Uvicorn Server Settings
         """
 
@@ -82,6 +84,7 @@ class UvicornServer:
         self.ssl_ciphers: Optional[str] = ssl_ciphers or self.settings.server_ssl_ciphers
         self.auto_run: bool = auto_run or self.settings.server_auto_run
         self.react_to_keyboard_interrupt = server_react_to_keyboard_interrupt or self.settings.server_react_to_keyboard_interrupt
+        self.factory: bool = factory or self.settings.server_factory
 
         logger.debug(f"Create {self}")
 
@@ -124,4 +127,5 @@ class UvicornServer:
                     ssl_version=self.ssl_version,
                     ssl_cert_reqs=self.ssl_cert_reqs,
                     ssl_ca_certs=self.ssl_ca_certs,
-                    ssl_ciphers=self.ssl_ciphers)
+                    ssl_ciphers=self.ssl_ciphers,
+                    factory=self.factory)
