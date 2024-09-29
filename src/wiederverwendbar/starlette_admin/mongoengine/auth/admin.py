@@ -46,27 +46,12 @@ class MongoengineAuthAdmin(MongoengineAdmin, SettingsAdmin, DropDownIconViewAdmi
             debug: Optional[bool] = None,
             i18n_config: Optional[I18nConfig] = None,
             favicon_url: Optional[str] = None,
-            settings: Optional[AuthAdminSettings] = None
+            settings: Optional[MongoengineAdminAuthSettings] = None
     ):
         # get settings from the settings class if not provided
-        settings = settings or AuthAdminSettings()
-        if not isinstance(settings, AuthAdminSettings):
-            raise ValueError(f"settings must be an instance of {AuthAdminSettings.__name__}")
-
-        # set middlewares
-        middlewares = middlewares or []
-
-        # set session middleware
-        session_middleware = session_middleware or SessionMiddleware
-        if not any(issubclass(middleware.cls, SessionMiddleware) for middleware in middlewares):
-            middlewares.append(Middleware(session_middleware,  # noqa
-                                          secret_key=settings.admin_session_secret_key,
-                                          session_cookie=settings.admin_session_cookie,
-                                          max_age=settings.admin_session_max_age,
-                                          path=settings.admin_session_path,
-                                          same_site=settings.admin_session_same_site.value,
-                                          https_only=settings.admin_session_https_only,
-                                          domain=settings.admin_session_domain))
+        settings = settings or MongoengineAdminAuthSettings()
+        if not isinstance(settings, MongoengineAdminAuthSettings):
+            raise ValueError(f"settings must be an instance of {MongoengineAdminAuthSettings.__name__}")
 
         # set documents
         self.user_document = user_document or User
@@ -102,6 +87,7 @@ class MongoengineAuthAdmin(MongoengineAdmin, SettingsAdmin, DropDownIconViewAdmi
             index_view=index_view,
             auth_provider=auth_provider,
             middlewares=middlewares,
+            session_middleware=session_middleware,
             debug=debug,
             i18n_config=i18n_config,
             favicon_url=favicon_url,

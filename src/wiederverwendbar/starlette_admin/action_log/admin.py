@@ -160,19 +160,19 @@ class ActionLogAdmin(MultiPathAdmin):
 
         nest_asyncio.apply()  # ToDo: ugly hack to make asyncio.run work outside of debug mode, remove if it's not needed anymore
 
-    def mount_to(self, app: Starlette) -> None:
-        super().mount_to(app)
-
-        # get admin app
-        admin_app = None
-        for app in app.routes:
-            if not isinstance(app, Mount):
-                continue
-            if app.name != self.route_name:
-                continue
-            admin_app = app.app
-        if admin_app is None:
-            raise ValueError("Admin app not found")
-
-        # add kombu connection to admin app
-        admin_app.state.kombu_connection = self.kombu_connection
+    # def mount_to(self, app: Starlette) -> None:
+    #     super().mount_to(app)
+    #
+    #     # get admin app
+    #     admin_app = None
+    #     for app in app.routes:
+    #         if not isinstance(app, Mount):
+    #             continue
+    #         if app.name != self.route_name:
+    #             continue
+    #         admin_app = app.app
+    #     if admin_app is None:
+    #         raise ValueError("Admin app not found")
+    #
+    #     # add kombu connection to admin app
+    #     admin_app.state.kombu_connection = self.kombu_connection

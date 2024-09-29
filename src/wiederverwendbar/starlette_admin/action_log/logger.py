@@ -928,7 +928,7 @@ class ActionLogger:
 
     @classmethod
     def get_kombu_connection(cls, request_or_websocket: Union[Request, WebSocket]) -> Connection:
-        return request_or_websocket.app.state.kombu_connection
+        return request_or_websocket.app.state.admin.kombu_connection
 
     @classmethod
     def get_action_log_exchange(cls, request_or_websocket: Union[Request, WebSocket]) -> Exchange:
