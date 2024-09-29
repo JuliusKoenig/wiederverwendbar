@@ -3,6 +3,7 @@ from typing import Optional, Sequence
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 from starlette_admin.i18n import I18nConfig
 from starlette_admin.views import CustomView
 from starlette_admin.auth import BaseAuthProvider
@@ -12,6 +13,8 @@ from wiederverwendbar.starlette_admin.form_max_fields.settings import FormMaxFie
 
 
 class FormMaxFieldsAdmin(SettingsAdmin):
+    settings_class = FormMaxFieldsAdminSettings
+
     def __init__(
             self,
             title: Optional[str] = None,
@@ -24,17 +27,13 @@ class FormMaxFieldsAdmin(SettingsAdmin):
             index_view: Optional[CustomView] = None,
             auth_provider: Optional[BaseAuthProvider] = None,
             middlewares: Optional[Sequence[Middleware]] = None,
+            session_middleware: Optional[type[SessionMiddleware]] = None,
             debug: Optional[bool] = None,
             i18n_config: Optional[I18nConfig] = None,
             favicon_url: Optional[str] = None,
             form_max_fields: Optional[int] = None,
             settings: Optional[FormMaxFieldsAdminSettings] = None
     ):
-        # get settings from the settings class if not provided
-        settings = settings or FormMaxFieldsAdminSettings()
-        if not isinstance(settings, FormMaxFieldsAdminSettings):
-            raise ValueError(f"settings must be an instance of {FormMaxFieldsAdminSettings.__name__}")
-
         super().__init__(
             title=title,
             base_url=base_url,
@@ -46,6 +45,7 @@ class FormMaxFieldsAdmin(SettingsAdmin):
             index_view=index_view,
             auth_provider=auth_provider,
             middlewares=middlewares,
+            session_middleware=session_middleware,
             debug=debug,
             i18n_config=i18n_config,
             favicon_url=favicon_url,

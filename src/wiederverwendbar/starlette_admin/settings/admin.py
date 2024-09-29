@@ -1,6 +1,5 @@
 from typing import Optional, Sequence
 
-from starlette.datastructures import State
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette_admin.i18n import lazy_gettext as _
@@ -12,7 +11,37 @@ from wiederverwendbar.starlette_admin.admin import BaseAdmin
 from wiederverwendbar.starlette_admin.settings.settings import AdminSettings
 
 
-class SettingsAdmin(BaseAdmin):
+class SettingsAdminMeta(type):
+    def __new__(cls, name, bases, attrs):
+        # combine settings_cls from bases and attrs
+        all_settings_classes = []
+        # get settings_class from attrs
+        if "settings_class" in attrs:
+            # skip duplicates
+            if attrs["settings_class"] not in all_settings_classes:
+                # add at the beginning of the combined list
+                all_settings_classes.append(attrs["settings_class"])
+
+        # get all settings_classes from bases
+        for base in bases:
+            if hasattr(base, "settings_classes"):
+                for settings_class in base.settings_classes:
+                    # skip duplicates
+                    if settings_class in all_settings_classes:
+                        continue
+                    # add at the beginning of the combined list
+                    all_settings_classes.append(settings_class)
+
+        # set settings_classes to the combined list
+        attrs["settings_classes"] = all_settings_classes
+
+        return super().__new__(cls, name, bases, attrs)
+
+
+class SettingsAdmin(BaseAdmin, metaclass=SettingsAdminMeta):
+    settings_class = AdminSettings
+    settings_classes: Sequence[type[AdminSettings]] = []
+
     def __init__(
             self,
             title: Optional[str] = None,
@@ -32,9 +61,10 @@ class SettingsAdmin(BaseAdmin):
             settings: Optional[AdminSettings] = None
     ):
         # get settings from the settings class if not provided
-        settings = settings or AdminSettings()
-        if not isinstance(settings, AdminSettings):
-            raise ValueError(f"settings must be an instance of {AdminSettings.__name__}")
+        settings = settings or self.settings_class()
+        for settings_class in self.settings_classes:
+            if not isinstance(settings, settings_class):
+                raise ValueError(f"settings must be an instance of {settings_class.__name__}")
 
         # set the values from the settings class if not provided
         title = _(title) or _(settings.admin_title)

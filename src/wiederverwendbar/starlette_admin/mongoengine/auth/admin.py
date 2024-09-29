@@ -19,12 +19,18 @@ from wiederverwendbar.starlette_admin.mongoengine.auth.documents.session import 
 from wiederverwendbar.starlette_admin.mongoengine.auth.views.session import SessionView
 from wiederverwendbar.starlette_admin.mongoengine.auth.views.user import UserView
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
-from wiederverwendbar.starlette_admin.settings.admin import SettingsAdmin
+from wiederverwendbar.starlette_admin.multi_path.admin import MultiPathAdminMeta
+from wiederverwendbar.starlette_admin.settings.admin import SettingsAdminMeta, SettingsAdmin
 
 logger = logging.getLogger(__name__)
 
+class MongoengineAuthAdminMeta(SettingsAdminMeta, MultiPathAdminMeta):
+    ...
 
-class MongoengineAuthAdmin(MongoengineAdmin, SettingsAdmin, DropDownIconViewAdmin):
+
+class MongoengineAuthAdmin(MongoengineAdmin, SettingsAdmin, DropDownIconViewAdmin, metaclass=MongoengineAuthAdminMeta):
+    settings_class = MongoengineAdminAuthSettings
+
     def __init__(
             self,
             title: Optional[str] = None,
@@ -48,11 +54,6 @@ class MongoengineAuthAdmin(MongoengineAdmin, SettingsAdmin, DropDownIconViewAdmi
             favicon_url: Optional[str] = None,
             settings: Optional[MongoengineAdminAuthSettings] = None
     ):
-        # get settings from the settings class if not provided
-        settings = settings or MongoengineAdminAuthSettings()
-        if not isinstance(settings, MongoengineAdminAuthSettings):
-            raise ValueError(f"settings must be an instance of {MongoengineAdminAuthSettings.__name__}")
-
         # set documents
         self.user_document = user_document or User
         self.session_document = session_document or Session

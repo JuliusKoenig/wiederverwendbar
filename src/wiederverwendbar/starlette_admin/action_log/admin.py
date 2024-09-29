@@ -2,7 +2,7 @@ import asyncio
 import logging
 from warnings import warn
 from threading import Thread, Lock
-from typing import Union, Any, Optional
+from typing import Union, Any
 from socket import timeout as socket_timeout
 
 import nest_asyncio
@@ -12,16 +12,29 @@ from starlette.routing import WebSocketRoute
 from starlette.endpoints import WebSocketEndpoint
 from starlette.websockets import WebSocket, WebSocketState
 from starlette.types import Scope, Receive, Send
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
+from starlette_admin.i18n import I18nConfig
+from starlette_admin.views import CustomView
+from starlette_admin.auth import BaseAuthProvider
 from kombu import Connection, Exchange, Queue, Producer
 
+from typing import Optional, Sequence
 
-from wiederverwendbar.starlette_admin.multi_path.admin import MultiPathAdmin
+from wiederverwendbar.starlette_admin.action_log.settings import ActionLogAdminSettings
+from wiederverwendbar.starlette_admin.settings.admin import SettingsAdminMeta, SettingsAdmin
+from wiederverwendbar.starlette_admin.multi_path.admin import MultiPathAdminMeta, MultiPathAdmin
 from wiederverwendbar.starlette_admin.action_log.logger import ActionLogger, ActionLoggerResponse
 
 logger = logging.getLogger(__name__)
 
 
-class ActionLogAdmin(MultiPathAdmin):
+class ActionLogAdminMeta(SettingsAdminMeta, MultiPathAdminMeta):
+    ...
+
+
+class ActionLogAdmin(SettingsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta):
+    settings_class = ActionLogAdminSettings
     static_files_packages = [("wiederverwendbar", "starlette_admin/action_log/statics")]
     template_packages = [PackageLoader("wiederverwendbar", "starlette_admin/action_log/templates")]
 
@@ -143,13 +156,39 @@ class ActionLogAdmin(MultiPathAdmin):
 
     def __init__(
             self,
-            *args,
             kombu_connection: Connection,
-            **kwargs,
+            title: Optional[str] = None,
+            base_url: Optional[str] = None,
+            route_name: Optional[str] = None,
+            logo_url: Optional[str] = None,
+            login_logo_url: Optional[str] = None,
+            templates_dir: Optional[str] = None,
+            statics_dir: Optional[str] = None,
+            index_view: Optional[CustomView] = None,
+            auth_provider: Optional[BaseAuthProvider] = None,
+            middlewares: Optional[Sequence[Middleware]] = None,
+            session_middleware: Optional[type[SessionMiddleware]] = None,
+            debug: Optional[bool] = None,
+            i18n_config: Optional[I18nConfig] = None,
+            favicon_url: Optional[str] = None,
+            settings: Optional[ActionLogAdminSettings] = None
     ):
         super().__init__(
-            *args,
-            **kwargs,
+            title=title,
+            base_url=base_url,
+            route_name=route_name,
+            logo_url=logo_url,
+            login_logo_url=login_logo_url,
+            templates_dir=templates_dir,
+            statics_dir=statics_dir,
+            index_view=index_view,
+            auth_provider=auth_provider,
+            middlewares=middlewares,
+            session_middleware=session_middleware,
+            debug=debug,
+            i18n_config=i18n_config,
+            favicon_url=favicon_url,
+            settings=settings
         )
 
         self.kombu_connection = kombu_connection
@@ -159,20 +198,3 @@ class ActionLogAdmin(MultiPathAdmin):
         self.routes.append(WebSocketRoute(path="/ws/action_log/{action_log_key}", endpoint=self.ActionLogEndpoint, name="action_log"))  # noqa
 
         nest_asyncio.apply()  # ToDo: ugly hack to make asyncio.run work outside of debug mode, remove if it's not needed anymore
-
-    # def mount_to(self, app: Starlette) -> None:
-    #     super().mount_to(app)
-    #
-    #     # get admin app
-    #     admin_app = None
-    #     for app in app.routes:
-    #         if not isinstance(app, Mount):
-    #             continue
-    #         if app.name != self.route_name:
-    #             continue
-    #         admin_app = app.app
-    #     if admin_app is None:
-    #         raise ValueError("Admin app not found")
-    #
-    #     # add kombu connection to admin app
-    #     admin_app.state.kombu_connection = self.kombu_connection

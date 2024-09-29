@@ -105,11 +105,11 @@ class LoggingContext:
 
     def __init__(self,
                  context_logger: logging.Logger,
-                 use_context_logger_level: bool = True,
+                 use_context_logger_level: Optional[bool] = None,
                  use_context_logger_level_on_not_set: Optional[bool] = None,
                  ignore_loggers_equal: Optional[list[str]] = None,
                  ignore_loggers_like: Optional[list[str]] = None,
-                 handle_origin_logger: bool = True):
+                 handle_origin_logger: Optional[bool] = None):
         self.context_logger = context_logger
 
         # set context_logger marker
@@ -119,10 +119,11 @@ class LoggingContext:
         else:
             setattr(self.context_logger, "context_logger", True)
 
-        self.handle_origin_logger = handle_origin_logger
+        if use_context_logger_level is None:
+            use_context_logger_level = True
         self._use_context_logger_level = use_context_logger_level
         if use_context_logger_level_on_not_set is None:
-            use_context_logger_level_on_not_set = use_context_logger_level
+            use_context_logger_level_on_not_set = self._use_context_logger_level
         self._use_context_logger_level_on_not_set = use_context_logger_level_on_not_set
         if ignore_loggers_equal is None:
             ignore_loggers_equal = []
@@ -130,6 +131,9 @@ class LoggingContext:
         if ignore_loggers_like is None:
             ignore_loggers_like = []
         self.ignore_loggers_like = ignore_loggers_like
+        if handle_origin_logger is None:
+            handle_origin_logger = True
+        self.handle_origin_logger = handle_origin_logger
         self._exited = False
         self._wrapped_loggers: Union[tuple, tuple[logging.Logger]] = ()
 

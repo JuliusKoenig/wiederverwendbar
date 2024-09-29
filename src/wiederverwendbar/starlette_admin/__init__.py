@@ -13,6 +13,7 @@ from wiederverwendbar.starlette_admin.action_log import (WebsocketHandler,
                                                          NextStepCommand,
                                                          StepCommand,
                                                          ConfirmCommand,
+                                                         DownloadCommand,
                                                          YesNoCommand)
 
 from wiederverwendbar.starlette_admin.drop_down_icon_view import (DropDownIconViewAdmin,

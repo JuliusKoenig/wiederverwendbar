@@ -6,6 +6,7 @@ import string
 import time
 import traceback
 from enum import Enum
+from pathlib import Path
 from threading import Thread
 from typing import Optional, Union, Any
 from socket import timeout as socket_timeout
@@ -18,13 +19,17 @@ from starlette_admin.exceptions import ActionFailed
 from kombu import Connection, Exchange, Queue, Message
 
 from wiederverwendbar.logger.context import LoggingContext
+from wiederverwendbar.starlette_admin.action_log.settings import ActionLogAdminSettings
 
 LOGGER = logging.getLogger(__name__)
 KOMBU_EXCHANGE_NAME = "action_log"
 
 
 class _SubLoggerCommand:
-    def __init__(self, logger, allowed_logger_cls: list[type], command: str, **values):
+    def __init__(self,
+                 logger, allowed_logger_cls: list[type],
+                 command: str,
+                 **values):
         if not any([isinstance(logger, cls) for cls in allowed_logger_cls]):
             raise ValueError(f"Logger must be an instance of: {', '.join([cls.__name__ for cls in allowed_logger_cls])}.")
         self.logger = logger
@@ -42,29 +47,52 @@ class _SubLoggerCommand:
 
 
 class StartCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionSubLogger", logging.Logger], formatter: Optional[logging.Formatter] = None, steps: Optional[int] = None):
-        super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="start", formatter=formatter, steps=steps)
+    def __init__(self,
+                 logger: Union["ActionSubLogger", logging.Logger],
+                 steps: Optional[int] = None):
+        super().__init__(logger=logger,
+                         allowed_logger_cls=[ActionSubLogger, logging.Logger],
+                         command="start",
+                         steps=steps)
 
 
 class StepCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionSubLogger", logging.Logger], step: int, steps: Optional[int] = None):
-        super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="step", step=step, steps=steps)
+    def __init__(self,
+                 logger: Union["ActionSubLogger", logging.Logger],
+                 step: int,
+                 steps: Optional[int] = None):
+        super().__init__(logger=logger,
+                         allowed_logger_cls=[ActionSubLogger, logging.Logger],
+                         command="step",
+                         step=step,
+                         steps=steps)
 
 
 class NextStepCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionSubLogger", logging.Logger], steps: int = 1):
-        super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="next_step", steps=steps)
+    def __init__(self,
+                 logger: Union["ActionSubLogger", logging.Logger],
+                 steps: int = 1):
+        super().__init__(logger=logger,
+                         allowed_logger_cls=[ActionSubLogger, logging.Logger],
+                         command="next_step",
+                         steps=steps)
 
 
 class IncreaseStepsCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionSubLogger", logging.Logger], steps: int):
-        super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="increase_steps", steps=steps)
+    def __init__(self,
+                 logger: Union["ActionSubLogger", logging.Logger],
+                 steps: int):
+        super().__init__(logger=logger,
+                         allowed_logger_cls=[ActionSubLogger, logging.Logger],
+                         command="increase_steps",
+                         steps=steps)
 
 
 class FormCommand(_SubLoggerCommand):
     def __init__(self,
                  logger: Union["ActionLogger", "ActionSubLogger", logging.Logger],
-                 form: str, submit_btn_text: Optional[str] = None,
+                 form: str,
+                 submit_btn_text: Optional[str] = None,
                  abort_btn_text: Optional[str] = None,
                  default_values: Union[None, bool, dict[str, Any]] = None):
         if submit_btn_text is None:
@@ -80,9 +108,13 @@ class FormCommand(_SubLoggerCommand):
             else:
                 if default_values is None:
                     raise ValueError(f"No action logger found. Did you use the {ActionSubLoggerContext.__name__} context manager? If not, you have to provide default values.")
-        self.default_values: Union[None, bool, dict[str, Any]]  = default_values
+        self.default_values: Union[None, bool, dict[str, Any]] = default_values
 
-        super().__init__(logger=logger, allowed_logger_cls=[ActionLogger, ActionSubLogger, logging.Logger], command="form", form=form, submit_btn_text=submit_btn_text,
+        super().__init__(logger=logger,
+                         allowed_logger_cls=[ActionLogger, ActionSubLogger, logging.Logger],
+                         command="form",
+                         form=form,
+                         submit_btn_text=submit_btn_text,
                          abort_btn_text=abort_btn_text)
 
     def __call__(self, timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:
@@ -97,13 +129,55 @@ class FormCommand(_SubLoggerCommand):
 
 
 class ConfirmCommand(FormCommand):
-    def __init__(self, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger], text: str, submit_btn_text: Optional[str] = None):
-        form = f"""<form>
+    def __init__(self,
+                 logger: Union["ActionLogger", "ActionSubLogger", logging.Logger],
+                 text: str,
+                 submit_btn_text: Optional[str] = None,
+                 form: Optional[str] = None):
+        if form is None:
+            form = f"""<form>
             <div class="mt-3">
                 <p>{text}</p>
             </div>
             </form>"""
-        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text, default_values=True)
+        super().__init__(logger=logger,
+                         form=form,
+                         submit_btn_text=submit_btn_text,
+                         default_values=True)
+
+    def __call__(self, timeout: Optional[float] = None) -> None:
+        super().__call__(timeout=timeout)
+
+
+class DownloadCommand(ConfirmCommand):
+    def __init__(self,
+                 logger: Union["ActionLogger", "ActionSubLogger", logging.Logger],
+                 request: Request,
+                 file_path: Union[str, Path],
+                 text: str,
+                 icon: Optional[str] = None,
+                 submit_btn_text: Optional[str] = None,
+                 form: Optional[str] = None):
+        self.request = request
+        if type(file_path) is str:
+            file_path = Path(file_path)
+        if not file_path.is_file():
+            raise ValueError(f"File '{file_path}' does not exist.")
+        if icon is None:
+            icon = "fa fa-download"
+        if form is None:
+            form = f"""<form>
+            <div class="mt-3">
+                <p>{text}</p>
+            </div>
+            </form>"""
+        super().__init__(logger=logger,
+                         text=text,
+                         submit_btn_text=submit_btn_text,
+                         form=form)
+
+    def __call__(self, timeout: Optional[float] = None) -> None:
+        super().__call__(timeout=timeout)
 
 
 class YesNoCommand(FormCommand):
@@ -111,8 +185,10 @@ class YesNoCommand(FormCommand):
                  logger: Union["ActionLogger", "ActionSubLogger", logging.Logger],
                  text: str, submit_btn_text: Optional[str] = None,
                  abort_btn_text: Optional[str] = None,
-                 default_value: Optional[bool] = None):
-        form = f"""<form>
+                 default_value: Optional[bool] = None,
+                 form: Optional[str] = None):
+        if form is None:
+            form = f"""<form>
             <div class="mt-3">
                 <p>{text}</p>
             </div>
@@ -121,7 +197,17 @@ class YesNoCommand(FormCommand):
             submit_btn_text = "Yes"
         if abort_btn_text is None:
             abort_btn_text = "No"
-        super().__init__(logger=logger, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, default_values=default_value)
+        super().__init__(logger=logger,
+                         form=form,
+                         submit_btn_text=submit_btn_text,
+                         abort_btn_text=abort_btn_text,
+                         default_values=default_value)
+
+    def __call__(self, timeout: Optional[float] = None) -> bool:
+        result = super().__call__(timeout=timeout)
+        if type(result) is not bool:
+            raise ValueError("Invalid response.")
+        return result
 
 
 class FinalizeCommand(_SubLoggerCommand):
@@ -143,8 +229,11 @@ class FinalizeCommand(_SubLoggerCommand):
 
 
 class ExitCommand(_SubLoggerCommand):
-    def __init__(self, logger: Union["ActionSubLogger", logging.Logger]):
-        super().__init__(logger=logger, allowed_logger_cls=[ActionSubLogger, logging.Logger], command="exit")
+    def __init__(self,
+                 logger: Union["ActionSubLogger", logging.Logger]):
+        super().__init__(logger=logger,
+                         allowed_logger_cls=[ActionSubLogger, logging.Logger],
+                         command="exit")
 
 
 class ActionLoggerCommand(BaseModel):
@@ -214,6 +303,9 @@ class ActionSubLogger(logging.Logger):
                  action_logger: "ActionLogger",
                  name: str,
                  title: Optional[str] = None,
+                 parent: Optional[logging.Logger] = None,
+                 log_level: Optional[ActionLogAdminSettings.LogLevels] = None,
+                 formatter: Optional[logging.Formatter] = None,
                  websocket_handler_cls: Optional[type[WebsocketHandler]] = None):
         """
         Create new action sub logger.
@@ -224,8 +316,6 @@ class ActionSubLogger(logging.Logger):
         :param websocket_handler_cls: Websocket handler class.
         """
 
-        super().__init__(name=action_logger.action_log_key + "." + name)
-
         # validate name
         if not name:
             raise ValueError("Name must not be empty.")
@@ -233,10 +323,31 @@ class ActionSubLogger(logging.Logger):
             if char not in string.ascii_letters + string.digits + "-" + "_":
                 raise ValueError("Invalid character in name. Only a-z, A-Z, 0-9, - and _ are allowed.")
 
+        super().__init__(name=action_logger.action_log_key + "." + name)
+
+        self._action_logger = action_logger
+
+        # set title
         if title is None:
             title = name
         self._title = title
-        self._action_logger = action_logger
+
+        # set parent
+        if parent is None:
+            parent = self._action_logger.parent
+        self.parent = parent
+
+        # set log level
+        if log_level is None:
+            log_level = self._action_logger.log_level
+        self.setLevel(log_level.value)
+
+        # set formatter
+        if formatter is None:
+            formatter = self._action_logger.formatter
+        self._formatter = formatter
+
+        # initialize variables
         self._started: bool = False
         self._steps: Optional[int] = None
         self._step: int = 0
@@ -250,7 +361,7 @@ class ActionSubLogger(logging.Logger):
             raise ValueError("ActionSubLogger already exists.")
 
         # set websocket_handler_cls
-        self.websocket_handler_cls: type[WebsocketHandler] = websocket_handler_cls or WebsocketHandler
+        self.websocket_handler_cls: type[WebsocketHandler] = websocket_handler_cls or self._action_logger.websocket_handler_cls
 
     def __del__(self):
         if not self.exited:
@@ -317,11 +428,8 @@ class ActionSubLogger(logging.Logger):
                 self.addHandler(self.websocket_handler_cls(sub_logger=self))
 
                 # set formatter
-                formatter = values["formatter"]
-                if formatter is None:
-                    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d - %H:%M:%S")
                 for handler in self.handlers:
-                    handler.setFormatter(formatter)
+                    handler.setFormatter(self._formatter)
 
                 # add logger to logger manager
                 logging.root.manager.loggerDict[self.name] = self
@@ -469,16 +577,15 @@ class ActionSubLogger(logging.Logger):
 
         return self._title
 
-    def start(self, formatter: Optional[logging.Formatter] = None, steps: Optional[int] = None) -> None:
+    def start(self, steps: Optional[int] = None) -> None:
         """
         Start sub logger.
 
-        :param formatter: Formatter
         :param steps: Steps
         :return: None
         """
 
-        StartCommand(logger=self, formatter=formatter, steps=steps)
+        StartCommand(logger=self, steps=steps)
 
     @property
     def started(self) -> bool:
@@ -552,28 +659,46 @@ class ActionSubLogger(logging.Logger):
 
         return FormCommand(logger=self, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
 
-    def confirm(self, text: str, submit_btn_text: Optional[str] = None) -> ConfirmCommand:
+    def confirm(self, text: str, submit_btn_text: Optional[str] = None, form: Optional[str] = None) -> ConfirmCommand:
         """
         Send confirm form to frontend.
 
         :param text: Text of confirm form.
         :param submit_btn_text: Text of submit button.
+        :param form: Form HTML.
         :return: Form data.
         """
 
-        return ConfirmCommand(logger=self, text=text, submit_btn_text=submit_btn_text)
+        return ConfirmCommand(logger=self, text=text, submit_btn_text=submit_btn_text, form=form)
 
-    def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None) -> YesNoCommand:
+    def download(self, request: Request, file_path: Union[str, Path], text: str, icon: Optional[str] = None, submit_btn_text: Optional[str] = None,
+                 form: Optional[str] = None) -> DownloadCommand:
+        """
+        Send download form to frontend.
+
+        :param request: Request
+        :param file_path: File path
+        :param text: Text of download form.
+        :param icon: Icon of download form.
+        :param submit_btn_text: Text of submit button.
+        :param form: Form HTML.
+        :return: Form data.
+        """
+
+        return DownloadCommand(logger=self, request=request, file_path=file_path, text=text, icon=icon, submit_btn_text=submit_btn_text, form=form)
+
+    def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None, form: Optional[str] = None) -> YesNoCommand:
         """
         Send yes/no form to frontend.
 
         :param text: Text of yes/no form.
         :param submit_btn_text: Text of submit button.
         :param abort_btn_text: Text of cancel button.
+        :param form: Form HTML.
         :return: Form data.
         """
 
-        return YesNoCommand(logger=self, text=text, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
+        return YesNoCommand(logger=self, text=text, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, form=form)
 
     async def await_response(self, timeout: Optional[float] = None) -> Union[bool, ActionLoggerResponse]:
         """
@@ -682,7 +807,7 @@ class ActionSubLoggerContext(LoggingContext):
                  action_logger: "ActionLogger",
                  name: str,
                  title: Optional[str] = None,
-                 log_level: int = logging.NOTSET,
+                 log_level: Optional[ActionLogAdminSettings.LogLevels] = None,
                  parent: Optional[logging.Logger] = None,
                  formatter: Optional[logging.Formatter] = None,
                  steps: Optional[int] = None,
@@ -691,11 +816,11 @@ class ActionSubLoggerContext(LoggingContext):
                  end_steps: Optional[bool] = None,
                  show_errors: Optional[bool] = None,
                  halt_on_error: Optional[bool] = None,
-                 use_context_logger_level: bool = True,
+                 use_context_logger_level: Optional[bool] = None,
                  use_context_logger_level_on_not_set: Optional[bool] = None,
                  ignore_loggers_equal: Optional[list[str]] = None,
                  ignore_loggers_like: Optional[list[str]] = None,
-                 handle_origin_logger: bool = True,
+                 handle_origin_logger: Optional[bool] = None,
                  action_sub_logger_cls: Optional[type[ActionSubLogger]] = None,
                  websocket_handler_cls: Optional[type[WebsocketHandler]] = None):
         """
@@ -704,7 +829,7 @@ class ActionSubLoggerContext(LoggingContext):
         :param action_logger: Action logger
         :param name: Name of sub logger. Only a-z, A-Z, 0-9, - and _ are allowed.
         :param title: Title of sub logger. Visible in frontend.
-        :param log_level: Log level of sub logger. If None, parent log level will be used. If parent is None, action logger log level will be used.
+        :param log_level: Log level of sub logger. If None, ac
         :param parent: Parent logger. If None, action logger parent will be used.
         :param formatter: Formatter of sub logger. If None, action logger formatter will be used.
         :param steps: Steps of sub logger.
@@ -722,23 +847,41 @@ class ActionSubLoggerContext(LoggingContext):
         :param websocket_handler_cls: Websocket handler class.
         """
 
+        # define action logger
         self._action_logger = action_logger
-        self._formatter = formatter or self._action_logger.formatter
+
+        # set steps
         self._steps = steps
+
+        # set finalize messages
+        self.on_success_msg = on_success_msg
+        self.on_error_msg = on_error_msg
+
+        # set end steps
+        self.end_steps = end_steps
+
+        # set show errors
+        if show_errors is None:
+            show_errors = action_logger.show_errors
+        self.show_errors = show_errors
+
+        # set halt on error
+        if halt_on_error is None:
+            halt_on_error = action_logger.halt_on_error
+        self.halt_on_error = halt_on_error
 
         # create sub logger
         self.context_logger = self._action_logger.new_sub_logger(name=name,
                                                                  title=title,
                                                                  log_level=log_level,
                                                                  parent=parent,
+                                                                 formatter=formatter,
                                                                  action_sub_logger_cls=action_sub_logger_cls,
                                                                  websocket_handler_cls=websocket_handler_cls)
 
-        self.on_success_msg = on_success_msg
-        self.on_error_msg = on_error_msg
-        self.end_steps = end_steps
-        self.show_errors = show_errors or self._action_logger.show_errors
-        self.halt_on_error = halt_on_error or action_logger.halt_on_error
+
+
+
 
         super().__init__(context_logger=self.context_logger,
                          use_context_logger_level=use_context_logger_level,
@@ -749,7 +892,7 @@ class ActionSubLoggerContext(LoggingContext):
 
     def __enter__(self) -> "ActionSubLogger":
         super().__enter__()
-        self.context_logger.start(formatter=self._formatter, steps=self._steps)
+        self.context_logger.start(steps=self._steps)
 
         return self.context_logger
 
@@ -783,13 +926,20 @@ class ActionLogger:
 
     def __init__(self,
                  request_or_websocket: Union[Request],
-                 log_level: int = logging.NOTSET,
+                 log_level: Optional[ActionLogAdminSettings.LogLevels] = None,
                  parent: Optional[logging.Logger] = None,
-                 formatter: Optional[logging.Formatter] = None,
-                 show_errors: bool = True,
-                 halt_on_error: bool = False,
-                 wait_for_websocket: bool = True,
-                 wait_for_websocket_timeout: int = 5):
+                 formatter: Union[None, str, logging.Formatter] = None,
+                 wait_for_websocket: Optional[bool] = None,
+                 wait_for_websocket_timeout: Optional[int] = None,
+                 show_errors: Optional[bool] = None,
+                 halt_on_error: Optional[bool] = None,
+                 use_context_logger_level: Optional[bool] = None,
+                 use_context_logger_level_on_not_set: Optional[bool] = None,
+                 ignore_loggers_equal: Optional[list[str]] = None,
+                 ignore_loggers_like: Optional[list[str]] = None,
+                 handle_origin_logger: Optional[bool] = None,
+                 action_sub_logger_cls: Optional[type[ActionSubLogger]] = None,
+                 websocket_handler_cls: Optional[type[WebsocketHandler]] = None):
         """
         Create new action logger.
 
@@ -803,25 +953,79 @@ class ActionLogger:
         :param wait_for_websocket_timeout: Timeout in seconds. For this feature, await must be used.
         """
 
+        # get action log key
         self.action_log_key = self.get_action_key(request_or_websocket=request_or_websocket)
-        self.show_errors = show_errors
-        self.halt_on_error = halt_on_error
+
+        # get settings
+        settings: ActionLogAdminSettings = ActionLogAdminSettings.from_state(request_or_websocket.app.state)
+
+        # set log level
+        if log_level is None:
+            log_level = settings.action_log_level
+        self.log_level: ActionLogAdminSettings.LogLevels = log_level
 
         # get parent logger
         if parent is None:
             parent = LOGGER
-        self.parent = parent
-
-        # set log level
-        if log_level == logging.NOTSET:
-            log_level = logging.INFO
-            if self.parent is not None:
-                if self.parent.level != logging.NOTSET:
-                    log_level = self.parent.level
-        self.log_level = log_level
+        self.parent: logging.Logger = parent
 
         # set formatter
-        self.formatter = formatter
+        if formatter is None:
+            formatter = settings.action_log_formatter
+        self.formatter: logging.Formatter = logging.Formatter(formatter)
+
+        # set wait for websocket
+        if wait_for_websocket is None:
+            wait_for_websocket = settings.action_log_wait_for_websocket
+        self.wait_for_websocket: bool = wait_for_websocket
+
+        # set wait for websocket timeout
+        if wait_for_websocket_timeout is None:
+            wait_for_websocket_timeout = settings.action_log_wait_for_websocket_timeout
+        self.wait_for_websocket_timeout: int = wait_for_websocket_timeout
+
+        # set show errors
+        if show_errors is None:
+            show_errors = settings.action_log_show_errors
+        self.show_errors: bool = show_errors
+
+        # set halt on error
+        if halt_on_error is None:
+            halt_on_error = settings.action_log_halt_on_error
+        self.halt_on_error: bool = halt_on_error
+
+        # set use context logger level
+        if use_context_logger_level is None:
+            use_context_logger_level = settings.action_log_use_context_logger_level
+        self.use_context_logger_level: bool = use_context_logger_level
+
+        # set use context logger level on not set
+        if use_context_logger_level_on_not_set is None:
+            use_context_logger_level_on_not_set = settings.action_log_use_context_logger_level_on_not_set
+        self.use_context_logger_level_on_not_set: bool = use_context_logger_level_on_not_set
+
+        # set ignore loggers equal
+        if ignore_loggers_equal is None:
+            ignore_loggers_equal = settings.action_log_ignore_loggers_equal
+        self.ignore_loggers_equal: list[str] = ignore_loggers_equal
+
+        # set ignore loggers like
+        if ignore_loggers_like is None:
+            ignore_loggers_like = settings.action_log_ignore_loggers_like
+        self.ignore_loggers_like: list[str] = ignore_loggers_like
+        if "pymongo" not in self.ignore_loggers_like:
+            self.ignore_loggers_like.append("pymongo")  # force ignore loggers like 'pymongo'
+
+        # set handle origin logger
+        if handle_origin_logger is None:
+            handle_origin_logger = settings.action_log_handle_origin_logger
+        self.handle_origin_logger: bool = handle_origin_logger
+
+        # set action sub logger class
+        self.action_sub_logger_cls = action_sub_logger_cls or ActionSubLogger
+
+        # set websocket handler class
+        self.websocket_handler_cls = websocket_handler_cls or WebsocketHandler
 
         self._sub_logger: list[ActionSubLogger] = []
         self._response_obj: Union[None, bool, ActionLoggerResponse] = None
@@ -841,12 +1045,9 @@ class ActionLogger:
         # create exit thread
         self._exit_thread_obj = Thread(target=self._exit_thread)
 
-        self._wait_for_websocket = wait_for_websocket
-        self._wait_for_websocket_timeout = wait_for_websocket_timeout
-
     def __await__(self):
         async def _await() -> "ActionLogger":
-            if not self._wait_for_websocket:
+            if not self.wait_for_websocket:
                 return self
 
             current_try = 0
@@ -862,17 +1063,17 @@ class ActionLogger:
                 while len(self._sub_logger) == 0:
                     if connected:
                         break
-                    if current_try >= self._wait_for_websocket_timeout:
+                    if current_try >= self.wait_for_websocket_timeout:
                         self.exit()
                         raise ValueError("No websocket connected.")
 
                     current_try += 1
-                    LOGGER.debug(f"[{current_try}/{self._wait_for_websocket_timeout}] Waiting for websocket...")
+                    LOGGER.debug(f"[{current_try}/{self.wait_for_websocket_timeout}] Waiting for websocket...")
                     await asyncio.sleep(1)
 
             return self
-        return _await().__await__()
 
+        return _await().__await__()
 
     def __enter__(self) -> "ActionLogger":
         return self
@@ -1003,8 +1204,9 @@ class ActionLogger:
     def new_sub_logger(self,
                        name: str,
                        title: Optional[str] = None,
-                       log_level: int = logging.NOTSET,
+                       log_level: Optional[ActionLogAdminSettings.LogLevels] = None,
                        parent: Optional[logging.Logger] = None,
+                       formatter: Optional[logging.Formatter] = None,
                        action_sub_logger_cls: Optional[type[ActionSubLogger]] = None,
                        websocket_handler_cls: Optional[type[WebsocketHandler]] = None) -> ActionSubLogger:
         """
@@ -1012,8 +1214,9 @@ class ActionLogger:
 
         :param name: Name of sub logger. Only a-z, A-Z, 0-9, - and _ are allowed.
         :param title: Title of sub logger. Visible in frontend.
-        :param log_level: Log level of sub logger. If None, parent log level will be used. If parent is None, action logger log level will be used.
+        :param log_level: Log level of sub logger. If None, action logger log level will be used.
         :param parent: Parent logger. If None, action logger parent will be used.
+        :param formatter: Formatter of sub logger. If None, action logger formatter will be used.
         :param action_sub_logger_cls: Action sub logger class.
         :param websocket_handler_cls: Websocket handler class.
         :return: Sub logger.
@@ -1025,20 +1228,14 @@ class ActionLogger:
             pass
 
         # create sub logger
-        action_sub_logger_cls = action_sub_logger_cls or ActionSubLogger
-        sub_logger = action_sub_logger_cls(action_logger=self, name=name, title=title, websocket_handler_cls=websocket_handler_cls)
-
-        # set parent logger
-        parent = parent or self.parent
-        sub_logger.parent = parent
-
-        # set log level
-        if log_level == logging.NOTSET:
-            log_level = self.log_level
-            if parent is not None:
-                if parent.level != logging.NOTSET:
-                    log_level = parent.level
-        sub_logger.setLevel(log_level)
+        action_sub_logger_cls = action_sub_logger_cls or self.action_sub_logger_cls
+        sub_logger = action_sub_logger_cls(action_logger=self,
+                                           name=name,
+                                           title=title,
+                                           parent=parent,
+                                           log_level=log_level,
+                                           formatter=formatter,
+                                           websocket_handler_cls=websocket_handler_cls)
 
         self._sub_logger.append(sub_logger)
         return sub_logger
@@ -1063,7 +1260,7 @@ class ActionLogger:
     def sub_logger(self,
                    name: str,
                    title: Optional[str] = None,
-                   log_level: int = logging.NOTSET,
+                   log_level: Optional[ActionLogAdminSettings.LogLevels] = None,
                    parent: Optional[logging.Logger] = None,
                    formatter: Optional[logging.Formatter] = None,
                    steps: Optional[int] = None,
@@ -1136,17 +1333,46 @@ class ActionLogger:
 
         return FormCommand(logger=self, form=form, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
 
-    def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None) -> YesNoCommand:
+    def confirm(self, text: str, submit_btn_text: Optional[str] = None, form: Optional[str] = None) -> ConfirmCommand:
+        """
+        Send confirm form to frontend.
+
+        :param text: Text of confirm form.
+        :param submit_btn_text: Text of submit button.
+        :param form: Form HTML.
+        :return: Form data.
+        """
+
+        return ConfirmCommand(logger=self, text=text, submit_btn_text=submit_btn_text, form=form)
+
+    def download(self, request: Request, file_path: Union[str, Path], text: str, icon: Optional[str] = None, submit_btn_text: Optional[str] = None,
+                 form: Optional[str] = None) -> DownloadCommand:
+        """
+        Send download form to frontend.
+
+        :param request: Request
+        :param file_path: File path
+        :param text: Text of download form.
+        :param icon: Icon of download form.
+        :param submit_btn_text: Text of submit button.
+        :param form: Form HTML.
+        :return: Form data.
+        """
+
+        return DownloadCommand(logger=self, request=request, file_path=file_path, text=text, icon=icon, submit_btn_text=submit_btn_text, form=form)
+
+    def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None, form: Optional[str] = None) -> YesNoCommand:
         """
         Send yes/no form to frontend.
 
         :param text: Text of yes/no form.
         :param submit_btn_text: Text of submit button.
         :param abort_btn_text: Text of cancel button.
+        :param form: Form HTML.
         :return: Form data.
         """
 
-        return YesNoCommand(logger=self, text=text, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text)
+        return YesNoCommand(logger=self, text=text, submit_btn_text=submit_btn_text, abort_btn_text=abort_btn_text, form=form)
 
     @classmethod
     async def _form_data(cls, logger: Union["ActionLogger", ActionSubLogger], timeout: Optional[float] = None) -> Union[bool, dict[str, Any]]:

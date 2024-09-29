@@ -8,6 +8,7 @@ from starlette_admin.base import BaseAdmin as _BaseAdmin
 logger = logging.getLogger(__name__)
 
 
+
 class BaseAdmin(_BaseAdmin):
     def mount_to(self, app: Starlette) -> None:
         super().mount_to(app)
