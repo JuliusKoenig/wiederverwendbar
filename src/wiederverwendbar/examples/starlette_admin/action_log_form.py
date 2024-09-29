@@ -8,6 +8,7 @@ from starlette.routing import Route
 from starlette.requests import Request
 from starlette_admin.contrib.mongoengine import Admin, ModelView
 from starlette_admin.actions import action
+from starlette_admin.exceptions import ActionFailed
 from mongoengine import Document, StringField
 from kombu import Connection
 
@@ -100,8 +101,12 @@ class TestView(ModelView):
                   </form>""",
                                                   "Weiter",
                                                   "Abbrechen")()
+            if not action_logger_form_data:
+                raise ActionFailed("Test Aktion abgebrochen.")
 
             action_logger_yes_no = action_logger.yes_no("Möchtest du fortfahren?")()
+            if not action_logger_yes_no:
+                raise ActionFailed("Test Aktion abgebrochen.")
 
             # use context manager to ensure that the logger is finalized
             with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3, ignore_loggers_like=["pymongo"]) as sub_logger:
@@ -114,9 +119,12 @@ class TestView(ModelView):
 
                 # send form with positive/negative buttons
                 sub_logger_confirm = sub_logger.confirm("Information")()
+                sub_logger.info(f"Confirm: {sub_logger_confirm}")
 
 
                 sub_logger_yes_no = sub_logger.yes_no("Möchtest du fortfahren?")()
+                if not sub_logger_yes_no:
+                    sub_logger.finalize(success=False, on_error_msg="Test Aktion abgebrochen.")
 
                 await asyncio.sleep(2)
                 sub_logger.next_step()
@@ -124,7 +132,7 @@ class TestView(ModelView):
                 for i in range(1, 100):
                     sub_logger.info(f"Test Aktion step 2 - {i}")
                     sub_logger.next_step()
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.01)
                 sub_logger.info("Test Aktion step 3")
                 await asyncio.sleep(2)
 
