@@ -9,8 +9,8 @@ from wiederverwendbar.functions.eval import eval_value
 
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.session import Session
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
+from wiederverwendbar.starlette_admin.mongoengine.auth.settings import MongoengineAdminAuthSettings
 from wiederverwendbar.starlette_admin.mongoengine.helper import get_grid_fs_url
-from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 
 
 class MongoengineAdminAuthProvider(AuthProvider):
@@ -42,7 +42,7 @@ class MongoengineAdminAuthProvider(AuthProvider):
             response: Response,
     ) -> Response:
         # get settings
-        settings = AuthAdminSettings.from_request(request=request)
+        settings = MongoengineAdminAuthSettings.from_state(state=request.state)
 
         # get user from database
         user = self.user_document_cls.objects(username=username).first()
@@ -100,7 +100,7 @@ class MongoengineAdminAuthProvider(AuthProvider):
 
     def get_admin_config(self, request: Request) -> AdminConfig:
         # get settings
-        settings = AuthAdminSettings.from_request(request=request)
+        settings = MongoengineAdminAuthSettings.from_state(state=request.state)
 
         # get session
         if not hasattr(request.state, "session"):

@@ -5,7 +5,7 @@ from mongoengine import Document, StringField, DateTimeField, EmbeddedDocumentFi
 from starlette.requests import Request
 
 from wiederverwendbar.mongoengine.security.hashed_password import HashedPasswordDocument
-from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
+from wiederverwendbar.starlette_admin.mongoengine.auth.settings import MongoengineAdminAuthSettings
 
 
 class User(Document):
@@ -62,7 +62,7 @@ class User(Document):
 
     def create_session_from_request(self, request: Request) -> Any:
         # get settings
-        settings = AuthAdminSettings.from_request(request=request)
+        settings = MongoengineAdminAuthSettings.from_state(state=request.state)
 
         # get user-agent
         user_agent = request.headers.get("User-Agent", "")

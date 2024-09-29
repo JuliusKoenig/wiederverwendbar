@@ -25,6 +25,7 @@ from wiederverwendbar.starlette_admin.mongoengine import (AuthView,
                                                           UserView,
                                                           MongoengineAuthAdmin,
                                                           MongoengineAdminAuthProvider,
+                                                          MongoengineAdminAuthSettings,
                                                           BooleanAlsoAdmin,
                                                           BooleanAlsoConverter,
                                                           BooleanAlsoField,
@@ -38,10 +39,12 @@ from wiederverwendbar.starlette_admin.mongoengine import (AuthView,
                                                           MongoengineModelView,
                                                           MongoengineConverter)
 
-from wiederverwendbar.starlette_admin.admin import (MultiPathAdmin,
-                                                    SettingsAdmin,
-                                                    FormMaxFieldsAdmin)
+from wiederverwendbar.starlette_admin.form_max_fields import (FormMaxFieldsAdmin,
+                                                              FormMaxFieldsAdminSettings)
 
-from wiederverwendbar.starlette_admin.settings import (AdminSettings,
-                                                       FormMaxFieldsAdminSettings,
-                                                       AuthAdminSettings)
+from wiederverwendbar.starlette_admin.multi_path import (MultiPathAdmin)
+
+from wiederverwendbar.starlette_admin.settings import (SettingsAdmin,
+                                                       AdminSettings)
+
+from wiederverwendbar.starlette_admin.admin import (BaseAdmin)

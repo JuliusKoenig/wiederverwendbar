@@ -1,7 +1,8 @@
 from jinja2 import PackageLoader
 from starlette_admin.contrib.mongoengine import Admin as MongoengineAdmin
 
-from wiederverwendbar.starlette_admin.admin import MultiPathAdmin, FormMaxFieldsAdmin
+from wiederverwendbar.starlette_admin.multi_path.admin import MultiPathAdmin
+from wiederverwendbar.starlette_admin.form_max_fields.admin import FormMaxFieldsAdmin
 
 
 class GenericEmbeddedAdmin(MongoengineAdmin, FormMaxFieldsAdmin, MultiPathAdmin):

@@ -1,0 +1,1 @@
+from wiederverwendbar.starlette_admin.multi_path.admin import MultiPathAdmin

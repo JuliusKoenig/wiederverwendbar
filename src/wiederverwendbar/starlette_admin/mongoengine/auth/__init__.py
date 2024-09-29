@@ -5,3 +5,4 @@ from wiederverwendbar.starlette_admin.mongoengine.auth.views import (AuthView,
                                                                      UserView)
 from wiederverwendbar.starlette_admin.mongoengine.auth.admin import MongoengineAuthAdmin
 from wiederverwendbar.starlette_admin.mongoengine.auth.provider import MongoengineAdminAuthProvider
+from wiederverwendbar.starlette_admin.mongoengine.auth.settings import MongoengineAdminAuthSettings

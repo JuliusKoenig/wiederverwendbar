@@ -8,14 +8,14 @@ from socket import timeout as socket_timeout
 import nest_asyncio
 from jinja2 import PackageLoader
 from pydantic import ValidationError
-from starlette.applications import Starlette
-from starlette.routing import WebSocketRoute, Mount
+from starlette.routing import WebSocketRoute
 from starlette.endpoints import WebSocketEndpoint
 from starlette.websockets import WebSocket, WebSocketState
 from starlette.types import Scope, Receive, Send
 from kombu import Connection, Exchange, Queue, Producer
 
-from wiederverwendbar.starlette_admin.admin import MultiPathAdmin
+
+from wiederverwendbar.starlette_admin.multi_path.admin import MultiPathAdmin
 from wiederverwendbar.starlette_admin.action_log.logger import ActionLogger, ActionLoggerResponse
 
 logger = logging.getLogger(__name__)

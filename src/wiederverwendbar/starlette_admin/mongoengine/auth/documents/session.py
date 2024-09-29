@@ -4,8 +4,8 @@ from typing import Optional
 from mongoengine import Document, ReferenceField, DateTimeField, StringField, CASCADE
 from starlette.requests import Request
 
+from wiederverwendbar.starlette_admin.mongoengine.auth.settings import MongoengineAdminAuthSettings
 from wiederverwendbar.starlette_admin.mongoengine.auth.documents.user import User
-from wiederverwendbar.starlette_admin.settings import AuthAdminSettings
 
 
 class Session(Document):
@@ -23,7 +23,7 @@ class Session(Document):
     @classmethod
     def get_session_from_request(cls, request: Request) -> Optional["Session"]:
         # get settings
-        settings = AuthAdminSettings.from_request(request=request)
+        settings = MongoengineAdminAuthSettings.from_state(state=request.state)
 
         # expire sessions
         now = datetime.now()

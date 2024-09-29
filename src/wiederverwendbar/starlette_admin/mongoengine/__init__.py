@@ -4,7 +4,8 @@ from wiederverwendbar.starlette_admin.mongoengine.auth import (AuthView,
                                                                User,
                                                                UserView,
                                                                MongoengineAuthAdmin,
-                                                               MongoengineAdminAuthProvider)
+                                                               MongoengineAdminAuthProvider,
+                                                               MongoengineAdminAuthSettings)
 from wiederverwendbar.starlette_admin.mongoengine.boolean_also_field import (BooleanAlsoAdmin,
                                                                              BooleanAlsoConverter,
                                                                              BooleanAlsoField)
