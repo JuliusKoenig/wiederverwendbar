@@ -35,9 +35,6 @@ rich = [
 typer = [
     "typer>=0.12.5",
 ]
-ping = [
-    "pythonping>=1.1.4",
-]
 mongoengine = [
     "mongoengine>=0.29.1",
     "blinker>=1.8.2",
@@ -56,6 +53,9 @@ starlette-admin = [
     "pillow>=10.4.0",
     "kombu>=5.4.2",
     "nest-asyncio>=1.6.0",
+]
+fuctions = [
+    "pythonping>=1.1.4",
 ]
 
 [build-system]
