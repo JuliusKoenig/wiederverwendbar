@@ -7,10 +7,17 @@ from mongoengine.base import TopLevelDocumentMetaclass
 class MongoengineLogDocumentMeta(TopLevelDocumentMetaclass):
     ...
 
+
 class MongoengineLogDocument(Document, metaclass=MongoengineLogDocumentMeta):
     meta = {"collection": "log",
-            "allow_inheritance": True}
+            "allow_inheritance": True,
+            'index_cls': False,
+            "indexes": [
+                {
+                    "fields": ["timestamp"],
+                    "expireAfterSeconds": 10 * 60 * 24 * 30  # 30 days
+                }
+            ]}
 
-    name: str = StringField(required=True)
     timestamp: datetime = DateTimeField(required=True)
     entries: list[dict] = ListField(DictField(), required=True)

@@ -1,9 +1,9 @@
 import logging
 import threading
-from datetime import datetime
 from logging import NOTSET
 from typing import Optional
 
+from wiederverwendbar.functions.datetime import local_now
 from wiederverwendbar.mongoengine.logger.documets import MongoengineLogDocument
 from wiederverwendbar.mongoengine.logger.formatters import MongoengineLogFormatter
 
@@ -24,7 +24,7 @@ class MongoengineLogHandler(logging.Handler):
         if document_kwargs is None:
             document_kwargs = {}
         self._document_kwargs: dict = document_kwargs
-        self._buffer: dict[str, list[logging.LogRecord]] = {}
+        self._buffer: list[logging.LogRecord] = []
         if buffer_size is None:
             buffer_size = 100
         self._buffer_size: int = buffer_size
@@ -64,9 +64,7 @@ class MongoengineLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         with self._buffer_lock:
-            if record.name not in self._buffer:
-                self._buffer[record.name] = []
-            self._buffer[record.name].append(record)
+            self._buffer.append(record)
 
         if len(self._buffer) >= self._buffer_size or record.levelno >= self._buffer_early_flush_level:
             self.flush()
@@ -76,22 +74,20 @@ class MongoengineLogHandler(logging.Handler):
             return
 
         with self._buffer_lock:
-            for name, records in self._buffer.items():
-                formated_records = []
-                for record in records:
-                    try:
-                        formated_record = self.formatter.format(record)
-                        formated_records.append(formated_record)
-                    except Exception:
-                        self.handleError(record)
+            formated_records = []
+            for record in self._buffer:
+                try:
+                    formated_record = self.formatter.format(record)
+                    formated_records.append(formated_record)
+                except Exception:
+                    self.handleError(record)
                 if len(formated_records) == 0:
                     continue
-                # create document
-                document = self._document(name=name,
-                                          timestamp=datetime.now(),
-                                          entries=formated_records,
-                                          **self._document_kwargs)
-                document.save()
+            # create document
+            document = self._document(timestamp=local_now(),
+                                      entries=formated_records,
+                                      **self._document_kwargs)
+            document.save()
             self.empty_buffer()
 
     def empty_buffer(self) -> None:
@@ -101,7 +97,7 @@ class MongoengineLogHandler(logging.Handler):
         :return: None
         """
         del self._buffer
-        self._buffer = {}
+        self._buffer = []
 
     def destroy(self) -> None:
         """
