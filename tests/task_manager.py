@@ -9,7 +9,19 @@ from enum import Enum
 from bson import ObjectId
 from mongoengine import Document, DoesNotExist, ValidationError, EnumField, DateTimeField, DictField, StringField, ReferenceField, FloatField
 
-BASE_COLLECTION_NAME = "task_manager"
+from wiederverwendbar.functions.datetime import local_now
+from wiederverwendbar.logger.context import LoggingContext
+from wiederverwendbar.logger.singleton import SubLogger
+from wiederverwendbar.mongoengine.logger.documets import MongoengineLogDocument
+from wiederverwendbar.mongoengine.logger.handlers import MongoengineLogHandler
+
+MODULE_NAME = "task_manager"
+
+# create module logger
+LOGGER = logging.getLogger(MODULE_NAME)
+MANAGER_LOGGER = logging.getLogger(f"{MODULE_NAME}.manager")
+WORKER_LOGGER = logging.getLogger(f"{MODULE_NAME}.worker")
+TASK_LOGGER = logging.getLogger(f"{MODULE_NAME}.task")
 
 
 class WorkerState(Enum):
@@ -20,7 +32,7 @@ class WorkerState(Enum):
 
 
 class _WorkerDocument(Document):
-    meta = {"collection": f"{BASE_COLLECTION_NAME}.worker"}
+    meta = {"collection": f"{MODULE_NAME}.worker"}
 
     name: str = StringField(required=True, unique=True)
     manager: str = StringField(required=True)
@@ -28,6 +40,11 @@ class _WorkerDocument(Document):
     last_seen: datetime = DateTimeField(required=True)
     delay: float = FloatField(required=True)
     current_task: Optional["_TaskDocument"] = ReferenceField("Task")
+
+class _WorkerLogDocument(MongoengineLogDocument):
+    meta = {"collection": f"{MODULE_NAME}.worker.log",
+            "indexes": ["manager"]}
+    manager: _WorkerDocument = ReferenceField(_WorkerDocument, required=True)
 
 
 class TaskState(Enum):
@@ -40,18 +57,23 @@ class TaskState(Enum):
 
 
 class _TaskDocument(Document):
-    meta = {"collection": f"{BASE_COLLECTION_NAME}.task"}
+    meta = {"collection": f"{MODULE_NAME}.task"}
 
     name: str = StringField(required=True)
     manager: str = StringField(required=True)
     state: TaskState = EnumField(TaskState, required=True)
-    worker: _WorkerDocument = ReferenceField(_WorkerDocument)
+    worker: Optional[_WorkerDocument] = ReferenceField(_WorkerDocument)
     created_at: datetime = DateTimeField(required=True)
     due_at: datetime = DateTimeField(required=True)
     started_at: Optional[datetime] = DateTimeField()
     ended_at: Optional[datetime] = DateTimeField()
     params: dict[str, Any] = DictField(required=True)
     result: Optional[dict[str, Any]] = DictField()
+
+class _TaskLogDocument(MongoengineLogDocument):
+    meta = {"collection": f"{MODULE_NAME}.task.log",
+            "indexes": ["task"]}
+    task: _TaskDocument = ReferenceField(_TaskDocument, required=True)
 
 
 class _BaseProxy:
@@ -214,7 +236,16 @@ class _WorkerThread(threading.Thread):
         self.worker_document: _WorkerDocument = worker_document
         self.loop_delay: float = loop_delay
 
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}.{self.worker_document.name}")
+        # creat worker logger
+        self.logger = logging.getLogger(f"{LOGGER.name}.{WORKER_LOGGER.name}.{self.name}")
+        worker_logger_handler = MongoengineLogHandler(document=_WorkerLogDocument,
+                                                      document_kwargs={"manager": self.worker_document})
+        if not isinstance(self.logger, SubLogger):
+            self.logger.addHandler(worker_logger_handler)
+        else:
+            with self.logger.reconfigure():
+                self.logger.addHandler(worker_logger_handler)
+
         self.logger.debug("Worker created")
 
         # set state to busy
@@ -225,7 +256,7 @@ class _WorkerThread(threading.Thread):
             self.finish_task(task=running_task, success=False, result={"error": "Worker was restarted"})
 
     def update(self) -> None:
-        self.worker_document.last_seen = datetime.now()
+        self.worker_document.last_seen = local_now()
         self.worker_document.save()
 
     @property
@@ -262,14 +293,14 @@ class _WorkerThread(threading.Thread):
 
             # get next due task
             due_task: _TaskDocument = _TaskDocument.objects(manager=self.manager.name,
-                                                            due_at__lte=datetime.now(),
+                                                            due_at__lte=local_now(),
                                                             state=TaskState.NEW,
                                                             worker=None).order_by("due_at").first()
             if due_task is not None:
                 # start task
                 due_task.state = TaskState.RUNNING
                 due_task.worker = self.worker_document
-                due_task.started_at = datetime.now()
+                due_task.started_at = local_now()
                 due_task.save()
 
                 # set state to busy
@@ -297,14 +328,31 @@ class _WorkerThread(threading.Thread):
     def task_runner(self, task: _TaskDocument) -> None:
         self.logger.debug(f"Running task '{task.name}'")
 
+        # create logger
+        task_logger = logging.getLogger(f"{LOGGER.name}.{TASK_LOGGER.name}.{task.name}")
+
+        # add logger handler
+        task_logger_handler = MongoengineLogHandler(document=_TaskLogDocument,
+                                                    document_kwargs={"task": task})
+        if not isinstance(task_logger, SubLogger):
+            task_logger.addHandler(task_logger_handler)
+        else:
+            with task_logger.reconfigure():
+                task_logger.addHandler(task_logger_handler)
+
         # run task
         try:
-            task_func = self.manager.get_task_func(task.name)
-            task_result = task_func(**task.params)
-            success = True
+            with LoggingContext(context_logger=task_logger) as logging_context:
+                task_func = self.manager.get_task_func(task.name)
+                task_result = task_func(**task.params)
+                success = True
         except Exception as e:
             task_result = {"error": str(e)}
             success = False
+
+        # remove logger handler and destroy it
+        task_logger.removeHandler(task_logger_handler)
+        task_logger_handler.destroy()
 
         # finish task
         self.finish_task(task, success, task_result)
@@ -320,7 +368,7 @@ class _WorkerThread(threading.Thread):
             success = False
             result = {"error": "Task was canceled"}
         task.state = TaskState.FINISHED if success else TaskState.FAILED
-        task.ended_at = datetime.now()
+        task.ended_at = local_now()
         task.result = result
 
         # save task
@@ -338,10 +386,10 @@ class Manager:
     def __init__(self, name: Optional[str] = None, worker_loop_delay: Optional[float] = None):
         if name is None:
             name = "default"
-        self._name: str = name
-        self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}.{name}")
-        self._logger.debug("Manager created")
         self._lock = threading.Lock()
+        self._name: str = name
+        self._logger = logging.getLogger(f"{LOGGER.name}.{MANAGER_LOGGER.name}.{self.name}")
+        self._logger.debug("Manager created")
         self._workers: dict[str, ObjectId] = {}
         if worker_loop_delay is None:
             worker_loop_delay = 1.0
@@ -384,7 +432,7 @@ class Manager:
         except DoesNotExist:
             worker_document = _WorkerDocument(name=name,
                                               manager=self.name,
-                                              last_seen=datetime.now(),
+                                              last_seen=local_now(),
                                               delay=0,
                                               state=WorkerState.BUSY)
             worker_document.save()
@@ -415,6 +463,10 @@ class Manager:
             return self._registered_tasks[name]
 
     def registering_task(self, name: Optional[str] = None, func: callable = None) -> callable:
+        if self.worker_count > 0:
+            raise RuntimeError("Cannot register tasks after workers are created")
+        if not callable(func):
+            raise ValueError(f"Argument 'func' must be a callable not '{type(func)}'")
         with self._lock:
             # get name from function if not provided
             if name is None:
@@ -477,8 +529,8 @@ class Manager:
             name=name,
             manager=self.name,
             state=TaskState.NEW,
-            created_at=datetime.now(),
-            due_at=due or datetime.now(),
+            created_at=local_now(),
+            due_at=due or local_now(),
             params=given_task_params
         )
         task.save()

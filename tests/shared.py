@@ -20,6 +20,6 @@ logger = logging.getLogger(__name__)
 @manager.register_task()
 def task1(start: int, end: int = 10):
     logger.info(f"Count from {start} to {end}")
-    for i in range(start, end):
+    for i in range(start, end + 1):
         logger.info(i)
         time.sleep(1)
