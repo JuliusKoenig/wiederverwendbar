@@ -25,3 +25,14 @@ def local_now() -> datetime:
     """
 
     return datetime.now(tz=timezone(timedelta(hours=offset())))
+
+
+def to_local(utc_time: datetime) -> datetime:
+    """
+    Convert a UTC time to a local time.
+
+    :param utc_time: The UTC time to convert.
+    :return: The local time.
+    """
+
+    return datetime.fromtimestamp(utc_time.timestamp() + offset() * 3600).replace(tzinfo=timezone(timedelta(hours=offset())))

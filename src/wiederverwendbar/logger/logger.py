@@ -6,9 +6,12 @@ from wiederverwendbar.logger.settings import LoggerSettings
 
 class Logger(logging.Logger):
     def __init__(self, name: str, settings: LoggerSettings):
-        super().__init__(name, level=logging.DEBUG)
+        super().__init__(name)
 
         self.settings = settings
+
+        # set log level
+        self.setLevel(self.settings.log_level.value)
 
         # add null handler
         null_handler = logging.NullHandler()

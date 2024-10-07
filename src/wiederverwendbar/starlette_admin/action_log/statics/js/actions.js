@@ -177,7 +177,7 @@ class ActionManager {
         query.append("name", actionName);
 
         // append actionLogKey to query
-        query.append("actionLogKey", actionLogKey);
+        query.append("action_log_key", actionLogKey);
 
         this.appendQueryParams(query, element);
         let url = baseUrl + "?" + query.toString();

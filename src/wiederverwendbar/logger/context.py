@@ -2,6 +2,7 @@ import inspect
 import logging
 from typing import Union, Optional
 
+from wiederverwendbar.logger.helper import remove_logger
 from wiederverwendbar.logger.singleton import SubLogger
 
 # get module lock
@@ -159,15 +160,14 @@ class LoggingContext:
             raise RuntimeError("context_frame_index is None")
 
         # check if the context manager var is defined in the context frame
-        no_context_var = False
-        if self.__class__ != LoggingContext:
-            no_context_var = True
-        else:
-            if "as" not in stack[context_frame_index].code_context[0]:
-                no_context_var = True
+        context_var_exist = False
+        for f_local_name, f_local in dict(stack[context_frame_index].frame.f_locals).items():
+            if isinstance(f_local, self.__class__):
+                context_var_exist = True
+                break
 
         # get random variable name not used in the context frame
-        if no_context_var:
+        if not context_var_exist:
             while True:
                 var_name = f"logging_context_{id(self)}"
                 if var_name not in stack[context_frame_index].frame.f_locals:
@@ -343,8 +343,7 @@ class LoggingContext:
 
             # delete created_context_logger
             if getattr(logger, "created_context_logger", False):
-                if logger.name in logging.root.manager.loggerDict:
-                    logging.root.manager.loggerDict.pop(logger.name)
+                remove_logger(logger)
         finally:
             # release module lock
             _releaseLock()

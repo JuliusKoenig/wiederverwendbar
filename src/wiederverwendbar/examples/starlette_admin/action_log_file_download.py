@@ -13,7 +13,7 @@ from kombu import Connection
 
 from wiederverwendbar.functions.test_file import test_file
 from wiederverwendbar.mongoengine import MongoengineDbSingleton
-from wiederverwendbar.starlette_admin import ActionLogAdmin, ActionLogger, FormCommand, MultiPathAdmin
+from wiederverwendbar.starlette_admin import ActionLogAdmin, ActionLogger, FormCommand, MultiPathAdmin, DownloadCommand
 
 logger = logging.getLogger(__name__)
 ch = logging.StreamHandler()
@@ -77,8 +77,6 @@ class TestView(ModelView):
     # submit_btn_text="Ja, fortsetzen",
     # submit_btn_class="btn-success")
     async def test_action_action_log(self, request: Request, pk: list[str]) -> str:
-        request.session["test"] = "test"
-
         with await ActionLogger(request, parent=logger) as action_logger:
             # use context manager to ensure that the logger is finalized
             with action_logger.sub_logger("sub_action_1", "Sub Action 1", steps=3, ignore_loggers_like=["pymongo"]) as sub_logger:
@@ -86,7 +84,7 @@ class TestView(ModelView):
                 if not sub_logger_yes_no:
                     sub_logger.finalize(success=False, on_error_msg="Test Aktion abgebrochen.")
                 generated_file = test_file(1, 'MB')
-                sub_logger.download(request=request, text="Testdatei", file_path=generated_file)()
+                DownloadCommand(sub_logger, text="Testdatei", file_path=generated_file)()
 
         return "Test Aktion erfolgreich."
 

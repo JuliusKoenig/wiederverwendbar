@@ -16,7 +16,7 @@ from pydantic import BaseModel, ValidationError
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 from starlette_admin.exceptions import ActionFailed
-from kombu import Connection, Exchange, Queue, Message
+from kombu import Connection, Exchange, Queue, Message, Producer
 
 from wiederverwendbar.logger.context import LoggingContext
 from wiederverwendbar.starlette_admin.action_log.settings import ActionLogAdminSettings
@@ -97,17 +97,11 @@ class FormCommand(_SubLoggerCommand):
                  default_values: Union[None, bool, dict[str, Any]] = None):
         if submit_btn_text is None:
             submit_btn_text = "OK"
-        if not isinstance(logger, ActionLogger) and not isinstance(logger, ActionSubLogger):
-            action_sub_loggers = ActionSubLoggerContext.get_from_stack(inspect.stack())
-            action_sub_logger_context: Optional[ActionSubLoggerContext] = None
-            for action_sub_logger_context in action_sub_loggers:
-                if isinstance(action_sub_logger_context, ActionSubLoggerContext):
-                    break
-            if action_sub_logger_context is not None:
-                logger = action_sub_logger_context.context_logger
-            else:
-                if default_values is None:
-                    raise ValueError(f"No action logger found. Did you use the {ActionSubLoggerContext.__name__} context manager? If not, you have to provide default values.")
+        try:
+            self.get_logger(logger)
+        except ValueError:
+            if default_values is None:
+                raise ValueError(f"No action logger found. Did you use the {ActionSubLoggerContext.__name__} context manager? If not, you have to provide default values.")
         self.default_values: Union[None, bool, dict[str, Any]] = default_values
 
         super().__init__(logger=logger,
@@ -126,6 +120,19 @@ class FormCommand(_SubLoggerCommand):
             return self.default_values
         else:
             raise ValueError("Logger must be an instance of ActionLogger, ActionSubLogger or logging.Logger.")
+
+    @classmethod
+    def get_logger(cls, logger: Union["ActionLogger", "ActionSubLogger", logging.Logger]) -> Union["ActionLogger", "ActionSubLogger"]:
+        if isinstance(logger, ActionLogger) or isinstance(logger, ActionSubLogger):
+            return logger
+        action_sub_loggers = ActionSubLoggerContext.get_from_stack(inspect.stack())
+        action_sub_logger_context: Optional[ActionSubLoggerContext] = None
+        for action_sub_logger_context in action_sub_loggers:
+            if isinstance(action_sub_logger_context, ActionSubLoggerContext):
+                break
+        if action_sub_logger_context is None:
+            raise ValueError(f"No action logger found. Did you use the {ActionSubLoggerContext.__name__} context manager? If not, you have to provide default values.")
+        return action_sub_logger_context.context_logger
 
 
 class ConfirmCommand(FormCommand):
@@ -152,25 +159,42 @@ class ConfirmCommand(FormCommand):
 class DownloadCommand(ConfirmCommand):
     def __init__(self,
                  logger: Union["ActionLogger", "ActionSubLogger", logging.Logger],
-                 request: Request,
                  file_path: Union[str, Path],
                  text: str,
                  icon: Optional[str] = None,
                  submit_btn_text: Optional[str] = None,
                  form: Optional[str] = None):
-        self.request = request
+        # check if file exists
         if type(file_path) is str:
             file_path = Path(file_path)
         if not file_path.is_file():
             raise ValueError(f"File '{file_path}' does not exist.")
+
+        # get logger
+        logger = self.get_logger(logger)
+        if isinstance(logger, ActionLogger):
+            action_logger: ActionLogger = logger
+
+        else:
+            action_logger: ActionLogger = logger.action_logger
+        action_log_download_url = f"{action_logger.admin.base_url}/action_log/download/{action_logger.action_log_key}"
+
+        # get producer, exchange and download_queue
+        producer: Producer = getattr(action_logger, "_producer")
+        exchange: Exchange = getattr(action_logger, "_exchange")
+        download_queue: Queue = getattr(action_logger, "_download_queue")
+
+        # send download command
+        producer.publish({"file_path": str(file_path)}, exchange=exchange, routing_key=download_queue.name)
+
         if icon is None:
             icon = "fa fa-download"
         if form is None:
             form = f"""<form>
-            <div class="mt-3">
+                <a href="{action_log_download_url}" download>
                 <p>{text}</p>
-            </div>
             </form>"""
+
         super().__init__(logger=logger,
                          text=text,
                          submit_btn_text=submit_btn_text,
@@ -671,12 +695,11 @@ class ActionSubLogger(logging.Logger):
 
         return ConfirmCommand(logger=self, text=text, submit_btn_text=submit_btn_text, form=form)
 
-    def download(self, request: Request, file_path: Union[str, Path], text: str, icon: Optional[str] = None, submit_btn_text: Optional[str] = None,
+    def download(self, file_path: Union[str, Path], text: str, icon: Optional[str] = None, submit_btn_text: Optional[str] = None,
                  form: Optional[str] = None) -> DownloadCommand:
         """
         Send download form to frontend.
 
-        :param request: Request
         :param file_path: File path
         :param text: Text of download form.
         :param icon: Icon of download form.
@@ -685,7 +708,7 @@ class ActionSubLogger(logging.Logger):
         :return: Form data.
         """
 
-        return DownloadCommand(logger=self, request=request, file_path=file_path, text=text, icon=icon, submit_btn_text=submit_btn_text, form=form)
+        return DownloadCommand(logger=self, file_path=file_path, text=text, icon=icon, submit_btn_text=submit_btn_text, form=form)
 
     def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None, form: Optional[str] = None) -> YesNoCommand:
         """
@@ -879,10 +902,6 @@ class ActionSubLoggerContext(LoggingContext):
                                                                  action_sub_logger_cls=action_sub_logger_cls,
                                                                  websocket_handler_cls=websocket_handler_cls)
 
-
-
-
-
         super().__init__(context_logger=self.context_logger,
                          use_context_logger_level=use_context_logger_level,
                          use_context_logger_level_on_not_set=use_context_logger_level_on_not_set,
@@ -956,12 +975,15 @@ class ActionLogger:
         # get action log key
         self.action_log_key = self.get_action_key(request_or_websocket=request_or_websocket)
 
+        # get admin
+        self.admin = request_or_websocket.app.state.admin
+
         # get settings
-        settings: ActionLogAdminSettings = ActionLogAdminSettings.from_state(request_or_websocket.app.state)
+        self.settings: ActionLogAdminSettings = self.admin.settings
 
         # set log level
         if log_level is None:
-            log_level = settings.action_log_level
+            log_level = self.settings.action_log_level
         self.log_level: ActionLogAdminSettings.LogLevels = log_level
 
         # get parent logger
@@ -971,54 +993,54 @@ class ActionLogger:
 
         # set formatter
         if formatter is None:
-            formatter = settings.action_log_formatter
+            formatter = self.settings.action_log_formatter
         self.formatter: logging.Formatter = logging.Formatter(formatter)
 
         # set wait for websocket
         if wait_for_websocket is None:
-            wait_for_websocket = settings.action_log_wait_for_websocket
+            wait_for_websocket = self.settings.action_log_wait_for_websocket
         self.wait_for_websocket: bool = wait_for_websocket
 
         # set wait for websocket timeout
         if wait_for_websocket_timeout is None:
-            wait_for_websocket_timeout = settings.action_log_wait_for_websocket_timeout
+            wait_for_websocket_timeout = self.settings.action_log_wait_for_websocket_timeout
         self.wait_for_websocket_timeout: int = wait_for_websocket_timeout
 
         # set show errors
         if show_errors is None:
-            show_errors = settings.action_log_show_errors
+            show_errors = self.settings.action_log_show_errors
         self.show_errors: bool = show_errors
 
         # set halt on error
         if halt_on_error is None:
-            halt_on_error = settings.action_log_halt_on_error
+            halt_on_error = self.settings.action_log_halt_on_error
         self.halt_on_error: bool = halt_on_error
 
         # set use context logger level
         if use_context_logger_level is None:
-            use_context_logger_level = settings.action_log_use_context_logger_level
+            use_context_logger_level = self.settings.action_log_use_context_logger_level
         self.use_context_logger_level: bool = use_context_logger_level
 
         # set use context logger level on not set
         if use_context_logger_level_on_not_set is None:
-            use_context_logger_level_on_not_set = settings.action_log_use_context_logger_level_on_not_set
+            use_context_logger_level_on_not_set = self.settings.action_log_use_context_logger_level_on_not_set
         self.use_context_logger_level_on_not_set: bool = use_context_logger_level_on_not_set
 
         # set ignore loggers equal
         if ignore_loggers_equal is None:
-            ignore_loggers_equal = settings.action_log_ignore_loggers_equal
+            ignore_loggers_equal = self.settings.action_log_ignore_loggers_equal
         self.ignore_loggers_equal: list[str] = ignore_loggers_equal
 
         # set ignore loggers like
         if ignore_loggers_like is None:
-            ignore_loggers_like = settings.action_log_ignore_loggers_like
+            ignore_loggers_like = self.settings.action_log_ignore_loggers_like
         self.ignore_loggers_like: list[str] = ignore_loggers_like
         if "pymongo" not in self.ignore_loggers_like:
             self.ignore_loggers_like.append("pymongo")  # force ignore loggers like 'pymongo'
 
         # set handle origin logger
         if handle_origin_logger is None:
-            handle_origin_logger = settings.action_log_handle_origin_logger
+            handle_origin_logger = self.settings.action_log_handle_origin_logger
         self.handle_origin_logger: bool = handle_origin_logger
 
         # set action sub logger class
@@ -1037,7 +1059,8 @@ class ActionLogger:
         self._kombu_connection = self.get_kombu_connection(request_or_websocket=request_or_websocket)
 
         # create exchange and queues from websocket request
-        self._exchange, self._start_queue, self._log_queue, self._response_queue, self._exit_queue = ActionLogger.get_action_log_queues(request_or_websocket=request_or_websocket)
+        self._exchange, self._start_queue, self._log_queue, self._response_queue, self._download_queue, self._exit_queue = ActionLogger.get_action_log_queues(
+            request_or_websocket=request_or_websocket)
 
         # create producer
         self._producer = self._kombu_connection.Producer(serializer='json')
@@ -1116,7 +1139,9 @@ class ActionLogger:
         """
 
         if isinstance(request_or_websocket, Request):
-            action_log_key = request_or_websocket.query_params.get("actionLogKey", None)
+            action_log_key = request_or_websocket.query_params.get("action_log_key", None)
+            if action_log_key is None:
+                action_log_key = request_or_websocket.path_params.get("action_log_key", None)
             if action_log_key is None:
                 raise ValueError("No action log key provided.")
         elif isinstance(request_or_websocket, WebSocket):
@@ -1139,7 +1164,7 @@ class ActionLogger:
         return exchange
 
     @classmethod
-    def get_action_log_queues(cls, request_or_websocket: Union[Request, WebSocket]) -> tuple[Exchange, Queue, Queue, Queue, Queue]:
+    def get_action_log_queues(cls, request_or_websocket: Union[Request, WebSocket]) -> tuple[Exchange, Queue, Queue, Queue, Queue, Queue]:
         # get kombu connection
         connection = cls.get_kombu_connection(request_or_websocket=request_or_websocket)
 
@@ -1167,13 +1192,19 @@ class ActionLogger:
         response_queue = response_queue.bind(connection)
         response_queue.declare()
 
+        # create download queue
+        download_queue_name = f"{action_log_key}_download"
+        download_queue = Queue(download_queue_name, exchange=exchange, routing_key=download_queue_name)
+        download_queue = download_queue.bind(connection)
+        download_queue.declare()
+
         # create exit queue
         exit_queue_name = f"{action_log_key}_exit"
         exit_queue = Queue(exit_queue_name, exchange=exchange, routing_key=exit_queue_name)
         exit_queue = exit_queue.bind(connection)
         exit_queue.declare()
 
-        return exchange, start_queue, log_queue, response_queue, exit_queue
+        return exchange, start_queue, log_queue, response_queue, download_queue, exit_queue
 
     @classmethod
     def parse_response_obj(cls, data: Union[str, dict[str, Any]]) -> Union[None, ActionLoggerResponse]:
@@ -1345,12 +1376,11 @@ class ActionLogger:
 
         return ConfirmCommand(logger=self, text=text, submit_btn_text=submit_btn_text, form=form)
 
-    def download(self, request: Request, file_path: Union[str, Path], text: str, icon: Optional[str] = None, submit_btn_text: Optional[str] = None,
+    def download(self, file_path: Union[str, Path], text: str, icon: Optional[str] = None, submit_btn_text: Optional[str] = None,
                  form: Optional[str] = None) -> DownloadCommand:
         """
         Send download form to frontend.
 
-        :param request: Request
         :param file_path: File path
         :param text: Text of download form.
         :param icon: Icon of download form.
@@ -1359,7 +1389,7 @@ class ActionLogger:
         :return: Form data.
         """
 
-        return DownloadCommand(logger=self, request=request, file_path=file_path, text=text, icon=icon, submit_btn_text=submit_btn_text, form=form)
+        return DownloadCommand(logger=self, file_path=file_path, text=text, icon=icon, submit_btn_text=submit_btn_text, form=form)
 
     def yes_no(self, text: str, submit_btn_text: Optional[str] = None, abort_btn_text: Optional[str] = None, form: Optional[str] = None) -> YesNoCommand:
         """
@@ -1481,6 +1511,7 @@ class ActionLogger:
         self._start_queue.delete()
         self._log_queue.delete()
         self._response_queue.delete()
+        self._download_queue.delete()
         self._exit_queue.delete()
 
     @property

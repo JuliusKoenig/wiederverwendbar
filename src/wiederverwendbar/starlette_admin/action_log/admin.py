@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pathlib import Path
 from warnings import warn
 from threading import Thread, Lock
 from typing import Union, Any
@@ -8,7 +9,10 @@ from socket import timeout as socket_timeout
 import nest_asyncio
 from jinja2 import PackageLoader
 from pydantic import ValidationError
-from starlette.routing import WebSocketRoute
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
+from starlette.responses import FileResponse
+from starlette.routing import WebSocketRoute, Route
 from starlette.endpoints import WebSocketEndpoint
 from starlette.websockets import WebSocket, WebSocketState
 from starlette.types import Scope, Receive, Send
@@ -52,6 +56,7 @@ class ActionLogAdmin(SettingsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta
             self.start_queue: Optional[Queue] = None
             self.log_queue: Optional[Queue] = None
             self.response_queue: Optional[Queue] = None
+            self.download_queue: Optional[Queue] = None
             self.exit_queue: Optional[Queue] = None
             self.producer: Optional[Producer] = None
             self.log_thread = Thread(target=self.receive_logs)
@@ -70,6 +75,8 @@ class ActionLogAdmin(SettingsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta
                     return False
                 if self.response_queue is None:
                     return False
+                if self.download_queue is None:
+                    return False
                 if self.exit_queue is None:
                     return False
                 if self.producer is None:
@@ -81,7 +88,7 @@ class ActionLogAdmin(SettingsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta
                 return True
 
         def receive_logs(self):
-            with self.connection.Consumer([self.log_queue], callbacks=[self.send_log]) as consumer:
+            with self.connection.Consumer([self.log_queue], callbacks=[self.send_log]):
                 while True:
                     if not self.ready:
                         break
@@ -118,7 +125,8 @@ class ActionLogAdmin(SettingsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta
             self.connection = ActionLogger.get_kombu_connection(request_or_websocket=websocket)
 
             # create exchange and queues from websocket request
-            self.exchange, self.start_queue, self.log_queue, self.response_queue, self.exit_queue = ActionLogger.get_action_log_queues(websocket)
+            self.exchange, self.start_queue, self.log_queue, self.response_queue, self.download_queue, self.exit_queue = ActionLogger.get_action_log_queues(
+                request_or_websocket=websocket)
 
             # create producer
             self.producer = self.connection.Producer(serializer='json')
@@ -150,6 +158,7 @@ class ActionLogAdmin(SettingsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta
                 self.start_queue = None
                 self.log_queue = None
                 self.response_queue = None
+                self.download_queue = None
                 self.exit_queue = None
                 self.producer = None
                 self.websocket = None
@@ -196,5 +205,37 @@ class ActionLogAdmin(SettingsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta
     def init_routes(self) -> None:
         super().init_routes()
         self.routes.append(WebSocketRoute(path="/ws/action_log/{action_log_key}", endpoint=self.ActionLogEndpoint, name="action_log"))  # noqa
+        self.routes.append(Route("/action_log/download/{action_log_key}", self.action_log_download, methods=["GET"], name="action_log_download"))  # noqa
 
         nest_asyncio.apply()  # ToDo: ugly hack to make asyncio.run work outside of debug mode, remove if it's not needed anymore
+
+    def action_log_download(self, request: Request):
+        # get action_log_key from request
+        action_log_key = request.path_params.get("action_log_key", None)
+        if action_log_key is None:
+            raise HTTPException(status_code=404, detail="Action Log Key not provided.")
+
+        # get download queue
+        exchange, start_queue, log_queue, response_queue, download_queue, exit_queue = ActionLogger.get_action_log_queues(request_or_websocket=request)
+
+        download_file: Optional[Path] = None
+
+        def send_file(body, message):
+            nonlocal download_file
+
+            download_file = Path(body["file_path"])
+            # message.ack()
+
+        # get download file from download queue
+        with self.kombu_connection.Consumer([download_queue], callbacks=[send_file]):
+            try:
+                self.kombu_connection.drain_events(timeout=5)
+            except socket_timeout:
+                raise HTTPException(status_code=500, detail="Timeout while waiting for download file.")
+
+        if download_file is None:
+            raise HTTPException(status_code=500, detail="No download file received.")
+        elif not download_file.is_file():
+            raise HTTPException(status_code=404, detail="Download file not found.")
+
+        return FileResponse(download_file, filename=download_file.name)
