@@ -1,6 +1,55 @@
 # Changelog
 
 
+## release/v0.6.2 (2024-10-07)
+
+### Add
+
+* Add: logger to mongoengine submodul. [Julius Koenig]
+
+* Add: datetime functions. [Julius Koenig]
+
+* Add: Mongoengine logging. [Julius Koenig]
+
+* Add: test_file function & example. [Julius Koenig]
+
+* Add: NextStepCommand with steps. [Julius Koenig]
+
+* Add: FormCommand default_values to allow using without ActionLogger. [Julius Koenig]
+
+* Add: download_file.py & check_hash_file.py to functions. [Julius Koenig]
+
+* Add: UvicornServer.factory attr. [Julius Koenig]
+
+### Changes
+
+* Update dependencies. [Julius Koenig]
+
+* Use SettingsAdmin as base for ActionLogAdmin and implement own ActionLogAdminSettings. [Julius Koenig]
+
+* Use new from_state function. [Julius Koenig]
+
+* Reorg starlette-admin subpackage. [Julius Koenig]
+
+* Update example action_log_form.py. [Julius Koenig]
+
+### Fix
+
+* ActionLog on heavy load. [Julius Koenig]
+
+* MongoengineDb using wrong name for db. [Julius Koenig]
+
+* Nest-asyncio to right subpackages. [Julius Koenig]
+
+### Other
+
+* Wip: work on new task manager. [Julius Koenig]
+
+* Wip: work on new task manager. [Julius Koenig]
+
+* Wip: work on new task manager. [Julius Koenig]
+
+
 ## release/v0.6.1 (2024-09-27)
 
 ### Changes
