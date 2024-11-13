@@ -4,7 +4,7 @@ import inspect as _inspect
 import threading as _threading
 import time as _time
 from itertools import count as _count
-from typing import Any as _Any, Optional as _Optional, Union as _Union, Optional
+from typing import Any as _Any, Optional as _Optional, Union as _Union
 from datetime import datetime as _datetime, timedelta as _timedelta
 from enum import Enum as _Enum
 
@@ -21,7 +21,7 @@ from wiederverwendbar.logger.singleton import SubLogger as _SubLogger
 from wiederverwendbar.mongoengine.logger.streamer import MongoengineLogStreamer as _MongoengineLogStreamer
 from wiederverwendbar.mongoengine.logger.documets import MongoengineLogDocument as _MongoengineLogDocument
 from wiederverwendbar.mongoengine.logger.handlers import MongoengineLogHandler as _MongoengineLogHandler
-from wiederverwendbar.threading import ExtendedThread as _ExtendedThread, handle_exception as _handle_exception, handle_exception, ThreadLoopContinue as _ThreadLoopContinue, \
+from wiederverwendbar.threading import ExtendedThread as _ExtendedThread, handle_exception as _handle_exception, ThreadLoopContinue as _ThreadLoopContinue, \
     ThreadStop as _ThreadStop
 
 MODULE_NAME = "task_manager"
@@ -334,8 +334,8 @@ class _WorkerThread(_ExtendedThread):
                  log_level: int,
                  log_push_rate: _Optional[float] = None,
                  log_push_max_entries: _Optional[int] = None,
-                 task_ignore_loggers_equal: Optional[list[str]] = None,
-                 task_ignore_loggers_like: Optional[list[str]] = None,
+                 task_ignore_loggers_equal: _Optional[list[str]] = None,
+                 task_ignore_loggers_like: _Optional[list[str]] = None,
                  logger: _Optional[_logging.Logger] = None,
                  loop_sleep_time: _Optional[float] = None):
 
@@ -564,7 +564,7 @@ class _WorkerThread(_ExtendedThread):
             except Exception as e:
                 self._task_result = {"error": str(e)}
                 self._task_state = TaskState.FAILED
-                handle_exception(msg=f"Error while running task '{self.current_task.name}'", e=e, logger=self._logger)
+                _handle_exception(msg=f"Error while running task '{self.current_task.name}'", e=e, logger=self._logger)
 
             self.on_task_end()
 
@@ -672,8 +672,8 @@ class Manager:
                  log_push_max_entries: _Optional[int] = None,
                  minimum_last_seen_time_for_other_worker: _Optional[int] = None,
                  worker_loop_sleep_time: _Optional[float] = None,
-                 task_ignore_loggers_equal: Optional[list[str]] = None,
-                 task_ignore_loggers_like: Optional[list[str]] = None, ):
+                 task_ignore_loggers_equal: _Optional[list[str]] = None,
+                 task_ignore_loggers_like: _Optional[list[str]] = None, ):
         self._lock = _threading.Lock()
 
         if name is None:
@@ -830,13 +830,13 @@ class Manager:
             return [Worker(object_id=worker_id) for worker_id in self._workers.values()]
 
     def create_worker(self,
-                      name: Optional[str] = None,
+                      name: _Optional[str] = None,
                       log_level: _Optional[int] = None,
                       log_push_rate: _Optional[float] = None,
                       log_push_max_entries: _Optional[int] = None,
                       loop_sleep_time: _Optional[float] = None,
-                      task_ignore_loggers_equal: Optional[list[str]] = None,
-                      task_ignore_loggers_like: Optional[list[str]] = None) -> Worker:
+                      task_ignore_loggers_equal: _Optional[list[str]] = None,
+                      task_ignore_loggers_like: _Optional[list[str]] = None) -> Worker:
         self._logger.info(f"Creating worker '{name}'")
 
         worker_count = _worker_counter()
