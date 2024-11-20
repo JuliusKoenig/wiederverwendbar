@@ -1,7 +1,14 @@
 # Changelog
 
 
-## release/v0.6.2 (2024-10-07)
+## release/v0.6.3 (2024-11-20)
+
+### Fix
+
+* Meta class conflict. [Julius Koenig]
+
+
+## release/v0.6.2 (2024-11-14)
 
 ### Add
 
@@ -42,6 +49,8 @@
 * Nest-asyncio to right subpackages. [Julius Koenig]
 
 ### Other
+
+* Wip: work on new task manager. [Julius Koenig]
 
 * Wip: work on new task manager. [Julius Koenig]
 
