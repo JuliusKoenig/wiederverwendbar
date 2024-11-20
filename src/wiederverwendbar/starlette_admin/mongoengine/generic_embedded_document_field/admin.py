@@ -4,10 +4,10 @@ from starlette_admin.contrib.mongoengine import Admin as MongoengineAdmin
 from wiederverwendbar.starlette_admin.multi_path.admin import MultiPathAdminMeta, MultiPathAdmin
 from wiederverwendbar.starlette_admin.settings.admin import SettingsAdminMeta
 from wiederverwendbar.starlette_admin.form_max_fields.admin import FormMaxFieldsAdmin
+from wiederverwendbar.starlette_admin.action_log.admin import ActionLogAdminMeta
 
-class ActionLogAdminMeta(SettingsAdminMeta, MultiPathAdminMeta):
-    def __new__(cls, name, bases, attrs):
-        return super().__new__(cls, name, bases, attrs)
+# class GenericEmbeddedAdminMeta(SettingsAdminMeta, MultiPathAdminMeta): #todo: fix this
+#     ...
 
 
 class GenericEmbeddedAdmin(MongoengineAdmin, FormMaxFieldsAdmin, MultiPathAdmin, metaclass=ActionLogAdminMeta):
