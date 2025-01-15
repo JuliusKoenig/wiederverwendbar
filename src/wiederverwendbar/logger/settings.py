@@ -113,10 +113,10 @@ class LoggerSettings(BaseModel):
         if self.log_file_level is None:
             self.log_file_level = self.log_level
 
-        if self.log_level < self.log_console_level:
-            self.log_level = self.log_console_level
-        if self.log_level < self.log_file_level:
-            self.log_level = self.log_file_level
+        if self.log_console_level < self.log_level:
+            self.log_console_level = self.log_level
+        if self.log_file_level < self.log_level:
+            self.log_file_level = self.log_level
 
     @field_validator("log_level", "log_console_level", "log_file_level", mode="before")
     def validate_log_level(cls, value: Union[int, str]) -> str:
