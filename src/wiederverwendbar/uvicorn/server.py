@@ -82,9 +82,9 @@ class UvicornServer:
         self.ssl_cert_reqs: int = ssl_cert_reqs or self.settings.server_ssl_cert_reqs
         self.ssl_ca_certs: Optional[str] = str(ssl_ca_certs or self.settings.server_ssl_ca_certs)
         self.ssl_ciphers: Optional[str] = ssl_ciphers or self.settings.server_ssl_ciphers
-        self.auto_run: bool = auto_run or self.settings.server_auto_run
-        self.react_to_keyboard_interrupt = server_react_to_keyboard_interrupt or self.settings.server_react_to_keyboard_interrupt
-        self.factory: bool = factory or self.settings.server_factory
+        self.auto_run: bool = auto_run
+        self.react_to_keyboard_interrupt = server_react_to_keyboard_interrupt
+        self.factory: bool = factory
 
         logger.debug(f"Create {self}")
 

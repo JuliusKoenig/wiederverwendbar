@@ -22,6 +22,3 @@ class UvicornServerSettings(BaseModel):
     server_ssl_cert_reqs: int = Field(default=ssl.CERT_NONE, title="Server SSL Cert Reqs", description="Server SSL Cert Reqs")
     server_ssl_ca_certs: Optional[FilePath] = Field(default=None, title="Server SSL CA Certs", description="Server SSL CA Certs")
     server_ssl_ciphers: str = Field(default="TLSv1", title="Server SSL Ciphers", description="Server SSL Ciphers")
-    server_auto_run: bool = Field(default=True, title="Server Auto Run", description="Server Auto Run on creation")
-    server_react_to_keyboard_interrupt: bool = Field(default=True, title="Server React to Keyboard Interrupt", description="Server React to Keyboard Interrupt")
-    server_factory: bool = Field(default=False, title="Server Factory", description="Server Factory")
