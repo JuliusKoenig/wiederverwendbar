@@ -29,10 +29,10 @@ class UvicornServer:
                  ssl_cert_reqs: Optional[int] = None,
                  ssl_ca_certs: Optional[str] = None,
                  ssl_ciphers: Optional[str] = None,
-                 auto_run: Optional[bool] = None,
-                 server_react_to_keyboard_interrupt: Optional[bool] = None,
-                 factory: Optional[bool] = None,
-                 settings: UvicornServerSettings = None):
+                 auto_run: bool = True,
+                 server_react_to_keyboard_interrupt: bool = True,
+                 factory: bool = False,
+                 settings: Optional[UvicornServerSettings] = None):
         """
         Create a new Uvicorn Server
 
