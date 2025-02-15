@@ -1,27 +1,29 @@
-name: build_and_publish.yml
+name: Build and publish
 on:
   push:
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ "3.13" ]
+#  build:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        python-version: [ "3.13" ]
 #        python-version: [ "pypy3.10", "3.9", "3.10", "3.11", "3.12", "3.13" ]
+
+  release-build:
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.x"
 
-      - name: Install PDM
-        run: pip install pdm
-
-      - name: Build with PDM
-        run: pdm build
+      - name: Build release distributions
+        run: |
+          # NOTE: put your own distribution build steps here.
+          python -m pip install build
+          python -m build
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
@@ -29,8 +31,29 @@ jobs:
           name: release-dists
           path: dist/
 
-      - name: Publish package to PyPi
-        env:
-          PYPI_SECRET: ${{ secrets.PyPi }}
-        run: pdm publish --no-build --username __token__ --password "$env:SUPER_SECRET"
+  pypi-publish:
+    runs-on: ubuntu-latest
+
+    needs:
+      - release-build
+
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+
+    # Dedicated environments with protections for publishing are strongly recommended.
+    environment:
+      name: pypi
+      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
+      # url: https://pypi.org/p/YOURPROJECT
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@6f7e8d9c0b1a2c3d4e5f6a7b8c9d0e1f2a3b4c5d
 
