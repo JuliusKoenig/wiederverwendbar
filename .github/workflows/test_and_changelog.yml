@@ -16,4 +16,7 @@ jobs:
         with:
           python-version: "3.x"
 
-
+      - name: Install gitchangelog
+        run: |
+          pip install gitchangelog
+          gitchangelog > .\\CHANGELOG.md"
