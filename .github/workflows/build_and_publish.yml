@@ -35,7 +35,7 @@ jobs:
       id-token: write
 
     environment:
-      name: pypi
+      name: PyPi
       url: https://pypi.org/project/wiederverwendbar/
 
     steps:
