@@ -6,8 +6,8 @@ authors = [
     { name = "Julius Koenig", email = "info@bastelquartier.de" },
 ]
 dependencies = [
-    "pydantic>=2.9.2",
-    "pydantic-settings>=2.5.2",
+    "pydantic>=2.10.6",
+    "pydantic-settings>=2.7.1",
     "devtools>=0.12.2",
 ]
 requires-python = ">=3.9"
@@ -16,41 +16,41 @@ license = { text = "GPL-3.0" }
 
 [project.optional-dependencies]
 full = [
-    "rich>=13.8.1",
-    "typer>=0.12.5",
+    "rich>=13.9.4",
+    "typer>=0.15.1",
     "pythonping>=1.1.4",
     "mongoengine>=0.29.1",
-    "nicegui>=2.1.0",
-    "uvicorn>=0.30.6",
-    "fastapi>=0.115.0",
+    "nicegui>=2.11.1",
+    "uvicorn>=0.34.0",
+    "fastapi>=0.115.8",
     "starlette-admin[i18n]>=0.14.1",
-    "pillow>=10.4.0",
-    "blinker>=1.8.2",
+    "pillow>=11.1.0",
+    "blinker>=1.9.0",
     "kombu>=5.4.2",
     "nest-asyncio>=1.6.0",
 ]
 rich = [
-    "rich>=13.8.1",
+    "rich>=13.9.4",
 ]
 typer = [
-    "typer>=0.12.5",
+    "typer>=0.15.1",
 ]
 mongoengine = [
     "mongoengine>=0.29.1",
-    "blinker>=1.8.2",
+    "blinker>=1.9.0",
 ]
 uvicorn = [
-    "uvicorn>=0.30.6",
+    "uvicorn>=0.34.0",
 ]
 fastapi = [
-    "fastapi>=0.115.0",
+    "fastapi>=0.115.8",
 ]
 nicegui = [
-    "nicegui>=2.1.0",
+    "nicegui>=2.11.1",
 ]
 starlette-admin = [
     "starlette-admin[i18n]>=0.14.1",
-    "pillow>=10.4.0",
+    "pillow>=11.1.0",
     "kombu>=5.4.2",
     "nest-asyncio>=1.6.0",
 ]
@@ -68,12 +68,6 @@ distribution = true
 [tool.pdm.version]
 source = "file"
 path = "src/wiederverwendbar/__init__.py"
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "gitchangelog>=3.0.4",
-    "pystache>=0.6.5",
-]
 
 [tool.pdm.scripts]
 push-tags = { shell = "git push origin --tags" }
