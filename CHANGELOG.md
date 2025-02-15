@@ -5,6 +5,6 @@
 
 ### Other
 
-* Test workflows. [Julius Koenig]
+* Wip workflows. [Julius Koenig]
 
 
