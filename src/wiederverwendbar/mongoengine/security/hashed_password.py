@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from mongoengine import EmbeddedDocument, StringField, IntField, DateTimeField
+from mongoengine import EmbeddedDocument, StringField, IntField
 from wiederverwendbar.functions.security.hashed_password import HashedPassword
 
 
