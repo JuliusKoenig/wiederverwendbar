@@ -1,6 +1,6 @@
 name: Test and changelog
 on:
-  push:
+  workflow_run:
 jobs:
 #  test:
 #
@@ -23,7 +23,7 @@ jobs:
         run: pip install gitchangelog pystache
 
       - name: Create changelog
-        run: gitchangelog > .\\CHANGELOG.md
+        run: gitchangelog > ./CHANGELOG.md
 
       - name: Upload changelog
         uses: stefanzweifel/git-auto-commit-action@v5
