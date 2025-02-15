@@ -19,4 +19,7 @@ jobs:
       - name: Install gitchangelog
         run: |
           pip install gitchangelog
+
+      - name: Create changelog
+      - run: |
           gitchangelog > .\\CHANGELOG.md"
