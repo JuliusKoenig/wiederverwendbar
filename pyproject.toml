@@ -28,6 +28,7 @@ full = [
     "blinker>=1.9.0",
     "kombu>=5.4.2",
     "nest-asyncio>=1.6.0",
+    "sqlalchemy>=2.0.38",
 ]
 rich = [
     "rich>=13.9.4",
@@ -56,6 +57,9 @@ starlette-admin = [
 ]
 fuctions = [
     "pythonping>=1.1.4",
+]
+sqlalchemy = [
+    "sqlalchemy>=2.0.38",
 ]
 
 [build-system]

@@ -1,0 +1,4 @@
+class Default:
+    """
+    Default value
+    """
