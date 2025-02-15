@@ -29,6 +29,8 @@ jobs:
           name: release-dists
           path: dist/
 
-#      - name: Publish package to PyPi
-#        run: pdm publish --no-build --username __token__ --password test
+      - name: Publish package to PyPi
+        env:
+          PYPI_SECRET: ${{ secrets.PyPi }}
+        run: pdm publish --no-build --username __token__ --password "$env:SUPER_SECRET"
 
