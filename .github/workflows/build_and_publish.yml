@@ -22,3 +22,6 @@ jobs:
 
       - name: Build with PDM
         run: pdm build
+
+      - name: Publish package to PyPi
+        run: pdm publish --no-build --username __token__ --password test
