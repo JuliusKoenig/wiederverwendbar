@@ -13,8 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-#        with:
-#          ref: ${{ github.head_ref }}
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -29,5 +29,5 @@ jobs:
 
       - name: Upload changelog
         uses: stefanzweifel/git-auto-commit-action@v5
-#        with:
-#          commit_message: Update CHANGELOG.md
+        with:
+          commit_message: Update CHANGELOG.md
