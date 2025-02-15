@@ -1,6 +1,6 @@
 name: Test and changelog
 on:
-  workflow_run:
+  push:
 jobs:
 #  test:
 #
