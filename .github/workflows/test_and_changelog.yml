@@ -29,5 +29,5 @@ jobs:
 
       - name: Upload changelog
         uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Update CHANGELOG.md
+#        with:
+#          commit_message: Update CHANGELOG.md
