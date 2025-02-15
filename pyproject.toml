@@ -76,5 +76,4 @@ dev = [
 ]
 
 [tool.pdm.scripts]
-changelog = { shell = "gitchangelog > .\\CHANGELOG.md" }
 push-tags = { shell = "git push origin --tags" }
