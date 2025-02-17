@@ -4,6 +4,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Union, Optional
 
+from wiederverwendbar.logger.file_modes import FileModes
+
 
 class TarRotatingFileHandler(RotatingFileHandler):
     """
@@ -13,13 +15,13 @@ class TarRotatingFileHandler(RotatingFileHandler):
     def __init__(self,
                  name: str,
                  filename: Union[str, Path],
-                 mode: str = "a",
+                 mode: FileModes = FileModes.a,
                  max_bytes: int = 0,
                  backup_count: int = 0,
                  encoding: Optional[str] = None,
                  delay: bool = False,
                  archive_backup_count: int = 0):
-        super().__init__(filename, mode, max_bytes, backup_count, encoding, delay)
+        super().__init__(filename, mode.value, max_bytes, backup_count, encoding, delay)
         self.set_name(name)
         self.archiveBackupCount = archive_backup_count
         self.archiveBaseFilename = self.baseFilename[:self.baseFilename.rfind('.')]
