@@ -1,25 +1,16 @@
 import encodings
 import logging
-from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
+from wiederverwendbar.logger.file_modes import FileModes
+from wiederverwendbar.logger.log_levels import LogLevels
+from wiederverwendbar.logger.terminal_out_files import TerminalOutFiles
+
 
 class LoggerSettings(BaseModel):
-    class LogLevels(str, Enum):
-        """
-        Log levels
-        """
-
-        CRITICAL = "CRITICAL"
-        FATAL = "FATAL"
-        ERROR = "ERROR"
-        WARNING = "WARNING"
-        INFO = "INFO"
-        DEBUG = "DEBUG"
-
     log_level: LogLevels = Field(default=LogLevels.WARNING,
                                  title="Log Level",
                                  description="The log level")
@@ -38,17 +29,9 @@ class LoggerSettings(BaseModel):
                                    ge=0,
                                    description="The width of the console")
 
-    class TerminalOutFile(str, Enum):
-        """
-        Terminal output file
-        """
-
-        STDOUT = "stdout"
-        STDERR = "stderr"
-
-    log_console_outfile: TerminalOutFile = Field(default=TerminalOutFile.STDOUT,
-                                                 title="Console Outfile",
-                                                 description="The console outfile")
+    log_console_outfile: TerminalOutFiles = Field(default=TerminalOutFiles.STDOUT,
+                                                  title="Console Outfile",
+                                                  description="The console outfile")
     log_console_rich_markup: bool = Field(default=True,
                                           title="Rich Markup",
                                           description="Whether to use rich markup in the console")
@@ -74,17 +57,9 @@ class LoggerSettings(BaseModel):
                                  title="File Log Format",
                                  description="The log format for the file")
 
-    class FileMode(str, Enum):
-        """
-        File mode
-        """
-
-        a = "a"
-        w = "w"
-
-    log_file_mode: FileMode = Field(default=FileMode.a,
-                                    title="File Mode",
-                                    description="The file mode")
+    log_file_mode: FileModes = Field(default=FileModes.a,
+                                     title="File Mode",
+                                     description="The file mode")
     log_file_max_bytes: int = Field(default=1024 * 1024 * 10,
                                     title="Max File Size",
                                     ge=1024,
