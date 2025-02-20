@@ -1,18 +1,19 @@
-import ctypes as _ctypes
-import logging as _logging
-import sys as _sys
-import threading as _threading
-import time as _time
-import traceback as _traceback
-from collections.abc import Callable as _Callable
-from contextlib import contextmanager as _contextmanager
-from datetime import datetime as _datetime
-from typing import Optional as _Optional, Any as _Any, Union as _Union
+import ctypes
+import logging
+import sys
+import threading
+import time
+import traceback
+from collections.abc import Callable
+from contextlib import contextmanager
+from datetime import datetime
+from typing import Optional, Any, Union
 
-from wiederverwendbar.functions.datetime import local_now as _local_now
+from wiederverwendbar.default import Default
+from wiederverwendbar.functions.datetime import local_now
 
 
-class ThreadInterrupt(_threading.ThreadError):
+class ThreadInterrupt(threading.ThreadError):
     """
     Exception to interrupt a thread.
     """
@@ -20,7 +21,7 @@ class ThreadInterrupt(_threading.ThreadError):
     ...
 
 
-class ThreadLoopContinue(_threading.ThreadError):
+class ThreadLoopContinue(threading.ThreadError):
     """
     Exception to continue a loop in a thread.
     """
@@ -28,7 +29,7 @@ class ThreadLoopContinue(_threading.ThreadError):
     ...
 
 
-class ThreadStop(_threading.ThreadError):
+class ThreadStop(threading.ThreadError):
     """
     Exception to stop a thread.
     """
@@ -36,7 +37,7 @@ class ThreadStop(_threading.ThreadError):
     ...
 
 
-class ThreadKill(_threading.ThreadError):
+class ThreadKill(threading.ThreadError):
     """
     Exception to kill a thread.
     """
@@ -44,7 +45,7 @@ class ThreadKill(_threading.ThreadError):
     ...
 
 
-class ThreadWatchdogError(_threading.ThreadError):
+class ThreadWatchdogError(threading.ThreadError):
     """
     Exception to indicate an error in the watchdog of a thread.
     """
@@ -52,7 +53,7 @@ class ThreadWatchdogError(_threading.ThreadError):
     ...
 
 
-class ExtendedThread(_threading.Thread):
+class ExtendedThread(threading.Thread):
     """
     Extended thread class with additional features.
 
@@ -71,23 +72,23 @@ class ExtendedThread(_threading.Thread):
 
     def __init__(self,
                  group=None,
-                 target: _Optional[_Callable[..., _Any]] = None,
-                 name: _Optional[str] = None,
-                 args: tuple[_Any, ...] = (),
-                 kwargs: dict[str, _Any] = None,
+                 target: Union[Callable[..., Any], None, Default] = Default(),
+                 name: Union[str, Default] = Default(),
+                 args: Union[tuple[Any, ...], Default] = Default(),
+                 kwargs: Union[dict[str, Any], Default] = Default(),
                  *,
-                 daemon: _Optional[bool] = None,
-                 cls_name: _Optional[str] = None,
-                 logger: _Optional[_logging.Logger] = None,
-                 ignore_stop: _Optional[bool] = None,
-                 loop_disabled: _Optional[bool] = None,
-                 loop_sleep_time: _Optional[float] = None,
-                 loop_stop_on_other_exception: _Optional[bool] = None,
-                 continue_exceptions: _Optional[list[type[BaseException]]] = None,
-                 stop_exceptions: _Optional[list[type[BaseException]]] = None,
-                 kill_exceptions: _Optional[list[type[BaseException]]] = None,
-                 watchdog_target: _Optional[_Callable[["ExtendedThread"], bool]] = None,
-                 auto_start: _Optional[bool] = None):
+                 daemon: Union[bool, None, Default] = Default(),
+                 cls_name: Union[str, Default] = Default(),
+                 logger: Union[logging.Logger, Default] = Default(),
+                 ignore_stop: Union[bool, Default] = Default(),
+                 loop_disabled: Union[bool, Default] = Default(),
+                 loop_sleep_time: Union[float, None, Default] = Default(),
+                 loop_stop_on_other_exception: Union[bool, Default] = Default(),
+                 continue_exceptions: Union[list[type[BaseException]], Default] = Default(),
+                 stop_exceptions: Union[list[type[BaseException]], Default] = Default(),
+                 kill_exceptions: Union[list[type[BaseException]], Default] = Default(),
+                 watchdog_target: Union[Callable[["ExtendedThread"], bool], None, Default] = Default(),
+                 auto_start: Union[bool, Default] = Default()):
         """
         Initialize the extended thread.
 
@@ -110,6 +111,27 @@ class ExtendedThread(_threading.Thread):
         :param auto_start: If the thread should start automatically.
         """
 
+        if type(target) is Default:
+            target = None
+
+        if type(name) is Default:
+            name = getattr(threading, "_newname")(f"{self.__class__.__name__}-%d")
+            if target is not None:
+                try:
+                    target_name = target.__name__
+                    name += f" ({target_name})"
+                except AttributeError:
+                    pass
+
+        if type(args) is Default:
+            args = ()
+
+        if type(kwargs) is Default:
+            kwargs = {}
+
+        if type(daemon) is Default:
+            daemon = None
+
         super().__init__(
             group=group,
             target=target,
@@ -118,75 +140,79 @@ class ExtendedThread(_threading.Thread):
             kwargs=kwargs,
             daemon=daemon
         )
-        self.lock = _threading.Lock()
+        self.lock = threading.Lock()
 
         # set class name
-        if cls_name is None:
+        if type(cls_name) is Default:
             cls_name = self.__class__.__name__
         self._cls_name: str = cls_name
 
         # set logger
-        if logger is None:
+        if type(logger) is Default:
             # create a logger if none is provided
-            logger = _logging.getLogger(self.name)
-        self._logger: _logging.Logger = logger
+            logger = logging.getLogger(self.name)
+        self._logger: logging.Logger = logger
 
         # set ignore stop
-        if ignore_stop is None:
+        if type(ignore_stop) is Default:
             ignore_stop = False
         self._ignore_stop: bool = ignore_stop
 
         # set loop disabled
-        if loop_disabled is None:
+        if type(loop_disabled) is Default:
             loop_disabled = False
         self._loop_disabled: bool = loop_disabled
 
         # set loop delay
-        self._loop_sleep_time: _Optional[float] = loop_sleep_time
+        if type(loop_sleep_time) is Default:
+            loop_sleep_time = None
+        self._loop_sleep_time: Optional[float] = loop_sleep_time
 
         # set loop stop on other exception
-        if loop_stop_on_other_exception is None:
+        if type(loop_stop_on_other_exception) is Default:
             loop_stop_on_other_exception = False
         self._loop_stop_on_other_exception: bool = loop_stop_on_other_exception
 
         # set continue exceptions
-        if continue_exceptions is None:
+        if type(continue_exceptions) is Default:
             continue_exceptions = []
         if ThreadLoopContinue not in continue_exceptions:
             continue_exceptions.append(ThreadLoopContinue)
         self._continue_exceptions: tuple[type[BaseException]] = tuple(continue_exceptions)
 
         # set stop exceptions
-        if stop_exceptions is None:
+        if type(stop_exceptions) is Default:
             stop_exceptions = []
         if ThreadStop not in stop_exceptions:
             stop_exceptions.append(ThreadStop)
         self._stop_exceptions: tuple[type[BaseException]] = tuple(stop_exceptions)
 
         # set kill exceptions
-        if kill_exceptions is None:
+        if type(kill_exceptions) is Default:
             kill_exceptions = []
         if ThreadKill not in kill_exceptions:
             kill_exceptions.append(ThreadKill)
         self._kill_exceptions: tuple[type[BaseException]] = tuple(kill_exceptions)
 
         # set watchdog target
-        self._watchdog_target: _Optional[_Callable[["ExtendedThread"], bool]] = watchdog_target
+        if type(watchdog_target) is Default:
+            watchdog_target = None
+        self._watchdog_target: Optional[Callable[["ExtendedThread"], bool]] = watchdog_target
 
         # set auto start
-        if auto_start is None:
+        if type(auto_start) is Default:
             auto_start = True
         self._auto_start: bool = auto_start
 
         # set internal variables
-        self._started_at: _Optional[_datetime] = None
-        self._ended_at: _Optional[_datetime] = None
-        self._loop_started_at: _Optional[_datetime] = None
-        self._loop_ended_at: _Optional[_datetime] = None
+        self._started_at: Optional[datetime] = None
+        self._ended_at: Optional[datetime] = None
+        self._loop_started_at: Optional[datetime] = None
+        self._loop_ended_at: Optional[datetime] = None
         self._loop_delay: float = 0.0
         self._wait: bool = False
-        self._interrupt_exception: _Optional[BaseException] = None
-        self._watchdog_thread: _Optional[_threading.Thread] = None
+        self._interrupt_exception: Optional[BaseException] = None
+        self._watchdog_thread: Optional[threading.Thread] = None
 
         if self._auto_start:
             self.start()
@@ -196,7 +222,7 @@ class ExtendedThread(_threading.Thread):
             self.stop()
 
     @property
-    def logger(self) -> _logging.Logger:
+    def logger(self) -> logging.Logger:
         """
         Get the logger of the thread.
 
@@ -208,7 +234,7 @@ class ExtendedThread(_threading.Thread):
             return self._logger
 
     @logger.setter
-    def logger(self, value: _logging.Logger):
+    def logger(self, value: logging.Logger):
         """
         Set the logger of the thread.
 
@@ -220,7 +246,7 @@ class ExtendedThread(_threading.Thread):
             self._logger = value
 
     @property
-    def started_at(self) -> _Optional[_datetime]:
+    def started_at(self) -> Optional[datetime]:
         """
         Get the time when the thread was started.
 
@@ -232,7 +258,7 @@ class ExtendedThread(_threading.Thread):
             return self._started_at
 
     @property
-    def loop_started_at(self) -> _Optional[_datetime]:
+    def loop_started_at(self) -> Optional[datetime]:
         """
         Get the time when the loop was started.
 
@@ -244,7 +270,7 @@ class ExtendedThread(_threading.Thread):
             return self._loop_started_at
 
     @property
-    def loop_ended_at(self) -> _Optional[_datetime]:
+    def loop_ended_at(self) -> Optional[datetime]:
         """
         Get the time when the loop was ended.
 
@@ -256,7 +282,7 @@ class ExtendedThread(_threading.Thread):
             return self._loop_ended_at
 
     @property
-    def ended_at(self) -> _Optional[_datetime]:
+    def ended_at(self) -> Optional[datetime]:
         """
         Get the time when the thread was ended.
 
@@ -304,7 +330,7 @@ class ExtendedThread(_threading.Thread):
             return self._loop_disabled
 
     @property
-    def loop_sleep_time(self) -> _Optional[float]:
+    def loop_sleep_time(self) -> Optional[float]:
         """
         Get the loop sleep time.
 
@@ -316,7 +342,7 @@ class ExtendedThread(_threading.Thread):
             return self._loop_sleep_time
 
     @loop_sleep_time.setter
-    def loop_sleep_time(self, value: _Optional[float]):
+    def loop_sleep_time(self, value: Optional[float]):
         """
         Set the loop sleep time.
 
@@ -376,7 +402,7 @@ class ExtendedThread(_threading.Thread):
             return self._wait
 
     @property
-    def sleep_time(self) -> _Optional[float]:
+    def sleep_time(self) -> Optional[float]:
         if self.loop_sleep_time is None:
             return None
         sleep_time = self.loop_sleep_time - self.loop_delay
@@ -385,11 +411,11 @@ class ExtendedThread(_threading.Thread):
         return sleep_time
 
     @property
-    def args(self) -> tuple[tuple[_Any, ...]]:
+    def args(self) -> tuple[tuple[Any, ...]]:
         """
         Get the arguments of the thread.
 
-        :rtype: tuple[tuple[_Any, ...]]
+        :rtype: tuple[tuple[Any, ...]]
         :return: The arguments of the thread.
         """
 
@@ -397,7 +423,7 @@ class ExtendedThread(_threading.Thread):
             return getattr(self, "_args", ())
 
     @args.setter
-    def args(self, value: tuple[_Any, ...]):
+    def args(self, value: tuple[Any, ...]):
         """
         Set the arguments of the thread.
 
@@ -409,11 +435,11 @@ class ExtendedThread(_threading.Thread):
             setattr(self, "_args", value)
 
     @property
-    def kwargs(self) -> dict[str, _Any]:
+    def kwargs(self) -> dict[str, Any]:
         """
         Get the keyword arguments of the thread.
 
-        :rtype: dict[str, _Any]
+        :rtype: dict[str, Any]
         :return: The keyword arguments of the thread.
         """
 
@@ -421,7 +447,7 @@ class ExtendedThread(_threading.Thread):
             return getattr(self, "_kwargs", {})
 
     @kwargs.setter
-    def kwargs(self, value: dict[str, _Any]):
+    def kwargs(self, value: dict[str, Any]):
         """
         Set the keyword arguments of the thread.
 
@@ -433,7 +459,7 @@ class ExtendedThread(_threading.Thread):
             setattr(self, "_kwargs", value)
 
     @property
-    def target(self) -> _Optional[_Callable[..., _Any]]:
+    def target(self) -> Optional[Callable[..., Any]]:
         """
         Get the target of the thread.
 
@@ -444,7 +470,7 @@ class ExtendedThread(_threading.Thread):
         with self.lock:
             return getattr(self, "_target", None)
 
-    @_contextmanager
+    @contextmanager
     def ignore(self) -> None:
         """
         Context manager to ignore the stop.
@@ -458,8 +484,8 @@ class ExtendedThread(_threading.Thread):
         yield
         self.ignore_stop = ignore_stop_before
 
-    @_contextmanager
-    def loop_wait(self, block: bool = True, timeout: _Optional[float] = None) -> None:
+    @contextmanager
+    def loop_wait(self, block: bool = True, timeout: Optional[float] = None) -> None:
         """
         Context manager to wait for the next loop.
 
@@ -475,12 +501,12 @@ class ExtendedThread(_threading.Thread):
         if block:  # wait for next loop
             loop_started_at = self.loop_started_at
             if loop_started_at is not None:
-                block_start_counter = _time.perf_counter()
+                block_start_counter = time.perf_counter()
                 while loop_started_at != self.loop_started_at:
                     if timeout is not None:
-                        if _time.perf_counter() - block_start_counter > timeout:
+                        if time.perf_counter() - block_start_counter > timeout:
                             raise TimeoutError("Timeout while waiting for loop.")
-                    _time.sleep(0.001)
+                    time.sleep(0.001)
         yield
         with self.lock:
             self._wait = loop_wait_before
@@ -498,7 +524,7 @@ class ExtendedThread(_threading.Thread):
         if self._watchdog_thread is not None:
             if self._watchdog_thread.is_alive():
                 return  # watchdog is already running
-        self._watchdog_thread = _threading.Thread(name=f"{self.name}.watchdog", target=self._watchdog_loop, daemon=True)
+        self._watchdog_thread = threading.Thread(name=f"{self.name}.watchdog", target=self._watchdog_loop, daemon=True)
         self._watchdog_thread.start()
 
     def _watchdog_loop(self) -> None:
@@ -512,7 +538,7 @@ class ExtendedThread(_threading.Thread):
         self.logger.debug(f"{self._cls_name} watchdog started.")
 
         while True:
-            watchdog_loop_start_counter = _time.perf_counter()
+            watchdog_loop_start_counter = time.perf_counter()
             try:
                 watchdog_target_result = bool(self._watchdog_target(self))
                 if not watchdog_target_result:
@@ -521,16 +547,16 @@ class ExtendedThread(_threading.Thread):
             except BaseException as e:
                 handle_exception(msg=f"{self._cls_name} watchdog raised an exception", e=e, logger=self.logger, chain=False)
                 self.raise_exception(ThreadWatchdogError)
-            watchdog_loop_delay = _time.perf_counter() - watchdog_loop_start_counter
+            watchdog_loop_delay = time.perf_counter() - watchdog_loop_start_counter
             if self.loop_sleep_time:
-                sleep_start_counter = _time.perf_counter()
-                while _time.perf_counter() - sleep_start_counter < self.loop_sleep_time - watchdog_loop_delay:
-                    _time.sleep(0.001)
+                sleep_start_counter = time.perf_counter()
+                while time.perf_counter() - sleep_start_counter < self.loop_sleep_time - watchdog_loop_delay:
+                    time.sleep(0.001)
 
 
         self.logger.debug(f"{self._cls_name} watchdog ended.")
 
-    def raise_exception(self, exception: _Union[type[BaseException], BaseException]) -> None:
+    def raise_exception(self, exception: Union[type[BaseException], BaseException]) -> None:
         """
         Raises the given exception in the context of this thread.
 
@@ -548,12 +574,12 @@ class ExtendedThread(_threading.Thread):
         else:
             raise TypeError("Only types or object derived from BaseException can be raised")
 
-        res = _ctypes.pythonapi.PyThreadState_SetAsyncExc(_ctypes.c_long(self.ident), _ctypes.py_object(exception))
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(self.ident), ctypes.py_object(exception))
         if res == 0:
             raise ValueError("invalid thread id")
         elif res != 1:
             # if it returns a number greater than one, you're in trouble, and you should call it again with exc=None to revert the effect
-            _ctypes.pythonapi.PyThreadState_SetAsyncExc(_ctypes.c_long(self.ident), None)
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(self.ident), None)
             raise SystemError("PyThreadState_SetAsyncExc failed")
 
     def stop(self) -> None:
@@ -587,7 +613,7 @@ class ExtendedThread(_threading.Thread):
         self.on_start()
 
         with self.lock:
-            self._started_at = _local_now()
+            self._started_at = local_now()
 
         self.logger.info(f"{self._cls_name} started.")
 
@@ -599,8 +625,8 @@ class ExtendedThread(_threading.Thread):
                 try:
                     # get loop start time
                     with self.lock:
-                        self._loop_started_at = _local_now()
-                    loop_start_counter = _time.perf_counter()
+                        self._loop_started_at = local_now()
+                    loop_start_counter = time.perf_counter()
 
                     self.logger.debug(f"{self._cls_name} is running loop.")
 
@@ -608,7 +634,7 @@ class ExtendedThread(_threading.Thread):
                     if self.wait:
                         self.logger.debug(f"{self._cls_name} loop is waiting.")
                         while self.wait:
-                            _time.sleep(0.001)
+                            time.sleep(0.001)
                         self.logger.debug(f"{self._cls_name} loop is continuing.")
 
                     # execute loop start
@@ -622,18 +648,20 @@ class ExtendedThread(_threading.Thread):
 
                     with self.lock:
                         # set loop end time
-                        self._loop_ended_at = _local_now()
+                        self._loop_ended_at = local_now()
 
                         # set loop delay
-                        self._loop_delay = _time.perf_counter() - loop_start_counter
+                        self._loop_delay = time.perf_counter() - loop_start_counter
 
                     # sleep if necessary
                     if not self.loop_disabled:
                         if self.sleep_time:
                             self.logger.debug(f"{self._cls_name} loop is sleeping for {self.sleep_time} seconds.")
-                            sleep_start_counter = _time.perf_counter()
-                            while _time.perf_counter() - sleep_start_counter < self.sleep_time:
-                                _time.sleep(0.001)
+                            sleep_start_counter = time.perf_counter()
+                            while time.perf_counter() - sleep_start_counter < self.sleep_time:
+                                time.sleep(0.001)
+                    else:
+                        break
                 except ThreadInterrupt:
                     if self._interrupt_exception is None:
                         raise RuntimeError("ThreadInterrupt was raised but no exception was set.")
@@ -667,7 +695,7 @@ class ExtendedThread(_threading.Thread):
         self.on_end()
 
         with self.lock:
-            self._ended_at = _local_now()
+            self._ended_at = local_now()
 
         self.logger.info(f"{self._cls_name} ended.")
 
@@ -739,7 +767,7 @@ class ExtendedThread(_threading.Thread):
         self.target(*self.args, **self.kwargs)
 
 
-def handle_exception(msg: str, e: BaseException, logger: _logging.Logger, chain: bool = True) -> str:
+def handle_exception(msg: str, e: BaseException, logger: logging.Logger, chain: bool = True) -> str:
     """
     Handle an exception.
 
@@ -751,8 +779,8 @@ def handle_exception(msg: str, e: BaseException, logger: _logging.Logger, chain:
     :return: The exception message.
     """
 
-    tb_str = "".join(_traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__, chain=chain)).strip()
+    tb_str = "".join(traceback.format_exception(type(e), value=e, tb=e.__traceback__, chain=chain)).strip()
     msg += f":\n{tb_str}"
     logger.error(msg)
-    print(msg, file=_sys.stderr)
+    print(msg, file=sys.stderr)
     return msg
