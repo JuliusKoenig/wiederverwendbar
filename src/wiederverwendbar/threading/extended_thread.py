@@ -197,7 +197,7 @@ class ExtendedThread(threading.Thread):
         # set watchdog target
         if type(watchdog_target) is Default:
             watchdog_target = None
-        self._watchdog_target: Optional[Callable[["ExtendedThread"], bool]] = watchdog_target
+        self._watchdog_target: Optional[Callable[[Union["ExtendedThread", Any]], bool]] = watchdog_target
 
         # set auto start
         if type(auto_start) is Default:
