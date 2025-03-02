@@ -1,19 +1,38 @@
+from enum import Enum
 from typing import Any
 
-from sqlalchemy import Integer, TypeDecorator, String
-from sqlalchemy.dialects.mysql.enumerated import ENUM
+from sqlalchemy import TypeDecorator, Integer, String, Text
 
 
-class EnumValue(ENUM):
-    def _parse_into_values(self, enums, kw):
-        values, objects = super()._parse_into_values(enums=enums, kw=kw)
-        values: list[str]
-        for enum in self.enum_class.__members__.values():
-            for i, value in enumerate(values):
-                if value == enum.name:
-                    # noinspection PyTypeChecker
-                    values[i] = enum.value
-        return values, objects
+class _EnumValue(TypeDecorator):
+    """
+    Enables passing in a Python enum and storing the enum's *value* in the db.
+    The default would have stored the enum's *name* (ie the string).
+    """
+
+    # impl = Integer
+    cache_ok = True
+
+    def __init__(self, enum_type, *args, **kwargs):
+        super(_EnumValue, self).__init__(*args, **kwargs)
+        self._enum_type = enum_type
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, Enum):
+            return value.value
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return self._enum_type(value)
+
+
+class EnumValueStr(_EnumValue):
+    impl = Text
+
+class EnumValueInt(_EnumValue):
+    impl = Integer
 
 
 class StringBool(TypeDecorator):
