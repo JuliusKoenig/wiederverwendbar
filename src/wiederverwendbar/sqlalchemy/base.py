@@ -2,7 +2,7 @@ from typing import Any, Optional, Callable, Union, TYPE_CHECKING
 
 from sqlalchemy import inspect
 from sqlalchemy.sql import ColumnExpressionArgument
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, QueryableAttribute, InstrumentedAttribute
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from wiederverwendbar.default import Default
@@ -279,6 +279,8 @@ class Base:
     @classmethod
     def get_all(cls,
                 *criterion: Union[ColumnExpressionArgument[bool], bool],
+                order_by: Union[str, QueryableAttribute, None] = None,
+                order_desc: bool = False,
                 rows_per_page: Optional[int] = None,
                 page: int = 1,
                 fill_empty: bool = False,
@@ -287,6 +289,15 @@ class Base:
                 session: Optional[Session] = None,
                 **kwargs: Any) -> list[Union["Base", None, dict[str, Any]]]:
         session_created, session = cls.session(session=session)
+
+        # get order by
+        if order_by is not None:
+            if type(order_by) is str:
+                order_by = getattr(cls, order_by)
+            if not isinstance(order_by, QueryableAttribute):
+                raise AttributeError(f"Attribute 'order_by' must be a instance of QueryableAttribute, not {type(order_by)}")
+            if order_desc:
+                order_by = order_by.desc()
 
         if rows_per_page is not None:
             # get length
@@ -307,9 +318,9 @@ class Base:
 
             # get rows
             if criterion:
-                lst_partial: list[Any] = session.query(cls).filter(*criterion, **kwargs).limit(rows_per_page).offset(offset).all()
+                lst_partial: list[Any] = session.query(cls).filter(*criterion, **kwargs).order_by(order_by).limit(rows_per_page).offset(offset).all()
             else:
-                lst_partial: list[Any] = session.query(cls).filter_by(**kwargs).limit(rows_per_page).offset(offset).all()
+                lst_partial: list[Any] = session.query(cls).filter_by(**kwargs).order_by(order_by).limit(rows_per_page).offset(offset).all()
 
             for row in lst_partial:
                 lst.append(row.as_dict(dict_columns=dict_columns) if as_dict else row)
@@ -324,9 +335,9 @@ class Base:
                         lst.append(None)
         else:
             if criterion:
-                lst: list[Any] = session.query(cls).filter(*criterion, **kwargs).all()
+                lst: list[Any] = session.query(cls).order_by(order_by).filter(*criterion, **kwargs).all()
             else:
-                lst: list[Any] = session.query(cls).filter_by(**kwargs).all()
+                lst: list[Any] = session.query(cls).order_by(order_by).filter_by(**kwargs).all()
             if as_dict:
                 lst = [row.as_dict(dict_columns=dict_columns) for row in lst]
 
