@@ -10,9 +10,6 @@ class _EnumValue(TypeDecorator):
     The default would have stored the enum's *name* (ie the string).
     """
 
-    # impl = Integer
-    cache_ok = True
-
     def __init__(self, enum_type, *args, **kwargs):
         super(_EnumValue, self).__init__(*args, **kwargs)
         self._enum_type = enum_type
@@ -30,9 +27,12 @@ class _EnumValue(TypeDecorator):
 
 class EnumValueStr(_EnumValue):
     impl = Text
+    cache_ok = True
+
 
 class EnumValueInt(_EnumValue):
     impl = Integer
+    cache_ok = True
 
 
 class StringBool(TypeDecorator):
