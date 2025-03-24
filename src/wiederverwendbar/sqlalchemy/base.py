@@ -361,7 +361,7 @@ class Base:
 
         if as_dict:
             if obj is None:
-                obj = {}
+                obj = None
             else:
                 obj = obj.as_dict(dict_columns=dict_columns)
 
