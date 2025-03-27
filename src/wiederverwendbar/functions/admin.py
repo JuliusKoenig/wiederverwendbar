@@ -2,6 +2,7 @@ import ctypes
 import logging
 import os
 from functools import wraps
+from types import FunctionType
 
 logger = logging.getLogger(__name__)
 
@@ -29,25 +30,28 @@ def is_admin() -> bool:
     return _is_admin
 
 
-def require_admin():
-    def decorator(func):
+def require_admin(func_or_object):
+    """
+    Decorator to require admin rights
+    """
+
+    @wraps(func_or_object)
+    def wrapper(*args, **kwargs):
         """
-        Decorator to require admin rights
+        Wrapper function
         """
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            """
-            Wrapper function
-            """
+        # check if callable
+        if not callable(func_or_object):
+            raise TypeError(f"{func_or_object.__name__} is not callable.")
 
-            # check if is admin
-            if not is_admin():
-                logger.error(f"Function '{func.__name__}' requires admin rights.")
-                raise NoAdminPrivilegesError(f"Function '{func.__name__}' requires admin rights.")
+        # check if is admin
+        if not is_admin():
+            type_str = "Function" if isinstance(func_or_object, FunctionType) else "Object"
+            error_msg = f"{type_str} '{func_or_object.__name__}' requires admin rights."
+            logger.error(error_msg)
+            raise NoAdminPrivilegesError(error_msg)
 
-            return func(*args, **kwargs)
+        return func_or_object(*args, **kwargs)
 
-        return wrapper
-
-    return decorator
+    return wrapper
