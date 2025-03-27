@@ -148,6 +148,18 @@ class ActionManager {
         });
     }
 
+    makeKey(length) {
+        let result = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        let counter = 0;
+        while (counter < length) {
+            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            counter += 1;
+        }
+        return result;
+    }
+
     /**
      * Submit an action to the server.
      * @param {string} actionName - The name of the action.
@@ -164,7 +176,7 @@ class ActionManager {
         }
 
         // generate actionLogKey
-        let actionLogKey = window.crypto.randomUUID();
+        let actionLogKey = this.makeKey(32);
 
         // init actionLogClient
         this.actionLogClient = new WebSocket("ws://" + window.location.host + "/" + window.location.pathname.split("/")[1] + "/ws/action_log/" + actionLogKey);

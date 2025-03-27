@@ -364,7 +364,7 @@ class ActionSubLogger(logging.Logger):
         # set log level
         if log_level is None:
             log_level = self._action_logger.log_level
-        self.setLevel(log_level.value)
+        self.setLevel(log_level)
 
         # set formatter
         if formatter is None:
