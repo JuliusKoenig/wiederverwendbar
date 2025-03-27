@@ -2,9 +2,12 @@ import ctypes
 import logging
 import os
 from functools import wraps
-from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+class NoAdminPrivilegesError(RuntimeError):
+    ...
 
 
 def is_admin() -> bool:
@@ -26,7 +29,7 @@ def is_admin() -> bool:
     return _is_admin
 
 
-def require_admin(show_window: Optional[int] = None):
+def require_admin():
     def decorator(func):
         """
         Decorator to require admin rights
@@ -40,8 +43,8 @@ def require_admin(show_window: Optional[int] = None):
 
             # check if is admin
             if not is_admin():
-                logger.error("This function requires admin rights.")
-                raise SystemExit(1)
+                logger.error(f"Function '{func.__name__}' requires admin rights.")
+                raise NoAdminPrivilegesError(f"Function '{func.__name__}' requires admin rights.")
 
             return func(*args, **kwargs)
 
