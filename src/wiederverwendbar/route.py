@@ -173,7 +173,7 @@ class RouteManager:
         :return: List of Route objects
         """
 
-        logger.info("List all IPv4 routes on Windows.")
+        logger.info("List all IPv4 routes.")
 
         if self._mode == "windows":
             routes = self._windows_get_all()
