@@ -99,6 +99,38 @@ class RouteManager:
         :return: List of Route objects
         """
 
+        # get addresses
+        # parse cmd
+        cmd = ["ip", "-4", "address", "show"]
+        success, stdout, stderr = run_command(cmd=cmd)
+        if not success:
+            raise RuntimeError(f"Failed to run command: {' '.join(cmd)}\n"
+                               f"stdout: {stdout}\n"
+                               f"stderr: {stderr}")
+        raw_addresses = stdout
+
+        # parse addresses
+        addresses: dict[str, IPv4Address] = {}
+        name = None
+        for raw_address in raw_addresses:
+            address_list = raw_address.split()
+            if len(address_list) == 0:
+                continue
+            if name is None:
+                if not address_list[0].replace(":", "").isdigit():
+                    continue
+                name = address_list[1].replace(":", "")
+                if name in addresses:
+                    raise RuntimeError(f"Duplicate interface name: {name}")
+            else:
+                if address_list[0] != "inet":
+                    continue
+                addresses[name] = IPv4Address(address_list[1][:address_list[1].index("/")])
+                name = None
+        if name is not None:
+            raise RuntimeError(f"Address for interface '{name}' not found.")
+
+        # get routes
         # parse cmd
         cmd = ["ip", "-4", "route", "list"]
         success, stdout, stderr = run_command(cmd=cmd)
@@ -106,10 +138,11 @@ class RouteManager:
             raise RuntimeError(f"Failed to run command: {' '.join(cmd)}\n"
                                f"stdout: {stdout}\n"
                                f"stderr: {stderr}")
+        raw_routes = stdout
 
         # parse routes
         routes: list[Route] = []
-        for raw_route in stdout:
+        for raw_route in raw_routes:
             route_list = raw_route.split()
 
             # parse target
@@ -120,17 +153,14 @@ class RouteManager:
             target = IPv4Network(target_str)
 
             # parse gateway
-            try:
+            if route_list[1] == "via":
                 gateway = IPv4Address(route_list[2])
-            except AddressValueError:
-                # find src
-                src_index = 3
-                while src_index < len(route_list):
-                    if route_list[src_index] == "src":
-                        break
-                    src_index += 1
-                # take interface address as gateway
-                gateway = IPv4Address(route_list[src_index + 1])
+            elif route_list[1] == "dev":
+                if route_list[2] not in addresses:
+                    raise RuntimeError(f"Unknown interface name: {route_list[2]}")
+                gateway = addresses[route_list[2]]
+            else:
+                raise RuntimeError(f"Unknown gateway type: {route_list[1]}")
 
             route = Route(target=target, gateway=gateway)
             routes.append(route)
