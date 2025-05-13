@@ -5,10 +5,6 @@ from typing import Union, Optional
 from wiederverwendbar.logger.helper import remove_logger
 from wiederverwendbar.logger.singleton import SubLogger
 
-# get module lock
-_acquireLock = getattr(logging, "_acquireLock")
-_releaseLock = getattr(logging, "_releaseLock")
-
 
 class LoggingContext:
     class WrappedHandle:
@@ -257,46 +253,39 @@ class LoggingContext:
             self.update_one(logger)
 
     def update_one(self, logger: logging.Logger):
-        try:
-            # get module lock
-            _acquireLock()
+        wrapped_loggers = list(self._wrapped_loggers)
 
-            wrapped_loggers = list(self._wrapped_loggers)
+        # use logger's level
+        saved_level = logger.level
+        if self._use_context_logger_level or (self._use_context_logger_level_on_not_set and logger.level == logging.NOTSET):
+            logger.setLevel(self.context_logger.level)
 
-            # use logger's level
-            saved_level = logger.level
-            if self._use_context_logger_level or (self._use_context_logger_level_on_not_set and logger.level == logging.NOTSET):
-                logger.setLevel(self.context_logger.level)
+        # get logger's handle method
+        logger_handle = getattr(logger, "handle")
 
-            # get logger's handle method
-            logger_handle = getattr(logger, "handle")
+        # check if already wrapped
+        if hasattr(logger_handle, "saved_handle_method"):
+            wrapped_handle: LoggingContext.WrappedHandle = logger_handle
+            logger_handle = None
+        else:
+            wrapped_handle: LoggingContext.WrappedHandle = LoggingContext.WrappedHandle(logger_handle, saved_level)
 
-            # check if already wrapped
-            if hasattr(logger_handle, "saved_handle_method"):
-                wrapped_handle: LoggingContext.WrappedHandle = logger_handle
-                logger_handle = None
-            else:
-                wrapped_handle: LoggingContext.WrappedHandle = LoggingContext.WrappedHandle(logger_handle, saved_level)
+        # append context to wrapped_handle
+        if self in wrapped_handle.contexts:
+            return
 
-            # append context to wrapped_handle
-            if self in wrapped_handle.contexts:
-                return
+        wrapped_handle.contexts.append(self)
+        wrapped_loggers.append(logger)
 
-            wrapped_handle.contexts.append(self)
-            wrapped_loggers.append(logger)
-
-            # overwrite logger's handle method
-            if logger_handle is not None:
-                if isinstance(logger, SubLogger):
-                    with logger.reconfigure():
-                        setattr(logger, "handle", type(logger_handle)(wrapped_handle, logger))
-                else:
+        # overwrite logger's handle method
+        if logger_handle is not None:
+            if isinstance(logger, SubLogger):
+                with logger.reconfigure():
                     setattr(logger, "handle", type(logger_handle)(wrapped_handle, logger))
+            else:
+                setattr(logger, "handle", type(logger_handle)(wrapped_handle, logger))
 
-            self._wrapped_loggers = tuple(wrapped_loggers)
-        finally:
-            # release module lock
-            _releaseLock()
+        self._wrapped_loggers = tuple(wrapped_loggers)
 
     def restore(self) -> None:
         """
@@ -311,39 +300,32 @@ class LoggingContext:
             self._wrapped_loggers = self._wrapped_loggers[1:]
 
     def restore_one(self, logger: logging.Logger) -> None:
-        try:
-            # get module lock
-            _acquireLock()
+        # get logger's handle method
+        wrapped_handle: LoggingContext.WrappedHandle = getattr(logger, "handle")
 
-            # get logger's handle method
-            wrapped_handle: LoggingContext.WrappedHandle = getattr(logger, "handle")
+        # raise error if not wrapped
+        if not hasattr(wrapped_handle, "saved_handle_method"):
+            raise RuntimeError(f"{logger} is not wrapped")
 
-            # raise error if not wrapped
-            if not hasattr(wrapped_handle, "saved_handle_method"):
-                raise RuntimeError(f"{logger} is not wrapped")
+        # raise error if context not in contexts
+        if self not in wrapped_handle.contexts:
+            raise RuntimeError(f"{self} is not in contexts")
 
-            # raise error if context not in contexts
-            if self not in wrapped_handle.contexts:
-                raise RuntimeError(f"{self} is not in contexts")
+        # remove context from wrapped_handle
+        wrapped_handle.contexts.remove(self)
 
-            # remove context from wrapped_handle
-            wrapped_handle.contexts.remove(self)
+        if len(wrapped_handle.contexts) == 0:
+            # restore logger's level
+            if self._use_context_logger_level or self._use_context_logger_level_on_not_set:
+                logger.setLevel(wrapped_handle.saved_level)
 
-            if len(wrapped_handle.contexts) == 0:
-                # restore logger's level
-                if self._use_context_logger_level or self._use_context_logger_level_on_not_set:
-                    logger.setLevel(wrapped_handle.saved_level)
-
-                # restore logger's handle method
-                if isinstance(logger, SubLogger):
-                    with logger.reconfigure():
-                        setattr(logger, "handle", wrapped_handle.saved_handle_method)
-                else:
+            # restore logger's handle method
+            if isinstance(logger, SubLogger):
+                with logger.reconfigure():
                     setattr(logger, "handle", wrapped_handle.saved_handle_method)
+            else:
+                setattr(logger, "handle", wrapped_handle.saved_handle_method)
 
-            # delete created_context_logger
-            if getattr(logger, "created_context_logger", False):
-                remove_logger(logger)
-        finally:
-            # release module lock
-            _releaseLock()
+        # delete created_context_logger
+        if getattr(logger, "created_context_logger", False):
+            remove_logger(logger)
