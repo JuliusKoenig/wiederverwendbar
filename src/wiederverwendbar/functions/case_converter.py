@@ -147,8 +147,3 @@ def pathcase(s: str) -> str:
     """
 
     return "/".join([word.lower() for word in split(s=s, word_chars=string.ascii_letters + string.digits)])
-
-
-if __name__ == '__main__':
-    c = pathcase("te-st test")
-    print(c)
