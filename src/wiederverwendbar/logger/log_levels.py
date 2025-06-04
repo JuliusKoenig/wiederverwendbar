@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 
 
@@ -12,3 +13,7 @@ class LogLevels(str, Enum):
     WARNING = "WARNING"
     INFO = "INFO"
     DEBUG = "DEBUG"
+
+    @property
+    def logging_level(self) -> int:
+        return getattr(logging, self.value)
