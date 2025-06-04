@@ -34,3 +34,6 @@ class SqlalchemySettings(PrintableSettings):
     db_echo: bool = Field(default=False,
                           title="Database echo.",
                           description="Echo SQL queries to console")
+    db_sqlite_handle_foreign_keys: bool = Field(default=True,
+                                                title="Database SQLite Handle Foreign Keys",
+                                                description="Handle foreign keys in SQLite")

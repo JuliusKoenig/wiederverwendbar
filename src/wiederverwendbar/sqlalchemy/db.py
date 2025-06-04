@@ -1,10 +1,11 @@
 import inspect
 import logging
+import sqlite3
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Any, Optional, Union, Sequence
+from typing import Any, Optional, Union, Sequence, Callable
 
-from sqlalchemy import create_engine, Table
+from sqlalchemy import create_engine, Table, event
 from sqlalchemy.orm import sessionmaker, declarative_base, DeclarativeMeta as _DeclarativeMeta, Session
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -41,6 +42,7 @@ class SqlalchemyDb:
                  username: Optional[str] = None,
                  password: Optional[str] = None,
                  echo: Optional[bool] = None,
+                 sqlite_handle_foreign_keys: bool = True,
                  settings: Optional[SqlalchemySettings] = None):
         """
         Create a new Sqlalchemy Database
@@ -52,28 +54,72 @@ class SqlalchemyDb:
         :param username: User to connect to database
         :param password: Password to connect to database
         :param echo: Echo SQL queries to console
+        :param sqlite_handle_foreign_keys: Enable SQLite Foreign Keys
         :param settings: Sqlalchemy Settings
         """
 
-        self.settings: SqlalchemySettings = settings or SqlalchemySettings()
-        self.file: Optional[Path] = file or self.settings.db_file
-        self.host: Union[IPv4Address, str, None] = host or self.settings.db_host
-        self.port: Optional[int] = port or self.settings.db_port
-        self.protocol: Optional[str] = protocol or self.settings.db_protocol
-        self.name: Optional[str] = name or self.settings.db_name
-        self.username: Optional[str] = username or self.settings.db_username
-        self.password: Optional[str] = password or self.settings.db_password
-        self.echo: bool = echo or self.settings.db_echo
+        self._settings: SqlalchemySettings = settings or SqlalchemySettings()
+        self._file: Optional[Path] = file or self.settings.db_file
+        self._host: Union[IPv4Address, str, None] = host or self.settings.db_host
+        self._port: Optional[int] = port or self.settings.db_port
+        self._protocol: Optional[str] = protocol or self.settings.db_protocol
+        self._name: Optional[str] = name or self.settings.db_name
+        self._username: Optional[str] = username or self.settings.db_username
+        self._password: Optional[str] = password or self.settings.db_password
+        self._echo: bool = echo or self.settings.db_echo
+        self._sqlite_handle_foreign_keys: bool = sqlite_handle_foreign_keys or self.settings.db_sqlite_handle_foreign_keys
 
         logger.debug(f"Create {self}")
 
         self.engine = create_engine(self.connection_string, echo=self.echo)
+        if self.protocol == "sqlite" and self.sqlite_handle_foreign_keys:
+            self.listen("connect", self._sqlite_set_handle_foreign_keys)
         self.session_maker = sessionmaker(bind=self.engine)
         self.Base: DeclarativeMeta = declarative_base(metaclass=DeclarativeMeta)
         self.session_maker.configure(binds={self.Base: self.engine})
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.connection_string_printable})"
+
+    @property
+    def settings(self) -> SqlalchemySettings:
+        return self._settings
+
+    @property
+    def file(self) -> Optional[Path]:
+        return self._file
+
+    @property
+    def host(self) -> Union[IPv4Address, str, None]:
+        return self._host
+
+    @property
+    def port(self) -> Optional[int]:
+        return self._port
+
+    @property
+    def protocol(self) -> Optional[str]:
+        return self._protocol
+
+    @property
+    def name(self) -> Optional[str]:
+        return self._name
+
+    @property
+    def username(self) -> Optional[str]:
+        return self._username
+
+    @property
+    def password(self) -> Optional[str]:
+        return self._password
+
+    @property
+    def echo(self) -> bool:
+        return self._echo
+
+    @property
+    def sqlite_handle_foreign_keys(self) -> bool:
+        return self._sqlite_handle_foreign_keys
 
     def get_connection_string(self, printable: bool = False) -> str:
         """
@@ -150,3 +196,45 @@ class SqlalchemyDb:
 
         logger.debug(f"Create Session for {self}")
         return self.session_maker()
+
+    def listen(self,
+               identifier: str,
+               func: Callable[..., Any],
+               *args: Any,
+               **kwargs: Any) -> None:
+        """
+        Register a listener function for the engine.
+
+        :param identifier: String name of the event.
+        :param func: Callable function.
+        :return: None
+
+        .. Seealso::
+            sqlalchemy.event.api.listen for more.
+        """
+
+        event.listen(self.engine, identifier, func, *args, **kwargs)
+
+    def listens_for(self,
+                    identifier: str,
+                    *args: Any,
+                    **kw: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorate a function as a listener for the engine.
+
+        :param identifier: String name of the event.
+        :return: Callable[[Callable[..., Any]], Callable[..., Any]]
+
+        .. Seealso::
+            sqlalchemy.event.api.listens_for for more.
+        """
+
+        return event.listens_for(self.engine, identifier, *args, **kw)
+
+    @classmethod
+    def _sqlite_set_handle_foreign_keys(cls, connection, _connection_record):
+        if not isinstance(connection, sqlite3.Connection):
+            raise RuntimeError(f"Connection is not a sqlite3.Connection: {connection}")
+        cursor = connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
