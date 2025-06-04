@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Optional, Callable, Union, TYPE_CHECKING
 
 from sqlalchemy import inspect
@@ -141,7 +142,17 @@ class Base:
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.__class__.__name__}({', '.join([f'{column_name}={getattr(self, column_name)}' for column_name in self.__str_columns__])})"
+        out = f"{self.__class__.__name__}("
+        for attr_name in self.__str_columns__:
+            if not hasattr(self, attr_name):
+                warnings.warn(f"Attribute '{attr_name}' is not set for {self}.")
+            out += f"{attr_name}="
+            if type(getattr(self, attr_name)) is str:
+                out += f"'{getattr(self, attr_name)}', "
+            else:
+                out += f"{getattr(self, attr_name)}, "
+        out = out[:-2] + ")"
+        return out
 
     def __repr__(self):
         return self.__str__()
