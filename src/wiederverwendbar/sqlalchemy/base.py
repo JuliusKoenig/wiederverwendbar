@@ -2,7 +2,7 @@ from typing import Any, Optional, Callable, Union, TYPE_CHECKING
 
 from sqlalchemy import inspect
 from sqlalchemy.sql import ColumnExpressionArgument
-from sqlalchemy.orm import Session, QueryableAttribute, InstrumentedAttribute
+from sqlalchemy.orm import Session, QueryableAttribute
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from wiederverwendbar.default import Default
