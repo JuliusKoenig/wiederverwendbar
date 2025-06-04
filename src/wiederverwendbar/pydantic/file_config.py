@@ -21,6 +21,7 @@ class FileConfig(BaseModel):
             file_path = Path(file_path)
             if file_path.suffix == "":
                 file_path = file_path.with_suffix(file_postfix)
+        file_path = file_path.absolute()
 
         # read data from file
         if file_path.is_file():
