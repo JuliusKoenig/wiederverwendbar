@@ -145,9 +145,14 @@ class Base:
     def __str__(self):
         out = f"{self.__class__.__name__}("
         for attr_name in self.__str_columns__:
+            if type(attr_name) is tuple:
+                attr_view_name = attr_name[0]
+                attr_name = attr_name[1]
+            else:
+                attr_view_name = attr_name
             if not hasattr(self, attr_name):
                 warnings.warn(f"Attribute '{attr_name}' is not set for {self}.")
-            out += f"{attr_name}={get_pretty_str(getattr(self, attr_name))}, "
+            out += f"{attr_view_name}={get_pretty_str(getattr(self, attr_name))}, "
         out = out[:-2] + ")"
         return out
 
