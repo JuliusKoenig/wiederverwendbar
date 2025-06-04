@@ -34,6 +34,12 @@ class SqlalchemySettings(PrintableSettings):
     db_echo: bool = Field(default=False,
                           title="Database echo.",
                           description="Echo SQL queries to console")
+    db_test_on_startup: bool = Field(default=True,
+                                 title="Test Database on Startup",
+                                 description="Test database connection on startup")
+    db_sqlite_check_if_file_exist: bool = Field(default=True,
+                                                title="Database SQLite Check If File Exist",
+                                                description="Check if file exists in SQLite")
     db_sqlite_handle_foreign_keys: bool = Field(default=True,
                                                 title="Database SQLite Handle Foreign Keys",
                                                 description="Handle foreign keys in SQLite")

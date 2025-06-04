@@ -42,7 +42,9 @@ class SqlalchemyDb:
                  username: Optional[str] = None,
                  password: Optional[str] = None,
                  echo: Optional[bool] = None,
-                 sqlite_handle_foreign_keys: bool = True,
+                 test_on_startup: Optional[bool] = None,
+                 sqlite_check_if_file_exist: Optional[bool] = None,
+                 sqlite_handle_foreign_keys: Optional[bool] = None,
                  settings: Optional[SqlalchemySettings] = None):
         """
         Create a new Sqlalchemy Database
@@ -54,6 +56,8 @@ class SqlalchemyDb:
         :param username: User to connect to database
         :param password: Password to connect to database
         :param echo: Echo SQL queries to console
+        :param test_on_startup: Test the database connection on startup.
+        :param sqlite_check_if_file_exist: Check if SQLite file exists before connecting to it.
         :param sqlite_handle_foreign_keys: Enable SQLite Foreign Keys
         :param settings: Sqlalchemy Settings
         """
@@ -67,16 +71,24 @@ class SqlalchemyDb:
         self._username: Optional[str] = username or self.settings.db_username
         self._password: Optional[str] = password or self.settings.db_password
         self._echo: bool = echo or self.settings.db_echo
+        self._test_on_startup: bool = test_on_startup or self.settings.db_test_on_startup
+        self._sqlite_check_if_file_exist: bool = sqlite_check_if_file_exist or self.settings.db_sqlite_check_if_file_exist
         self._sqlite_handle_foreign_keys: bool = sqlite_handle_foreign_keys or self.settings.db_sqlite_handle_foreign_keys
 
         logger.debug(f"Create {self}")
 
         self.engine = create_engine(self.connection_string, echo=self.echo)
-        if self.protocol == "sqlite" and self.sqlite_handle_foreign_keys:
-            self.listen("connect", self._sqlite_set_handle_foreign_keys)
-        self.session_maker = sessionmaker(bind=self.engine)
-        self.Base: DeclarativeMeta = declarative_base(metaclass=DeclarativeMeta)
-        self.session_maker.configure(binds={self.Base: self.engine})
+        if self.protocol == "sqlite":
+            if self.sqlite_check_if_file_exist:
+                self.listen("connect", self._sqlite_check_if_file_exist_func)
+            if self.sqlite_handle_foreign_keys:
+                self.listen("connect", self._sqlite_handle_foreign_keys_func)
+        self._session_maker = sessionmaker(bind=self.engine)
+        self._Base: DeclarativeMeta = declarative_base(metaclass=DeclarativeMeta)
+        self.session_maker.configure(binds={self._Base: self.engine})
+
+        if self.test_on_startup:
+            self.test()
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.connection_string_printable})"
@@ -118,8 +130,25 @@ class SqlalchemyDb:
         return self._echo
 
     @property
+    def test_on_startup(self) -> bool:
+        return self._test_on_startup
+
+    @property
+    def sqlite_check_if_file_exist(self) -> bool:
+        return self._sqlite_check_if_file_exist
+
+    @property
     def sqlite_handle_foreign_keys(self) -> bool:
         return self._sqlite_handle_foreign_keys
+
+    @property
+    def session_maker(self) -> sessionmaker:
+        return self._session_maker
+
+    # noinspection PyPep8Naming
+    @property
+    def Base(self) -> Any:
+        return self._Base
 
     def get_connection_string(self, printable: bool = False) -> str:
         """
@@ -172,6 +201,10 @@ class SqlalchemyDb:
         """
 
         return self.get_connection_string(printable=True)
+
+    def test(self):
+        self.engine.connect()
+        print()
 
     def create_all(self,
                    tables: Optional[Sequence[Table]] = None,
@@ -231,8 +264,13 @@ class SqlalchemyDb:
 
         return event.listens_for(self.engine, identifier, *args, **kw)
 
-    @classmethod
-    def _sqlite_set_handle_foreign_keys(cls, connection, _connection_record):
+    def _sqlite_check_if_file_exist_func(self, connection, _connection_record):
+        if self.file is not None:
+            if not self.file.is_file():
+                raise FileNotFoundError(f"Database file does not exist: {self.file}")
+
+    # noinspection PyMethodMayBeStatic
+    def _sqlite_handle_foreign_keys_func(self, connection, _connection_record):
         if not isinstance(connection, sqlite3.Connection):
             raise RuntimeError(f"Connection is not a sqlite3.Connection: {connection}")
         cursor = connection.cursor()
