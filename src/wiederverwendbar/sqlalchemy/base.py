@@ -399,3 +399,19 @@ class Base:
         session.commit()
 
         self.session_close(session_created=session_created, session=session)
+
+    @classmethod
+    def delete_all(cls,
+                   *criterion: Union[ColumnExpressionArgument[bool], bool],
+                   session: Optional[Session] = None,
+                   **kwargs: Any) -> None:
+        session_created, session = cls.session(session=session)
+
+        # delete rows
+        if criterion:
+            session.query(cls).filter(*criterion, **kwargs).delete()
+        else:
+            session.query(cls).filter_by(**kwargs).delete()
+        session.commit()
+
+        cls.session_close(session_created=session_created, session=session)
