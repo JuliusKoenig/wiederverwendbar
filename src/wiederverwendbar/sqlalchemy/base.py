@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, QueryableAttribute
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from wiederverwendbar.default import Default
+from wiederverwendbar.functions.get_pretty_str import get_pretty_str
 from wiederverwendbar.sqlalchemy.raise_has_not_attr import raise_has_not_attr
 
 if TYPE_CHECKING:
@@ -146,11 +147,7 @@ class Base:
         for attr_name in self.__str_columns__:
             if not hasattr(self, attr_name):
                 warnings.warn(f"Attribute '{attr_name}' is not set for {self}.")
-            out += f"{attr_name}="
-            if type(getattr(self, attr_name)) is str:
-                out += f"'{getattr(self, attr_name)}', "
-            else:
-                out += f"{getattr(self, attr_name)}, "
+            out += f"{attr_name}={get_pretty_str(getattr(self, attr_name))}, "
         out = out[:-2] + ")"
         return out
 
