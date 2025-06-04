@@ -292,7 +292,7 @@ class Base:
     @classmethod
     def get_all(cls,
                 *criterion: Union[ColumnExpressionArgument[bool], bool],
-                order_by: Union[str, QueryableAttribute, None] = None,
+                order_by: Union[str, QueryableAttribute, Any, None] = None,
                 order_desc: bool = False,
                 rows_per_page: Optional[int] = None,
                 page: int = 1,
