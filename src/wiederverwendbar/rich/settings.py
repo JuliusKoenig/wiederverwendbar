@@ -1,9 +1,11 @@
 from typing import Optional, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from wiederverwendbar.console.settings import ConsoleSettings
 
 
-class RichConsoleSettings(BaseModel):
+class RichConsoleSettings(ConsoleSettings):
     console_color_system: Optional[Literal["auto", "standard", "256", "truecolor", "windows"]] = Field(default="auto", title="Console Color System",
                                                                                                        description="The color system of the console.")
     console_force_terminal: Optional[bool] = Field(default=None, title="Console Force Terminal", description="Whether to force the terminal.")
@@ -11,8 +13,6 @@ class RichConsoleSettings(BaseModel):
     console_force_interactive: Optional[bool] = Field(default=None, title="Console Force Interactive", description="Whether to force interactive mode.")
     console_soft_wrap: bool = Field(default=False, title="Console Soft Wrap", description="Whether to soft wrap the console.")
     # ToDo: console_theme
-    console_stderr: bool = Field(default=False, title="Console Stderr", description="Whether to use stderr.")
-    # ToDo: console_file
     console_quiet: bool = Field(default=False, title="Console Quiet", description="Whether to suppress all output.")
     console_width: Optional[int] = Field(default=None, title="Console Width", description="The width of the console.")
     console_height: Optional[int] = Field(default=None, title="Console Height", description="The height of the console.")
