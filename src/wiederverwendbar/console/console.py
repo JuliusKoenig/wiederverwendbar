@@ -1,11 +1,17 @@
 import sys
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, Literal, Union
 
 from wiederverwendbar.console.out_files import OutFiles
 from wiederverwendbar.console.settings import ConsoleSettings
 
+
 class BaseConsole(ABC):
+    console_border_styles = {
+        "single_line": ["─", "│", "┌", "┐", "└", "┘", "├", "┤"],
+        "double_line": ["═", "║", "╔", "╗", "╚", "╝", "╠", "╣"]
+    }
+
     @abstractmethod
     def print(self,
               *args: Any,
@@ -20,6 +26,124 @@ class BaseConsole(ABC):
         :param end:  string appended after the last value, default a newline.
         :param kwargs: Additional parameters.
         """
+
+    def _card_get_border(self,
+                         border_style: Literal["single_line", "double_line"],
+                         border_part: Literal["horizontal", "vertical", "top_left", "top_right", "bottom_left", "bottom_right", "vertical_left", "vertical_right"],
+                         **kwargs):
+        border_style = self.console_border_styles[border_style]
+        if border_part == "horizontal":
+            return border_style[0]
+        elif border_part == "vertical":
+            return border_style[1]
+        elif border_part == "top_left":
+            return border_style[2]
+        elif border_part == "top_right":
+            return border_style[3]
+        elif border_part == "bottom_left":
+            return border_style[4]
+        elif border_part == "bottom_right":
+            return border_style[5]
+        elif border_part == "vertical_left":
+            return border_style[6]
+        elif border_part == "vertical_right":
+            return border_style[7]
+        else:
+            raise ValueError(f"Unknown border part '{border_part}'.")
+
+    def card(self,
+             *sections: Union[str, tuple[str, str]],
+             min_width: Optional[int] = None,
+             max_width: Optional[int] = None,
+             border_style: Literal["single_line", "double_line"] = "single_line",
+             topic_offest: int = 3,
+             padding_left: int = 0,
+             padding_right: int = 0,
+             **kwargs) -> None:
+        if min_width and max_width and min_width > max_width:
+            raise ValueError(f"min_width '{min_width}' is greater than max_width '{max_width}'.")
+        if min_width is not None:
+            min_width -= 2
+        if max_width is not None:
+            if max_width < 10:
+                raise ValueError(f"max_width '{max_width}' is smaller than 10.")
+            max_width -= 2
+
+        # get real width
+        real_width = 0
+        if min_width is not None:
+            real_width = min_width
+        for section in sections:
+            section_topic = ""
+            if isinstance(section, tuple):
+                section_topic = section[0]
+                section = section[1]
+
+            # update real with
+            if len(section_topic) + topic_offest > real_width:
+                real_width = len(section_topic) + topic_offest
+
+            for line in section.splitlines():
+                line = " " * padding_left + line + " " * padding_right  # add padding
+                # update real with
+                if len(line) > real_width:
+                    real_width = len(line)
+        if max_width is not None:
+            if real_width > max_width:
+                real_width = max_width
+
+        # format sections
+        section_topics: list[str] = []
+        formatted_sections: list[list[str]] = []
+        for section in sections:
+            section_topic = ""
+            if isinstance(section, tuple):
+                section_topic = section[0]
+                section = section[1]
+            if section_topic != "":
+                section_topic = " " + section_topic + " "
+
+            # topic max width
+            if len(section_topic) + topic_offest > real_width:
+                section_topic = section_topic[:real_width - topic_offest - 3] + "..."
+
+            section_topics.append(section_topic)
+            formatted_lines: list[str] = []
+            lines = section.splitlines()
+            while len(lines) > 0:
+                line = lines.pop(0)
+
+                # add topic
+                line = " " * padding_left + line  # add padding
+
+                # max width
+                if len(line) + padding_right > real_width:
+                    lines.insert(0, line[real_width - padding_right:])
+                    line = line[:real_width - padding_right] + " " * padding_right
+                else:
+                    line = line.ljust(real_width - padding_right) + " " * padding_right
+
+                formatted_lines.append(line)
+            formatted_sections.append(formatted_lines)
+        card = (f"\n{self._card_get_border(border_style, 'top_left')}"
+                f"{self._card_get_border(border_style, 'horizontal') * topic_offest}{section_topics[0]}"
+                f"{self._card_get_border(border_style, 'horizontal') * (real_width - len(section_topics.pop(0)) - topic_offest)}"
+                f"{self._card_get_border(border_style, 'top_right')}\n")
+        while len(formatted_sections) > 0:
+            for line in formatted_sections.pop(0):
+                card += (f"{self._card_get_border(border_style, 'vertical')}"
+                         f"{line}"
+                         f"{self._card_get_border(border_style, 'vertical')}\n")
+            if len(formatted_sections) > 0:
+                card += (f"{self._card_get_border(border_style, 'vertical_left')}"
+                         f"{self._card_get_border(border_style, 'horizontal') * topic_offest}{section_topics[0]}"
+                         f"{self._card_get_border(border_style, 'horizontal') * (real_width - len(section_topics.pop(0)) - topic_offest)}"
+                         f"{self._card_get_border(border_style, 'vertical_right')}\n")
+            else:
+                card += (f"{self._card_get_border(border_style, 'bottom_left')}"
+                         f"{self._card_get_border(border_style, 'horizontal') * real_width}"
+                         f"{self._card_get_border(border_style, 'bottom_right')}\n")
+        return self.print(card, **kwargs)
 
 
 class Console(BaseConsole):
