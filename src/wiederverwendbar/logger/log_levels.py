@@ -1,5 +1,7 @@
 from enum import Enum
 
+import logging
+
 
 class LogLevels(str, Enum):
     """
@@ -12,3 +14,6 @@ class LogLevels(str, Enum):
     WARNING = "WARNING"
     INFO = "INFO"
     DEBUG = "DEBUG"
+
+    def get_level_number(self) -> int:
+        return int(logging.getLevelName(self.value))
