@@ -1,16 +1,25 @@
-from rich.console import Console
+from typing import Optional
+
 from rich.logging import RichHandler
 
-from wiederverwendbar.logger.handlers.stream_console_handler import _resolve_file
-from wiederverwendbar.logger.terminal_out_files import TerminalOutFiles
+from wiederverwendbar.console.out_files import OutFiles
+from wiederverwendbar.rich.console import RichConsole
 
 
 class RichConsoleHandler(RichHandler):
-    def __init__(self, *args, name: str, console_outfile: TerminalOutFiles, console_width: int, **kwargs):
+    def __init__(self,
+                 *args,
+                 name: str,
+                 console: Optional[RichConsole] = None,
+                 console_outfile: Optional[OutFiles] = None,
+                 console_width: Optional[int] = None,
+                 **kwargs):
+        if console is None:
+            console = RichConsole(console_file=console_outfile,
+                                  console_width=console_width)
         super().__init__(
             *args,
-            console=Console(file=_resolve_file(console_outfile),
-                            width=console_width),
+            console=console,
             **kwargs
         )
         self.set_name(name)

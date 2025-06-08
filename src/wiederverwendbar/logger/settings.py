@@ -5,9 +5,9 @@ from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
+from wiederverwendbar.console import OutFiles
 from wiederverwendbar.logger.file_modes import FileModes
 from wiederverwendbar.logger.log_levels import LogLevels
-from wiederverwendbar.logger.terminal_out_files import TerminalOutFiles
 
 
 class LoggerSettings(BaseModel):
@@ -29,9 +29,9 @@ class LoggerSettings(BaseModel):
                                    ge=0,
                                    description="The width of the console")
 
-    log_console_outfile: TerminalOutFiles = Field(default=TerminalOutFiles.STDOUT,
-                                                  title="Console Outfile",
-                                                  description="The console outfile")
+    log_console_outfile: OutFiles = Field(default=OutFiles.STDOUT,
+                                          title="Console Outfile",
+                                          description="The console outfile")
     log_console_rich_markup: bool = Field(default=True,
                                           title="Rich Markup",
                                           description="Whether to use rich markup in the console")
