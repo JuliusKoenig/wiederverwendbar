@@ -1,6 +1,8 @@
+__title__ = "wiederverwendbar"
+__description__ = "A collection of scripts, classes and tools they are \\\"wiederverwendbar\\\"."
 __version__ = "0.8.4"
-TITLE = "wiederverwendbar"
-VERSION = __version__
-AUTHOR = "Julius Koenig"
-AUTHOR_EMAIL = "info@bastelquartier.de"
-LICENSE = "GPL-3.0"
+__author__ = "Julius Koenig"
+__author_email__ = "info@bastelquartier.de"
+__license__ = "GPL-3.0"
+__license_url__ = "https://www.gnu.org/licenses/gpl-3.0.md"
+__terms_of_service__ = "https://bastelquartier.de/terms-of-service"
