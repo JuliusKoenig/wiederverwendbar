@@ -153,3 +153,76 @@ class RichConsole(_Console, _RichConsole):
         if end is None:
             end = self.console_end
         _RichConsole.print(self, *args, sep=sep, end=end, **kwargs)
+
+    def _card_kwargs(self, mode: Literal["text", "header", "border", "print"], **kwargs) -> dict[str, Any]:
+        out = super()._card_kwargs(mode=mode, **kwargs)
+        for key in kwargs:
+            if mode == "text":
+                if key not in ["color"]:
+                    continue
+                out[key] = kwargs[key]
+            elif mode == "header":
+                if key not in ["header_color"]:
+                    continue
+                out[key] = kwargs[key]
+            elif mode == "border":
+                if key not in ["border_color"]:
+                    continue
+                out[key] = kwargs[key]
+        return out
+
+    def _card_get_text(self,
+                       text: str,
+                       color: Optional[str] = None,
+                       **kwargs) -> str:
+        text = super()._card_get_text(text=text,
+                                      **kwargs)
+        if color is not None:
+            text = f"[{color}]{text}[/{color}]"
+        return text
+
+    def _card_get_header_text(self,
+                              text: str,
+                              header_color: Optional[str] = None,
+                              **kwargs) -> str:
+        text = super()._card_get_header_text(text=text,
+                                             **kwargs)
+        if header_color is not None:
+            text = f"[{header_color}]{text}[/{header_color}]"
+        return text
+
+    def _card_get_border(self,
+                         border_style: Literal["single_line", "double_line"],
+                         border_part: Literal["horizontal", "vertical", "top_left", "top_right", "bottom_left", "bottom_right", "vertical_left", "vertical_right"],
+                         border_color: Optional[str] = None,
+                         **kwargs):
+        border = super()._card_get_border(border_style=border_style,
+                                          border_part=border_part,
+                                          **kwargs)
+        if border_color is not None:
+            border = f"[{border_color}]{border}[/{border_color}]"
+        return border
+
+    def card(self,
+             *sections: Union[str, tuple[str, str]],
+             min_width: Optional[int] = None,
+             max_width: Optional[int] = None,
+             border_style: Literal["single_line", "double_line"] = "single_line",
+             topic_offest: int = 3,
+             padding_left: int = 0,
+             padding_right: int = 0,
+             color: Optional[str] = None,
+             header_color: Optional[str] = None,
+             border_color: Optional[str] = None,
+             **kwargs) -> None:
+        return super().card(*sections,
+                            min_width=min_width,
+                            max_width=max_width,
+                            border_style=border_style,
+                            topic_offest=topic_offest,
+                            padding_left=padding_left,
+                            padding_right=padding_right,
+                            color=color,
+                            header_color=header_color,
+                            border_color=border_color,
+                            **kwargs)

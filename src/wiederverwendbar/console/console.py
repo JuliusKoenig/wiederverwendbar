@@ -27,6 +27,15 @@ class BaseConsole(ABC):
         :param kwargs: Additional parameters.
         """
 
+    def _card_kwargs(self, mode: Literal["text", "header", "border", "print"], **kwargs) -> dict[str, Any]:
+        return {}
+
+    def _card_get_text(self, text: str, **kwargs) -> str:
+        return text
+
+    def _card_get_header_text(self, text: str, **kwargs) -> str:
+        return text
+
     def _card_get_border(self,
                          border_style: Literal["single_line", "double_line"],
                          border_part: Literal["horizontal", "vertical", "top_left", "top_right", "bottom_left", "bottom_right", "vertical_left", "vertical_right"],
@@ -125,25 +134,27 @@ class BaseConsole(ABC):
 
                 formatted_lines.append(line)
             formatted_sections.append(formatted_lines)
-        card = (f"\n{self._card_get_border(border_style, 'top_left')}"
-                f"{self._card_get_border(border_style, 'horizontal') * topic_offest}{section_topics[0]}"
-                f"{self._card_get_border(border_style, 'horizontal') * (real_width - len(section_topics.pop(0)) - topic_offest)}"
-                f"{self._card_get_border(border_style, 'top_right')}\n")
+        card = (f"\n{self._card_get_border(border_style, 'top_left', **self._card_kwargs('border', **kwargs))}"
+                f"{self._card_get_border(border_style, 'horizontal', **self._card_kwargs('border', **kwargs)) * topic_offest}"
+                f"{self._card_get_header_text(section_topics[0], **self._card_kwargs('header', **kwargs))}"
+                f"{self._card_get_border(border_style, 'horizontal', **self._card_kwargs('border', **kwargs)) * (real_width - len(section_topics.pop(0)) - topic_offest)}"
+                f"{self._card_get_border(border_style, 'top_right', **self._card_kwargs('border', **kwargs))}\n")
         while len(formatted_sections) > 0:
             for line in formatted_sections.pop(0):
-                card += (f"{self._card_get_border(border_style, 'vertical')}"
-                         f"{line}"
-                         f"{self._card_get_border(border_style, 'vertical')}\n")
+                card += (f"{self._card_get_border(border_style, 'vertical', **self._card_kwargs('border', **kwargs))}"
+                         f"{self._card_get_text(line, **self._card_kwargs('text', **kwargs))}"
+                         f"{self._card_get_border(border_style, 'vertical', **self._card_kwargs('border', **kwargs))}\n")
             if len(formatted_sections) > 0:
-                card += (f"{self._card_get_border(border_style, 'vertical_left')}"
-                         f"{self._card_get_border(border_style, 'horizontal') * topic_offest}{section_topics[0]}"
-                         f"{self._card_get_border(border_style, 'horizontal') * (real_width - len(section_topics.pop(0)) - topic_offest)}"
-                         f"{self._card_get_border(border_style, 'vertical_right')}\n")
+                card += (f"{self._card_get_border(border_style, 'vertical_left', **self._card_kwargs('border', **kwargs))}"
+                         f"{self._card_get_border(border_style, 'horizontal', **self._card_kwargs('border', **kwargs)) * topic_offest}"
+                         f"{self._card_get_header_text(section_topics[0], **self._card_kwargs('header', **kwargs))}"
+                         f"{self._card_get_border(border_style, 'horizontal', **self._card_kwargs('border', **kwargs)) * (real_width - len(section_topics.pop(0)) - topic_offest)}"
+                         f"{self._card_get_border(border_style, 'vertical_right', **self._card_kwargs('border', **kwargs))}\n")
             else:
-                card += (f"{self._card_get_border(border_style, 'bottom_left')}"
-                         f"{self._card_get_border(border_style, 'horizontal') * real_width}"
-                         f"{self._card_get_border(border_style, 'bottom_right')}\n")
-        return self.print(card, **kwargs)
+                card += (f"{self._card_get_border(border_style, 'bottom_left', **self._card_kwargs('border', **kwargs))}"
+                         f"{self._card_get_border(border_style, 'horizontal', **self._card_kwargs('border', **kwargs)) * real_width}"
+                         f"{self._card_get_border(border_style, 'bottom_right', **self._card_kwargs('border', **kwargs))}\n")
+        return self.print(card, **self._card_kwargs('print', **kwargs))
 
 
 class Console(BaseConsole):
