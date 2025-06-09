@@ -208,7 +208,7 @@ class RichConsole(_Console, _RichConsole):
              min_width: Optional[int] = None,
              max_width: Optional[int] = None,
              border_style: Literal["single_line", "double_line"] = "single_line",
-             topic_offest: int = 3,
+             topic_offest: int = 1,
              padding_left: int = 0,
              padding_right: int = 0,
              color: Optional[str] = None,
