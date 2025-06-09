@@ -1,0 +1,6 @@
+class WiederverwendbarWarning(Warning):
+    ...
+
+
+class FileNotFoundWarning(WiederverwendbarWarning):
+    ...

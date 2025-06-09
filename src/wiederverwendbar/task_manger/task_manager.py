@@ -8,9 +8,6 @@ from typing import Any, Optional
 from wiederverwendbar.task_manger.task import Task
 from wiederverwendbar.task_manger.trigger import Trigger
 
-LOGGER = logging.getLogger(__name__)
-
-
 class TaskManager:
     lock = threading.Lock()
 
@@ -20,7 +17,8 @@ class TaskManager:
                  daemon: bool = False,
                  keep_done_tasks: bool = False,
                  loop_delay: Optional[float] = None,
-                 logger: Optional[logging.Logger] = None):
+                 logger: Optional[logging.Logger] = None,
+                 log_self: bool = True):
         if name is None:
             name = self.__class__.__name__
         self.name = name
@@ -29,7 +27,7 @@ class TaskManager:
         self._stopped: bool = False
         self._creation_time: datetime = datetime.now()
         self._keep_done_tasks = keep_done_tasks
-        self.logger = logger or LOGGER
+        self.logger = logger or logging.getLogger(self.name)
 
         # create workers
         if worker_count is None:
@@ -47,9 +45,6 @@ class TaskManager:
             if self.worker_count > 1:
                 loop_delay = 0.001
         self._loop_delay = loop_delay
-
-    def __str__(self):
-        return f"{self.__class__.__name__}({self.name})"
 
     def __del__(self):
         if not self.stopped:
@@ -96,14 +91,14 @@ class TaskManager:
         :return: None
         """
 
-        self.logger.debug(f"{self}: Starting manager ...")
+        self.logger.debug(f"Starting manager ...")
 
         # start workers
         for worker in self._workers:
-            self.logger.debug(f"{self}: Starting worker '{worker.name}' ...")
+            self.logger.debug(f"Starting worker '{worker.name}' ...")
             worker.start()
 
-        self.logger.debug(f"{self}: Manager started.")
+        self.logger.debug(f"Manager started.")
 
     def stop(self) -> None:
         """
@@ -112,7 +107,7 @@ class TaskManager:
         :return: None
         """
 
-        self.logger.debug(f"{self}: Stopping manager ...")
+        self.logger.debug(f"Stopping manager ...")
 
         # set stopped flag
         with self.lock:
@@ -121,10 +116,10 @@ class TaskManager:
         # wait for workers to finish
         for worker in self._workers:
             if worker.is_alive():
-                self.logger.debug(f"{self}: Waiting for worker '{worker.name}' to finish ...")
+                self.logger.debug(f"Waiting for worker '{worker.name}' to finish ...")
                 worker.join()
 
-        self.logger.debug(f"{self}: Manager stopped.")
+        self.logger.debug(f"Manager stopped.")
 
     def loop(self, stay_in_loop: Optional[bool] = None) -> None:
         """
@@ -155,7 +150,7 @@ class TaskManager:
                     time.sleep(loop_delay)
                 continue
 
-            self.logger.debug(f"{self}: Running task '{current_task}' ...")
+            self.logger.debug(f"Running task '{current_task.name}' ...")
 
             with self.lock:
                 if current_task.time_measurement_before_run:
@@ -165,7 +160,7 @@ class TaskManager:
             # run task
             current_task.payload()
 
-            self.logger.debug(f"{self}: Task '{current_task}' successfully run.")
+            self.logger.debug(f"Task '{current_task.name}' successfully run.")
 
             with self.lock:
                 if not current_task.time_measurement_before_run:
@@ -174,7 +169,7 @@ class TaskManager:
                 if not current_task.is_done:
                     self._tasks.append(current_task)
                 else:
-                    self.logger.debug(f"{self}: Task '{current_task}' is done.")
+                    self.logger.debug(f"Task '{current_task.name}' is done.")
                     if self._keep_done_tasks:
                         self._tasks.append(current_task)
 
@@ -192,7 +187,7 @@ class TaskManager:
         task.init(self)
         with self.lock:
             self._tasks.append(task)
-        self.logger.debug(f"{self}: Task '{task}' added.")
+        self.logger.debug(f"Task '{task.name}' added.")
 
     def remove_task(self, task: Task):
         """
@@ -204,7 +199,7 @@ class TaskManager:
 
         with self.lock:
             self._tasks.remove(task)
-        self.logger.debug(f"{self}: Task '{task}' removed.")
+        self.logger.debug(f"Task '{task.name}' removed.")
 
     def task(self,
              name: Optional[str] = None,

@@ -260,7 +260,7 @@ class Base:
     @classmethod
     def new(cls,
             session: Optional[Session] = None,
-            **kwargs) -> "Base":
+            **kwargs) -> Union["Base", Any]:
         session_created, session = cls.session(session=session)
 
         # noinspection PyArgumentList
@@ -292,7 +292,7 @@ class Base:
     @classmethod
     def get_all(cls,
                 *criterion: Union[ColumnExpressionArgument[bool], bool],
-                order_by: Union[str, QueryableAttribute, None] = None,
+                order_by: Union[str, QueryableAttribute, Any, None] = None,
                 order_desc: bool = False,
                 rows_per_page: Optional[int] = None,
                 page: int = 1,
@@ -300,7 +300,7 @@ class Base:
                 as_dict: bool = False,
                 dict_columns: Union[list[DictColumn], Default] = Default(),
                 session: Optional[Session] = None,
-                **kwargs: Any) -> list[Union["Base", None, dict[str, Any]]]:
+                **kwargs: Any) -> list[Union["Base", None, dict[str, Any], Any]]:
         session_created, session = cls.session(session=session)
 
         # get order by
@@ -364,7 +364,7 @@ class Base:
             as_dict: bool = False,
             dict_columns: Union[list[DictColumn], Default] = Default(),
             session: Optional[Session] = None,
-            **kwargs: Any) -> Union["Base", None, dict[str, Any]]:
+            **kwargs: Any) -> Union["Base", None, dict[str, Any], Any]:
         session_created, session = cls.session(session=session)
 
         if criterion:

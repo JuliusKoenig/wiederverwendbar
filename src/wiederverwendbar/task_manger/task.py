@@ -59,16 +59,13 @@ class Task:
                 raise ValueError("Manager object is required.")
             manager.add_task(self)
 
-    def __str__(self):
-        return f"{self.manager.name}.{self.name}"
-
     def init(self, manager):
         self.manager = manager
         self.trigger.init(manager)
         self.set_next_run()
 
         # log task creation
-        self.manager.logger.debug(f"{self}: Task created.")
+        self.manager.logger.debug(f"Task created.")
 
     @property
     def last_run(self) -> Optional[datetime]:
