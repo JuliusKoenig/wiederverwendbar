@@ -24,11 +24,11 @@ class RichConsole(_Console, _RichConsole):
                  console_force_jupyter: Optional[bool] = None,
                  console_force_interactive: Optional[bool] = None,
                  console_soft_wrap: Optional[bool] = None,
-                 console_theme: Optional[Theme] = None,  # ToDo: not in settings included
+                 console_theme: Optional[Theme] = None,  # not in settings included
                  console_quiet: Optional[bool] = None,
                  console_width: Optional[int] = None,
                  console_height: Optional[int] = None,
-                 console_style: Optional[StyleType] = None,  # ToDo: not in settings included
+                 console_style: Optional[StyleType] = None,  # not in settings included
                  console_no_color: Optional[bool] = None,
                  console_tab_size: Optional[int] = None,
                  console_record: Optional[bool] = None,
@@ -38,7 +38,7 @@ class RichConsole(_Console, _RichConsole):
                  console_highlight: Optional[bool] = None,
                  console_log_time: Optional[bool] = None,
                  console_log_path: Optional[bool] = None,
-                 console_log_time_format: Union[str, FormatTimeCallable] = "[%X]",  # ToDo: not in settings included
+                 console_log_time_format: Union[str, FormatTimeCallable] = "[%X]",  # not in settings included
                  settings: Optional[RichConsoleSettings] = None):
         """
         Create a new rich console.
@@ -73,9 +73,6 @@ class RichConsole(_Console, _RichConsole):
         if console_soft_wrap is None:
             console_soft_wrap = settings.console_soft_wrap
 
-        # if console_theme is None: # ToDo: not in settings included
-        #     console_theme = settings.console_theme
-
         if console_quiet is None:
             console_quiet = settings.console_quiet
 
@@ -84,9 +81,6 @@ class RichConsole(_Console, _RichConsole):
 
         if console_height is None:
             console_height = settings.console_height
-
-        # if console_style is None: # ToDo: not in settings included
-        #     console_style = settings.console_style # ToDo: not in settings included
 
         if console_no_color is None:
             console_no_color = settings.console_no_color
@@ -114,9 +108,6 @@ class RichConsole(_Console, _RichConsole):
 
         if console_log_path is None:
             console_log_path = settings.console_log_path
-
-        # if console_log_time_format is None: # ToDo: not in settings included
-        #     console_log_time_format = settings.console_log_time_format # ToDo: not in settings included
 
         _RichConsole.__init__(self,
                               color_system=console_color_system,
