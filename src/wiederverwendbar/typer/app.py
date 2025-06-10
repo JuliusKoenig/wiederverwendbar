@@ -1,13 +1,13 @@
 import inspect
 from typing import Optional
 
-import typer
+from typer import Typer as _Typer
 
 from wiederverwendbar.rich.console import RichConsole
 from wiederverwendbar.typer.settings import TyperSettings
 
 
-class Typer(typer.Typer):
+class Typer(_Typer):
     def __init__(self,
                  *,
                  name: Optional[str] = None,

@@ -1,7 +1,7 @@
 import inspect
 from typing import Optional, Annotated
 
-import typer
+from typer import Option, Exit
 from art import text2art
 
 from wiederverwendbar.rich import RichConsole
@@ -70,14 +70,14 @@ class TyperBranding(Typer):
                                          terms_of_service=terms_of_service)
                 if code is None:
                     code = 0
-                raise typer.Exit(code=code)
+                raise Exit(code=code)
 
             main_callback_parameters.append(inspect.Parameter(name="info",
                                                               kind=inspect.Parameter.KEYWORD_ONLY,
                                                               default=False,
-                                                              annotation=Annotated[Optional[bool], typer.Option("--info",
-                                                                                                                help="Show information of the application.",
-                                                                                                                callback=info_callback)]))
+                                                              annotation=Annotated[Optional[bool], Option("--info",
+                                                                                                          help="Show information of the application.",
+                                                                                                          callback=info_callback)]))
 
         # add version command parameter to main_callback_parameters
         if version_enabled:
@@ -88,15 +88,15 @@ class TyperBranding(Typer):
                                             version=version)
                 if code is None:
                     code = 0
-                raise typer.Exit(code=code)
+                raise Exit(code=code)
 
             main_callback_parameters.append(inspect.Parameter(name="version",
                                                               kind=inspect.Parameter.KEYWORD_ONLY,
                                                               default=False,
-                                                              annotation=Annotated[Optional[bool], typer.Option("-v",
-                                                                                                                "--version",
-                                                                                                                help="Show version of the application.",
-                                                                                                                callback=version_callback)]))
+                                                              annotation=Annotated[Optional[bool], Option("-v",
+                                                                                                          "--version",
+                                                                                                          help="Show version of the application.",
+                                                                                                          callback=version_callback)]))
 
         super().__init__(name=name,
                          help=help,
