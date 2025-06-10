@@ -1,8 +1,7 @@
 import uvicorn
 
 from examples import TEST_ICO
-from wiederverwendbar.fastapi.settings import FastAPISettings
-from wiederverwendbar.fastapi.app import FastAPI
+from wiederverwendbar.fastapi import FastAPISettings, FastAPI
 from fastapi import APIRouter
 
 settings = FastAPISettings(api_title="test_app",
