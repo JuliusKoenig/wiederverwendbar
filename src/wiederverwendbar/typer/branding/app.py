@@ -114,19 +114,6 @@ class TyperBrandingApp(TyperApp):
                      license: Optional[str],
                      license_url: Optional[str],
                      terms_of_service: Optional[str]) -> Optional[int]:
-        # ASCII_LOGO =f"""
-# [blue]╔══════════════════════════════════════════════════════╗[/blue]
-# [blue]║[/blue][white]  ____  __  __ ____    ____            _              [/white][blue]║[/blue]
-# [blue]║[/blue][white] / ___||  \/  / ___|  | __ ) _ __ ___ | | _____ _ __  [/white][blue]║[/blue]
-# [blue]║[/blue][white] \___ \| |\/| \___ \  |  _ \| '__/ _ \| |/ / _ \ '__| [/white][blue]║[/blue]
-# [blue]║[/blue][white]  ___) | |  | |___) | | |_) | | | (_) |   <  __/ |    [/white][blue]║[/blue]
-# [blue]║[/blue][white] |____/|_|  |_|____/  |____/|_|  \___/|_|\_\___|_|    [/white][blue]║[/blue]
-# [blue]╠══════════════════════════════════════════════════════╣[/blue]
-# [blue]║[/blue][white] {_settings.branding.description:53}[/white][blue]║[/blue]
-# [blue]║[/blue][white] by {_author_text:50}[/white][blue]║[/blue]
-# [blue]║[/blue][white] Version: [blue]v{_settings.branding.version:43}[/blue][/white][blue]║[/blue]
-# [blue]║[/blue][white] License: [green]{_settings.branding.license:44}[/green][/white][blue]║[/blue]
-# [blue]╚══════════════════════════════════════════════════════╝[/blue]"""
 
         card_body = [text2art(title),
                      f"{description}\n"
