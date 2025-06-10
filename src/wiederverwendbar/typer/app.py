@@ -1,5 +1,5 @@
 import inspect
-from typing import Optional, Callable
+from typing import Optional
 
 import typer
 
