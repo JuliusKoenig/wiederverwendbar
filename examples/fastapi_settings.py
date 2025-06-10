@@ -1,12 +1,19 @@
 import uvicorn
 
-from examples import TEST_ICO
-from wiederverwendbar.fastapi import FastAPISettings, FastAPI
 from fastapi import APIRouter
 
-settings = FastAPISettings(api_title="test_app",
-                           api_summary="Test summary",
-                           api_description="Test description",
+from examples import TEST_ICO
+from wiederverwendbar.fastapi import FastAPISettings, FastAPI
+from wiederverwendbar import __author__, __author_email__, __license__, __license_url__, __terms_of_service__
+
+settings = FastAPISettings(branding_title="Test App",
+                           branding_description="Test Description",
+                           branding_version="0.1.0",
+                           branding_author=__author__,
+                           branding_author_email=__author_email__,
+                           branding_license=__license__,
+                           branding_license_url=__license_url__,
+                           branding_terms_of_service=__terms_of_service__,
                            api_docs_favicon=TEST_ICO)
 app = FastAPI(settings=settings)
 
