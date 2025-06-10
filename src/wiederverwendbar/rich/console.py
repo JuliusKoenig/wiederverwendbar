@@ -1,9 +1,6 @@
 from typing import Optional, Literal, Union, Any
 
-from rich._log_render import FormatTimeCallable
 from rich.console import Console as _RichConsole
-from rich.style import StyleType
-from rich.theme import Theme
 
 from wiederverwendbar.console.console import Console as _Console
 from wiederverwendbar.console.out_files import OutFiles
@@ -24,11 +21,9 @@ class RichConsole(_Console, _RichConsole):
                  console_force_jupyter: Optional[bool] = None,
                  console_force_interactive: Optional[bool] = None,
                  console_soft_wrap: Optional[bool] = None,
-                 console_theme: Optional[Theme] = None,  # not in settings included
                  console_quiet: Optional[bool] = None,
                  console_width: Optional[int] = None,
                  console_height: Optional[int] = None,
-                 console_style: Optional[StyleType] = None,  # not in settings included
                  console_no_color: Optional[bool] = None,
                  console_tab_size: Optional[int] = None,
                  console_record: Optional[bool] = None,
@@ -38,14 +33,31 @@ class RichConsole(_Console, _RichConsole):
                  console_highlight: Optional[bool] = None,
                  console_log_time: Optional[bool] = None,
                  console_log_path: Optional[bool] = None,
-                 console_log_time_format: Union[str, FormatTimeCallable] = "[%X]",  # not in settings included
-                 settings: Optional[RichConsoleSettings] = None):
+                 settings: Optional[RichConsoleSettings] = None,
+                 **kwargs):
         """
         Create a new rich console.
 
         :param console_file: Console file. Default is STDOUT.
         :param console_seperator: Console seperator. Default is a space.
         :param console_end: Console end. Default is a newline.
+        :param console_color_system: Rich Console color system.
+        :param console_force_terminal: Rich Console force terminal.
+        :param console_force_jupyter: Rich Console force jupyter.
+        :param console_force_interactive: Rich Console force interactive.
+        :param console_soft_wrap: Rich Console soft wrap.
+        :param console_quiet: Rich Console quiet.
+        :param console_width: Rich Console width.
+        :param console_height: Rich Console height.
+        :param console_no_color: Rich Console no color.
+        :param console_tab_size: Rich Console tab size.
+        :param console_record: Rich Console record.
+        :param console_markup: Rich Console markup.
+        :param console_emoji: Rich Console emoji.
+        :param console_emoji_variant: Rich Console emoji variant.
+        :param console_highlight: Rich Console highlight.
+        :param console_log_time: Rich Console log time.
+        :param console_log_path: Rich Console log path.
         :param settings: A settings object to use. If None, defaults to ConsoleSettings().
         """
 
@@ -115,11 +127,9 @@ class RichConsole(_Console, _RichConsole):
                               force_jupyter=console_force_jupyter,
                               force_interactive=console_force_interactive,
                               soft_wrap=console_soft_wrap,
-                              theme=console_theme,
                               quiet=console_quiet,
                               width=console_width,
                               height=console_height,
-                              style=console_style,
                               no_color=console_no_color,
                               tab_size=console_tab_size,
                               record=console_record,
@@ -129,7 +139,7 @@ class RichConsole(_Console, _RichConsole):
                               highlight=console_highlight,
                               log_time=console_log_time,
                               log_path=console_log_path,
-                              log_time_format=console_log_time_format)
+                              **kwargs)
 
     def _card_kwargs(self, mode: Literal["text", "header", "border", "print"], **kwargs) -> dict[str, Any]:
         out = super()._card_kwargs(mode=mode, **kwargs)
