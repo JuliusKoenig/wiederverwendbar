@@ -5,7 +5,7 @@
 groups = ["default", "fastapi", "fuctions", "full", "mongoengine", "nicegui", "rich", "sqlalchemy", "starlette-admin", "typer", "uvicorn"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:123feb6b5d6d21c2212382e311eda179f98571f4730d1ad46ed56e51474914eb"
+content_hash = "sha256:6efe0b580f4d3740ddc274240050b12289c40ce8d517e68aa679e66026f05822"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -189,6 +189,17 @@ dependencies = [
 files = [
     {file = "anyio-4.9.0-py3-none-any.whl", hash = "sha256:9f76d541cad6e36af7beb62e978876f3b41e3e04f2c1fbf0884604c0a9c4d93c"},
     {file = "anyio-4.9.0.tar.gz", hash = "sha256:673c0c244e15788651a4ff38710fea9675823028a6f08a5eda409e0c9840a028"},
+]
+
+[[package]]
+name = "art"
+version = "6.5"
+requires_python = ">=3.6"
+summary = "ASCII Art Library For Python"
+groups = ["full", "typer"]
+files = [
+    {file = "art-6.5-py3-none-any.whl", hash = "sha256:70706408144c45c666caab690627d5c74aea7b6c7ce8cc968408ddeef8d84afd"},
+    {file = "art-6.5.tar.gz", hash = "sha256:a98d77b42c278697ec6cf4b5bdcdfd997f6b2425332da078d4e31e31377d1844"},
 ]
 
 [[package]]

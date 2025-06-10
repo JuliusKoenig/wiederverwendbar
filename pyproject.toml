@@ -29,12 +29,15 @@ full = [
     "kombu>=5.5.4",
     "nest-asyncio>=1.6.0",
     "sqlalchemy>=2.0.41",
+    "art>=6.5",
 ]
 rich = [
     "rich>=14.0.0",
 ]
 typer = [
     "typer>=0.16.0",
+    "art>=6.5",
+    "rich>=14.0.0",
 ]
 mongoengine = [
     "mongoengine>=0.29.1",
