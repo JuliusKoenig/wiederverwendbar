@@ -6,16 +6,18 @@ from pydantic import BaseModel, Field, computed_field
 
 
 class BrandingSettings(BaseModel):
-    branding_title: str = Field(default=..., title="Branding Title", description="Branding title.")
-    branding_description: str = Field(default=..., title="Branding Description", description="Branding description.")
-    branding_version: str = Field(default=..., title="Branding Version", description="Branding version.")
-    branding_author: str = Field(default=..., title="Branding Author", description="Branding author.")
-    branding_author_email: str = Field(default=..., title="Branding Author Email", description="Branding author email.")
-    branding_license: str = Field(default=..., title="Branding License Name", description="Branding license name.")
-    branding_license_url: str = Field(default=..., title="Branding License URL", description="Branding license URL.")
-    branding_terms_of_service: str = Field(default=..., title="Branding Terms of Service", description="Branding terms of service.")
+    branding_title: Optional[str] = Field(default=None, title="Branding Title", description="Branding title.")
+    branding_description: Optional[str] = Field(default=None, title="Branding Description", description="Branding description.")
+    branding_version: Optional[str] = Field(default=None, title="Branding Version", description="Branding version.")
+    branding_author: Optional[str] = Field(default=None, title="Branding Author", description="Branding author.")
+    branding_author_email: Optional[str] = Field(default=None, title="Branding Author Email", description="Branding author email.")
+    branding_license: Optional[str] = Field(default=None, title="Branding License Name", description="Branding license name.")
+    branding_license_url: Optional[str] = Field(default=None, title="Branding License URL", description="Branding license URL.")
+    branding_terms_of_service: Optional[str] = Field(default=None, title="Branding Terms of Service", description="Branding terms of service.")
 
-    def __init__(self, /, **data: Any):
+    def model_post_init(self, context: Any, /):
+        super().model_post_init(context)
+
         # get attributes from __main__ module
         main_module = sys.modules["__main__"]
         module_data = self.get_attributes(main_module.__dict__)
@@ -27,9 +29,13 @@ class BrandingSettings(BaseModel):
                 sys.modules["__main__.__init__"] = init_file_module
                 init_file_module_spec.loader.exec_module(init_file_module)
                 module_data = self.get_attributes(init_file_module.__dict__)
+        if module_data is None:
+            module_data = {}
 
-        module_data.update(data)
-        super().__init__(**module_data)
+        for key, value in module_data.items():
+            if getattr(self, key) is not None:
+                continue
+            setattr(self, key, value)
 
     @classmethod
     def get_attributes(cls, ns: dict[str, Any]) -> Optional[dict[str, str]]:
