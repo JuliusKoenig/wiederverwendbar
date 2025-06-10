@@ -1,23 +1,23 @@
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, Union
 from pydantic import BaseModel, Field, computed_field
+
+from wiederverwendbar.default import Default
 
 
 class BrandingSettings(BaseModel):
-    branding_title: str = Field(default=..., title="Branding Title", description="Branding title.")
-    branding_description: Optional[str] = Field(default=None, title="Branding Description", description="Branding description.")
-    branding_version: str = Field(default=..., title="Branding Version", description="Branding version.")
-    branding_author: Optional[str] = Field(default=None, title="Branding Author", description="Branding author.")
-    branding_author_email: Optional[str] = Field(default=None, title="Branding Author Email", description="Branding author email.")
-    branding_license: Optional[str] = Field(default=None, title="Branding License Name", description="Branding license name.")
-    branding_license_url: Optional[str] = Field(default=None, title="Branding License URL", description="Branding license URL.")
-    branding_terms_of_service: Optional[str] = Field(default=None, title="Branding Terms of Service", description="Branding terms of service.")
+    branding_title: Union[None, Default, str] = Field(default=Default(), title="Branding Title", description="Branding title.")
+    branding_description: Union[None, Default, str] = Field(default=Default(), title="Branding Description", description="Branding description.")
+    branding_version: Union[None, Default, str] = Field(default=Default(), title="Branding Version", description="Branding version.")
+    branding_author: Union[None, Default, str] = Field(default=Default(), title="Branding Author", description="Branding author.")
+    branding_author_email: Union[None, Default, str] = Field(default=Default(), title="Branding Author Email", description="Branding author email.")
+    branding_license: Union[None, Default, str] = Field(default=Default(), title="Branding License Name", description="Branding license name.")
+    branding_license_url: Union[None, Default, str] = Field(default=Default(), title="Branding License URL", description="Branding license URL.")
+    branding_terms_of_service: Union[None, Default, str] = Field(default=Default(), title="Branding Terms of Service", description="Branding terms of service.")
 
     def model_post_init(self, context: Any, /):
-        super().model_post_init(context)
-
         # get attributes from __main__ module
         main_module = sys.modules["__main__"]
         module_data = self.get_attributes(main_module.__dict__)
@@ -32,10 +32,19 @@ class BrandingSettings(BaseModel):
         if module_data is None:
             module_data = {}
 
-        for key, value in module_data.items():
-            if getattr(self, key) is not None:
-                continue
-            setattr(self, key, value)
+        for key in ["branding_title",
+                    "branding_description",
+                    "branding_version",
+                    "branding_author",
+                    "branding_author_email",
+                    "branding_license",
+                    "branding_license_url",
+                    "branding_terms_of_service"]:
+            value = module_data.get(key, None)
+            if type(getattr(self, key)) is Default:
+                setattr(self, key, value)
+
+        super().model_post_init(context)
 
     @classmethod
     def get_attributes(cls, ns: dict[str, Any]) -> Optional[dict[str, str]]:

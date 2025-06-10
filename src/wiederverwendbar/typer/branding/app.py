@@ -35,10 +35,14 @@ class TyperBranding(Typer):
             settings = TyperBrandingSettings()
         if type(title) is Default:
             title = settings.branding_title
+        if title is None:
+            raise ValueError("Title is required.")
         if type(description) is Default:
             description = settings.branding_description
         if type(version) is Default:
             version = settings.branding_version
+        if version is None:
+            raise ValueError("Version is required.")
         if type(author) is Default:
             author = settings.branding_author
         if type(author_email) is Default:
@@ -115,14 +119,13 @@ class TyperBranding(Typer):
                      license: Optional[str],
                      license_url: Optional[str],
                      terms_of_service: Optional[str]) -> Optional[int]:
-
         card_body = [text2art(title)]
         second_section = ""
         if description is not None:
             second_section += f"{description}"
-        if second_section != "":
-            second_section += "\n"
         if author is not None:
+            if second_section != "":
+                second_section += "\n"
             second_section += f"by {author}"
             if author_email is not None:
                 second_section += f" ({author_email})"
