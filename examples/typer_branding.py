@@ -1,5 +1,5 @@
 from wiederverwendbar import __author__, __author_email__, __license__, __license_url__, __terms_of_service__
-from wiederverwendbar.typer import TyperBrandingSettings, TyperBrandingApp
+from wiederverwendbar.typer import TyperBrandingSettings, TyperBranding
 
 settings = TyperBrandingSettings(branding_title="Test App",
                                  branding_description="Test Description",
@@ -9,7 +9,7 @@ settings = TyperBrandingSettings(branding_title="Test App",
                                  branding_license=__license__,
                                  branding_license_url=__license_url__,
                                  branding_terms_of_service=__terms_of_service__)
-app = TyperBrandingApp(settings=settings)
+app = TyperBranding(settings=settings)
 
 
 @app.command()

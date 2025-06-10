@@ -5,11 +5,11 @@ import typer
 from art import text2art
 
 from wiederverwendbar.rich import RichConsole
-from wiederverwendbar.typer.app import TyperApp
+from wiederverwendbar.typer.app import Typer
 from wiederverwendbar.typer.branding.settings import TyperBrandingSettings
 
 
-class TyperBrandingApp(TyperApp):
+class TyperBranding(Typer):
     def __init__(self,
                  *,
                  name: Optional[str] = None,

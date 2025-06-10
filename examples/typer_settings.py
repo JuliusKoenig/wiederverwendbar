@@ -1,8 +1,8 @@
-from wiederverwendbar.typer import TyperSettings, TyperApp
+from wiederverwendbar.typer import TyperSettings, Typer
 
 settings = TyperSettings(cli_name="test_app",
                          cli_help="Test App")
-app = TyperApp(settings=settings)
+app = Typer(settings=settings)
 
 
 @app.command()

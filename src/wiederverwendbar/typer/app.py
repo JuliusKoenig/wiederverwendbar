@@ -7,7 +7,7 @@ from wiederverwendbar.rich.console import RichConsole
 from wiederverwendbar.typer.settings import TyperSettings
 
 
-class TyperApp(typer.Typer):
+class Typer(typer.Typer):
     def __init__(self,
                  *,
                  name: Optional[str] = None,
