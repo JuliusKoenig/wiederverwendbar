@@ -176,7 +176,7 @@ class Console:
 
                 formatted_lines.append(line)
             formatted_sections.append(formatted_lines)
-        card = (f"\n{self._card_get_border(border_style, 'top_left', **kwargs)}"
+        card = (f"{self._card_get_border(border_style, 'top_left', **kwargs)}"
                 f"{self._card_get_border(border_style, 'horizontal', **kwargs) * topic_offest}"
                 f"{self._card_get_header_text(section_topics[0], **kwargs)}"
                 f"{self._card_get_border(border_style, 'horizontal', **kwargs) * (real_width - len(section_topics.pop(0)) - topic_offest)}"
@@ -195,5 +195,5 @@ class Console:
             else:
                 card += (f"{self._card_get_border(border_style, 'bottom_left', **kwargs)}"
                          f"{self._card_get_border(border_style, 'horizontal', **kwargs) * real_width}"
-                         f"{self._card_get_border(border_style, 'bottom_right', **kwargs)}\n")
+                         f"{self._card_get_border(border_style, 'bottom_right', **kwargs)}")
         return self.print(card, **kwargs)
