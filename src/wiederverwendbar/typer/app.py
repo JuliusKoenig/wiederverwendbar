@@ -22,9 +22,9 @@ class Typer(_Typer):
         if settings is None:
             settings = TyperSettings()
         if type(name) is Default:
-            name = settings.cli_name
+            name = None
         if type(help) is Default:
-            help = settings.cli_help
+            help = None
         if console is None:
             console = RichConsole(settings=settings)
         if main_callback_parameters is None:

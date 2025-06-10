@@ -13,8 +13,6 @@ from wiederverwendbar.typer.branding.settings import TyperBrandingSettings
 class TyperBranding(Typer):
     def __init__(self,
                  *,
-                 name: Union[None, Default, str] = Default(),
-                 help: Union[None, Default, str] = Default(),
                  title: Union[Default, str] = Default(),
                  description: Union[None, Default, str] = Default(),
                  version: Union[Default, str] = Default(),
@@ -25,6 +23,8 @@ class TyperBranding(Typer):
                  terms_of_service: Union[None, Default, str] = Default(),
                  info_enabled: Union[Default, bool] = Default(),
                  version_enabled: Union[Default, bool] = Default(),
+                 name: Union[None, Default, str] = Default(),
+                 help: Union[None, Default, str] = Default(),
                  settings: Optional[TyperBrandingSettings] = None,
                  console: Optional[RichConsole] = None,
                  main_callback_parameters: Optional[list[inspect.Parameter]] = None,
@@ -57,6 +57,14 @@ class TyperBranding(Typer):
             info_enabled = settings.cli_info_enabled
         if type(version_enabled) is Default:
             version_enabled = settings.cli_version_enabled
+        if type(name) is Default:
+            name = settings.cli_name
+        if type(name) is Default:
+            name = title
+        if type(help) is Default:
+            help = settings.cli_help
+        if type(help) is Default:
+            help = description
         if main_callback_parameters is None:
             main_callback_parameters = []
 
