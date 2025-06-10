@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field, computed_field
 
 
 class BrandingSettings(BaseModel):
-    branding_title: Optional[str] = Field(default=None, title="Branding Title", description="Branding title.")
+    branding_title: str = Field(default=..., title="Branding Title", description="Branding title.")
     branding_description: Optional[str] = Field(default=None, title="Branding Description", description="Branding description.")
-    branding_version: Optional[str] = Field(default=None, title="Branding Version", description="Branding version.")
+    branding_version: str = Field(default=..., title="Branding Version", description="Branding version.")
     branding_author: Optional[str] = Field(default=None, title="Branding Author", description="Branding author.")
     branding_author_email: Optional[str] = Field(default=None, title="Branding Author Email", description="Branding author email.")
     branding_license: Optional[str] = Field(default=None, title="Branding License Name", description="Branding license name.")
