@@ -1,9 +1,10 @@
 import inspect
-from typing import Optional, Annotated
+from typing import Optional, Annotated, Union
 
 from typer import Option, Exit
 from art import text2art
 
+from wiederverwendbar.default import Default
 from wiederverwendbar.rich import RichConsole
 from wiederverwendbar.typer.app import Typer
 from wiederverwendbar.typer.branding.settings import TyperBrandingSettings
@@ -12,18 +13,18 @@ from wiederverwendbar.typer.branding.settings import TyperBrandingSettings
 class TyperBranding(Typer):
     def __init__(self,
                  *,
-                 name: Optional[str] = None,
-                 help: Optional[str] = None,
-                 title: Optional[str] = None,
-                 description: Optional[str] = None,
-                 version: Optional[str] = None,
-                 author: Optional[str] = None,
-                 author_email: Optional[str] = None,
-                 license: Optional[str] = None,
-                 license_url: Optional[str] = None,
-                 terms_of_service: Optional[str] = None,
-                 info_enabled: Optional[bool] = None,
-                 version_enabled: Optional[bool] = None,
+                 name: Union[None, Default, str] = Default(),
+                 help: Union[None, Default, str] = Default(),
+                 title: Union[Default, str] = Default(),
+                 description: Union[None, Default, str] = Default(),
+                 version: Union[Default, str] = Default(),
+                 author: Union[None, Default, str] = Default(),
+                 author_email: Union[None, Default, str] = Default(),
+                 license: Union[None, Default, str] = Default(),
+                 license_url: Union[None, Default, str] = Default(),
+                 terms_of_service: Union[None, Default, str] = Default(),
+                 info_enabled: Union[Default, bool] = Default(),
+                 version_enabled: Union[Default, bool] = Default(),
                  settings: Optional[TyperBrandingSettings] = None,
                  console: Optional[RichConsole] = None,
                  main_callback_parameters: Optional[list[inspect.Parameter]] = None,
@@ -32,25 +33,25 @@ class TyperBranding(Typer):
         # set default
         if settings is None:
             settings = TyperBrandingSettings()
-        if title is None:
+        if type(title) is Default:
             title = settings.branding_title
-        if description is None:
+        if type(description) is Default:
             description = settings.branding_description
-        if version is None:
+        if type(version) is Default:
             version = settings.branding_version
-        if author is None:
+        if type(author) is Default:
             author = settings.branding_author
-        if author_email is None:
+        if type(author_email) is Default:
             author_email = settings.branding_author_email
-        if license is None:
+        if type(license) is Default:
             license = settings.branding_license
-        if license_url is None:
+        if type(license_url) is Default:
             license_url = settings.branding_license_url
-        if terms_of_service is None:
+        if type(terms_of_service) is Default:
             terms_of_service = settings.branding_terms_of_service
-        if info_enabled is None:
+        if type(info_enabled) is Default:
             info_enabled = settings.cli_info_enabled
-        if version_enabled is None:
+        if type(version_enabled) is Default:
             version_enabled = settings.cli_version_enabled
         if main_callback_parameters is None:
             main_callback_parameters = []
@@ -115,12 +116,26 @@ class TyperBranding(Typer):
                      license_url: Optional[str],
                      terms_of_service: Optional[str]) -> Optional[int]:
 
-        card_body = [text2art(title),
-                     f"{description}\n"
-                     f"by {author} ({author_email})\n"
-                     f"Version: v{version}\n"
-                     f"License: {license} - {license_url}\n"
-                     f"Terms of Service: {terms_of_service}"]
+        card_body = [text2art(title)]
+        second_section = ""
+        if description is not None:
+            second_section += f"{description}"
+        if second_section != "":
+            second_section += "\n"
+        if author is not None:
+            second_section += f"by {author}"
+            if author_email is not None:
+                second_section += f" ({author_email})"
+        if second_section != "":
+            second_section += "\n"
+        second_section += f"Version: v{version}"
+        if license is not None:
+            second_section += f"\nLicense: {license}"
+            if license_url is not None:
+                second_section += f" - {license_url}"
+        if terms_of_service is not None:
+            second_section += f"\nTerms of Service: {terms_of_service}"
+        card_body.append(second_section)
 
         self.console.card(*card_body,
                           padding_left=1,

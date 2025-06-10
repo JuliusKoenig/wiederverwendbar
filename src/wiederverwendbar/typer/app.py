@@ -1,8 +1,9 @@
 import inspect
-from typing import Optional
+from typing import Optional, Union
 
 from typer import Typer as _Typer
 
+from wiederverwendbar.default import Default
 from wiederverwendbar.rich.console import RichConsole
 from wiederverwendbar.typer.settings import TyperSettings
 
@@ -10,8 +11,8 @@ from wiederverwendbar.typer.settings import TyperSettings
 class Typer(_Typer):
     def __init__(self,
                  *,
-                 name: Optional[str] = None,
-                 help: Optional[str] = None,
+                 name: Union[None, Default, str] = Default(),
+                 help: Union[None, Default, str] = Default(),
                  settings: Optional[TyperSettings] = None,
                  console: Optional[RichConsole] = None,
                  main_callback_parameters: Optional[list[inspect.Parameter]] = None,
@@ -20,9 +21,9 @@ class Typer(_Typer):
         # set default
         if settings is None:
             settings = TyperSettings()
-        if name is None:
+        if type(name) is Default:
             name = settings.cli_name
-        if help is None:
+        if type(help) is Default:
             help = settings.cli_help
         if console is None:
             console = RichConsole(settings=settings)
