@@ -36,13 +36,13 @@ class TyperBranding(Typer):
         if type(title) is Default:
             title = settings.branding_title
         if title is None:
-            raise ValueError("Title is required.")
+            title = "Typer"
         if type(description) is Default:
             description = settings.branding_description
         if type(version) is Default:
             version = settings.branding_version
         if version is None:
-            raise ValueError("Version is required.")
+            version = "0.1.0"
         if type(author) is Default:
             author = settings.branding_author
         if type(author_email) is Default:
