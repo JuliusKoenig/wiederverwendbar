@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Union
 
@@ -28,7 +29,11 @@ class FastAPISettings(BrandingSettings):
     api_root_path: str = Field(default="", title="FastAPI Root Path", description="The root path of the FastAPI.")
     api_root_path_in_servers: bool = Field(default=True, title="FastAPI Root Path in Servers", description="Whether the root path of the FastAPI is in servers.")
     api_deprecated: Optional[bool] = Field(default=None, title="FastAPI Deprecated", description="Whether the FastAPI is deprecated.")
-    api_separate_input_output_schemas: bool = Field(default=True, title="FastAPI Separate Input Output Schemas",
-                                                    description="Whether the FastAPI separates input and output schemas.")
     api_info_url: Optional[str] = Field(default="/info", title="FastAPI Info URL", description="The info URL of the FastAPI.")
     api_version_url: Optional[str] = Field(default="/version", title="FastAPI Version URL", description="The version URL of the FastAPI.")
+
+    class RootRedirect(str, Enum):
+        DOCS = "docs"
+        REDOC = "redoc"
+
+    api_root_redirect: Union[None, Default, RootRedirect, str] = Field(default=Default(), title="FastAPI Root Redirect", description="The root redirect of the FastAPI.")

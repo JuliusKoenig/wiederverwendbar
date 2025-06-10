@@ -15,7 +15,8 @@ settings = FastAPISettings(branding_title="Test App",
                            branding_license_url=__license_url__,
                            branding_terms_of_service=__terms_of_service__,
                            api_docs_favicon=TEST_ICO)
-app = FastAPI(settings=settings)
+app = FastAPI(settings=settings,
+              separate_input_output_schemas=True)
 
 
 @app.get("/test1")

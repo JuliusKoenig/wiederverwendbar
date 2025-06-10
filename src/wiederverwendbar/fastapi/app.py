@@ -1,12 +1,57 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
-from fastapi import FastAPI as _FastAPI
-from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
-from starlette.responses import FileResponse
+from fastapi import FastAPI as _FastAPI, Request
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html, get_swagger_ui_oauth2_redirect_html
+from pydantic import BaseModel, Field, computed_field
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
 from wiederverwendbar.default import Default
 from wiederverwendbar.fastapi.settings import FastAPISettings
+
+
+class InfoModel(BaseModel):
+    title: str = Field(..., title="Title", description="The title of the application.")
+    description: str = Field(..., title="Description", description="The description of the application.")
+    version: str = Field(..., title="Version", description="The version of the application.")
+
+    class Contact(BaseModel):
+        name: str = Field(..., title="Name", description="The name of the contact.")
+        email: str = Field(..., title="Email", description="The email of the contact.")
+
+    contact: Optional[Contact] = Field(None, title="Contact", description="The contact of the application.")
+
+    class LicenseInfo(BaseModel):
+        name: str = Field(..., title="Name", description="The name of the license.")
+        url: str = Field(..., title="URL", description="The URL of the license.")
+
+    license_info: Optional[LicenseInfo] = Field(None, title="License Info", description="The license info of the application.")
+    terms_of_service: Optional[str] = Field(None, title="Terms of Service", description="The terms of service of the application.")
+
+
+class VersionModel(BaseModel):
+    version: Union[None, Default, str] = Field(default=Default(), title="Version", description="The version of the application.")
+
+    @computed_field(title="Version Major", description="The major version of the application.")
+    @property
+    def version_major(self) -> Optional[int]:
+        if self.version is None:
+            return None
+        return int(self.version.split(".")[0])
+
+    @computed_field(title="Version Minor", description="The minor version of the application.")
+    @property
+    def version_minor(self) -> Optional[int]:
+        if self.version is None:
+            return None
+        return int(self.version.split(".")[1])
+
+    @computed_field(title="Version Patch", description="The patch version of the application.")
+    @property
+    def version_patch(self) -> Optional[int]:
+        if self.version is None:
+            return None
+        return int(self.version.split(".")[2])
 
 
 class FastAPI(_FastAPI):
@@ -31,7 +76,11 @@ class FastAPI(_FastAPI):
                  root_path: Union[None, Default, str] = Default(),
                  root_path_in_servers: Union[None, Default, bool] = Default(),
                  deprecated: Union[None, Default, bool] = Default(),
-                 separate_input_output_schemas: Union[None, Default, bool] = Default(),
+                 info_url: Union[None, Default, str] = Default(),
+                 info_response_model: Union[Default, type[InfoModel]] = Default(),
+                 version_url: Union[None, Default, str] = Default(),
+                 version_response_model: Union[Default, type[InfoModel]] = Default(),
+                 root_redirect: Union[Default, None, FastAPISettings.RootRedirect, str] = Default(),
                  settings: Optional[FastAPISettings] = None,
                  **kwargs):
 
@@ -112,8 +161,36 @@ class FastAPI(_FastAPI):
             root_path_in_servers = settings.api_root_path_in_servers
         if type(deprecated) is Default:
             deprecated = settings.api_deprecated
-        if type(separate_input_output_schemas) is Default:
-            separate_input_output_schemas = settings.api_separate_input_output_schemas
+        if type(info_url) is Default:
+            info_url = settings.api_info_url
+        if type(info_response_model) is Default:
+            info_response_model = InfoModel
+        if type(version_url) is Default:
+            version_url = settings.api_version_url
+        if type(version_response_model) is Default:
+            version_response_model = VersionModel
+        if type(root_redirect) is Default:
+            root_redirect = settings.api_root_redirect
+        if type(root_redirect) is Default:
+            if docs_url is not None:
+                root_redirect = FastAPISettings.RootRedirect.DOCS
+            elif redoc_url is not None:
+                root_redirect = FastAPISettings.RootRedirect.REDOC
+            else:
+                root_redirect = None
+
+        # set attrs
+        self.docs_title = docs_title
+        self.docs_favicon = docs_favicon
+        self.docs_favicon_url = "/swagger-favicon.ico"
+        self.redoc_title = redoc_title
+        self.redoc_favicon = redoc_favicon
+        self.redoc_favicon_url = "/redoc-favicon.ico"
+        self.info_url = info_url
+        self.info_response_model = info_response_model
+        self.version_url = version_url
+        self.version_response_model = version_response_model
+        self.root_redirect = root_redirect
 
         super().__init__(debug=debug,
                          title=title,
@@ -122,40 +199,117 @@ class FastAPI(_FastAPI):
                          version=version,
                          openapi_url=openapi_url,
                          redirect_slashes=redirect_slashes,
-                         docs_url=None,
-                         redoc_url=None,
+                         docs_url=docs_url,
+                         redoc_url=redoc_url,
                          terms_of_service=terms_of_service,
                          contact=contact,
                          license_info=license_info,
                          root_path=root_path,
                          root_path_in_servers=root_path_in_servers,
                          deprecated=deprecated,
-                         separate_input_output_schemas=separate_input_output_schemas,
                          **kwargs)
 
-        # create docs
-        if docs_url is not None:
-            docs_kwargs = {"title": docs_title,
-                           "openapi_url": openapi_url}
-            if docs_favicon is not None:
-                docs_kwargs["swagger_favicon_url"] = "/swagger-favicon.ico"
-                @self.get("/swagger-favicon.ico", include_in_schema=False)
-                async def favicon() -> FileResponse:
-                    return FileResponse(docs_favicon)
+    def setup(self) -> None:
+        # create openapi route
+        if self.openapi_url:
+            self.add_route(path=self.openapi_url, route=self.get_openapi, include_in_schema=False)
 
-            @self.get(docs_url, include_in_schema=False)
-            async def swagger():
-                return get_swagger_ui_html(**docs_kwargs)
+        # create docs routes
+        if self.openapi_url and self.docs_url:
+            if self.docs_favicon is not None:
+                self.add_route(path=self.docs_favicon_url, route=self.get_docs_favicon, include_in_schema=False)
+            self.add_route(path=self.docs_url, route=self.get_docs, include_in_schema=False)
+            if self.swagger_ui_oauth2_redirect_url:
+                self.add_route(path=self.swagger_ui_oauth2_redirect_url, route=self.get_docs_redirect, include_in_schema=False)
 
-        if docs_url is not None:
-            redoc_kwargs = {"title": redoc_title,
-                           "openapi_url": openapi_url}
-            if redoc_favicon is not None:
-                redoc_kwargs["redoc_favicon_url"] = "/redoc-favicon.ico"
-                @self.get("/redoc-favicon.ico", include_in_schema=False)
-                async def favicon() -> FileResponse:
-                    return FileResponse(redoc_favicon)
+        # create redoc routes
+        if self.openapi_url and self.redoc_url:
+            if self.redoc_favicon is not None:
+                self.add_route(path=self.docs_favicon_url, route=self.get_redoc_favicon, include_in_schema=False)
+            self.add_route(path=self.redoc_url, route=self.get_redoc, include_in_schema=False)
 
-            @self.get(redoc_url, include_in_schema=False)
-            async def redoc():
-                return get_redoc_html(**redoc_kwargs)
+        # create info route
+        if self.info_url:
+            self.add_api_route(path=self.info_url, endpoint=self.get_info, response_model=self.info_response_model)
+
+        # create version route
+        if self.version_url:
+            self.add_api_route(path=self.version_url, endpoint=self.get_version, response_model=self.version_response_model)
+
+        # create root redirect route
+        if self.root_redirect:
+            self.add_route(path="/", route=self.get_root_redirect, include_in_schema=False)
+
+    async def get_openapi(self, request: Request) -> JSONResponse:
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        server_urls = {url for url in (server_data.get("url") for server_data in self.servers) if url}
+        if root_path not in server_urls:
+            if root_path and self.root_path_in_servers:
+                self.servers.insert(0, {"url": root_path})
+                server_urls.add(root_path)
+        return JSONResponse(self.openapi())
+
+    async def get_docs_favicon(self, request: Request) -> FileResponse:
+        return FileResponse(self.docs_favicon)
+
+    async def docs_parameters(self, request: Request) -> dict[str, Any]:
+        docs_kwargs = {"title": self.docs_title}
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        if self.openapi_url is None:
+            raise RuntimeError("OpenAPI URL not set")
+        docs_kwargs["openapi_url"] = root_path + self.openapi_url
+        if self.swagger_ui_oauth2_redirect_url:
+            docs_kwargs["oauth2_redirect_url"] = root_path + self.swagger_ui_oauth2_redirect_url
+        docs_kwargs["init_oauth"] = self.swagger_ui_init_oauth
+        docs_kwargs["swagger_ui_parameters"] = self.swagger_ui_parameters
+        if self.docs_favicon is not None:
+            docs_kwargs["swagger_favicon_url"] = self.docs_favicon_url
+        return docs_kwargs
+
+    async def get_docs(self, request: Request) -> HTMLResponse:
+        return get_swagger_ui_html(**await self.docs_parameters(request))
+
+    async def get_docs_redirect(self, request: Request) -> HTMLResponse:
+        return get_swagger_ui_oauth2_redirect_html()
+
+    async def redoc_parameters(self, request: Request) -> dict[str, Any]:
+        redoc_kwargs = {"title": self.redoc_title}
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        if self.openapi_url is None:
+            raise RuntimeError("OpenAPI URL not set")
+        redoc_kwargs["openapi_url"] = root_path + self.openapi_url
+        if self.redoc_favicon is not None:
+            redoc_kwargs["redoc_favicon_url"] = self.redoc_favicon_url
+        return redoc_kwargs
+
+    async def get_redoc_favicon(self, request: Request) -> FileResponse:
+        return FileResponse(self.redoc_favicon)
+
+    async def get_redoc(self, request: Request) -> HTMLResponse:
+        return get_redoc_html(**await self.redoc_parameters(request=request))
+
+    async def get_info(self, request: Request) -> dict[str, Any]:
+        return {"title": self.title,
+                "description": self.description,
+                "version": self.version,
+                "contact": self.contact,
+                "license_info": self.license_info,
+                "terms_of_service": self.terms_of_service}
+
+    async def get_version(self, request: Request) -> dict[str, Any]:
+        return {"version": self.version}
+
+    async def get_root_redirect(self, request: Request) -> RedirectResponse:
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        if self.root_redirect is None:
+            raise RuntimeError("Root Redirect not set")
+        root_redirect = self.root_redirect
+        if root_redirect == FastAPISettings.RootRedirect.DOCS:
+            if self.docs_url is None:
+                raise RuntimeError("Docs URL not set")
+            root_redirect = root_path + self.docs_url
+        if root_redirect == FastAPISettings.RootRedirect.REDOC:
+            if self.redoc_url is None:
+                raise RuntimeError("Redoc URL not set")
+            root_redirect = root_path + self.redoc_url
+        return RedirectResponse(url=root_redirect)
