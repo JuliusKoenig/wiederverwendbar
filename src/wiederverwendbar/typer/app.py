@@ -71,7 +71,19 @@ class Typer(_Typer):
 
         super().__init__(name=name, help=help, **kwargs)
 
-        # set console
+        # set attrs
+        self.title = title
+        self.description = description
+        self.version = version
+        self.author = author
+        self.author_email = author_email
+        self.license = license
+        self.license_url = license_url
+        self.terms_of_service = terms_of_service
+        self.info_enabled = info_enabled
+        self.version_enabled = version_enabled
+        self.name = name
+        self.help = help
         self.console = console
 
         # add info command parameter to main_callback_parameters
@@ -79,14 +91,7 @@ class Typer(_Typer):
             def info_callback(value: bool) -> None:
                 if not value:
                     return
-                code = self.info_command(title=title,
-                                         description=description,
-                                         version=version,
-                                         author=author,
-                                         author_email=author_email,
-                                         license=license,
-                                         license_url=license_url,
-                                         terms_of_service=terms_of_service)
+                code = self.info_command()
                 if code is None:
                     code = 0
                 raise Exit(code=code)
@@ -103,8 +108,7 @@ class Typer(_Typer):
             def version_callback(value: bool):
                 if not value:
                     return
-                code = self.version_command(title=title,
-                                            version=version)
+                code = self.version_command()
                 if code is None:
                     code = 0
                 raise Exit(code=code)
@@ -135,34 +139,26 @@ class Typer(_Typer):
     def main_callback(self, *args, **kwargs):
         ...
 
-    def info_command(self,
-                     title: str,
-                     description: Optional[str],
-                     version: str,
-                     author: Optional[str],
-                     author_email: Optional[str],
-                     license: Optional[str],
-                     license_url: Optional[str],
-                     terms_of_service: Optional[str]) -> Optional[int]:
-        card_body = [text2art(title)]
+    def info_command(self) -> Optional[int]:
+        card_body = [text2art(self.title)]
         second_section = ""
-        if description is not None:
-            second_section += f"{description}"
-        if author is not None:
+        if self.description is not None:
+            second_section += f"{self.description}"
+        if self.author is not None:
             if second_section != "":
                 second_section += "\n"
-            second_section += f"by {author}"
-            if author_email is not None:
-                second_section += f" ({author_email})"
+            second_section += f"by {self.author}"
+            if self.author_email is not None:
+                second_section += f" ({self.author_email})"
         if second_section != "":
             second_section += "\n"
-        second_section += f"Version: v{version}"
-        if license is not None:
-            second_section += f"\nLicense: {license}"
-            if license_url is not None:
-                second_section += f" - {license_url}"
-        if terms_of_service is not None:
-            second_section += f"\nTerms of Service: {terms_of_service}"
+        second_section += f"Version: v{self.version}"
+        if self.license is not None:
+            second_section += f"\nLicense: {self.license}"
+            if self.license_url is not None:
+                second_section += f" - {self.license_url}"
+        if self.terms_of_service is not None:
+            second_section += f"\nTerms of Service: {self.terms_of_service}"
         card_body.append(second_section)
 
         self.console.card(*card_body,
@@ -172,7 +168,5 @@ class Typer(_Typer):
                           color="white",
                           border_color="blue")
 
-    def version_command(self,
-                        title: str,
-                        version: Optional[str]) -> Optional[int]:
-        self.console.print(f"{title} v[cyan]{version}[/cyan]")
+    def version_command(self) -> Optional[int]:
+        self.console.print(f"{self.title} v[cyan]{self.version}[/cyan]")
