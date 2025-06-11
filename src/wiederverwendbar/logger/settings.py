@@ -6,6 +6,7 @@ from typing import Any, Optional, Union
 from pydantic import BaseModel, Field, field_validator
 
 from wiederverwendbar.console import OutFiles
+from wiederverwendbar.default import Default
 from wiederverwendbar.logger.file_modes import FileModes
 from wiederverwendbar.logger.log_levels import LogLevels
 
@@ -18,9 +19,9 @@ class LoggerSettings(BaseModel):
     log_console: bool = Field(default=True,
                               title="Console Logging",
                               description="Whether to log to the console")
-    log_console_level: Optional[LogLevels] = Field(default=None,
-                                                   title="Console Log Level",
-                                                   description="The log level for the console")
+    log_console_level: Union[Default, LogLevels] = Field(default=Default(),
+                                                         title="Console Log Level",
+                                                         description="The log level for the console")
     log_console_format: str = Field(default="%(name)s - %(message)s",
                                     title="Console Log Format",
                                     description="The log format for the console")
@@ -50,9 +51,9 @@ class LoggerSettings(BaseModel):
     log_file_path: Optional[Path] = Field(default=None,
                                           title="Log File Path",
                                           description="The path of the log file")
-    log_file_level: Optional[LogLevels] = Field(default=None,
-                                                title="File Log Level",
-                                                description="The log level for the file")
+    log_file_level: Union[Default, LogLevels] = Field(default=Default(),
+                                                      title="File Log Level",
+                                                      description="The log level for the file")
     log_file_format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                                  title="File Log Format",
                                  description="The log format for the file")
@@ -79,19 +80,13 @@ class LoggerSettings(BaseModel):
                                                ge=0,
                                                description="The number of backup log archives to keep")
 
-    def __init__(self, /, **data: Any):
-        super().__init__(**data)
-
-        if self.log_console_level is None:
+    def model_post_init(self, context: Any, /):
+        if type(self.log_console_level) is Default:
             self.log_console_level = self.log_level
-
-        if self.log_file_level is None:
+        if type(self.log_file_level) is Default:
             self.log_file_level = self.log_level
 
-        if self.log_console_level < self.log_level:
-            self.log_console_level = self.log_level
-        if self.log_file_level < self.log_level:
-            self.log_file_level = self.log_level
+        super().model_post_init(context)
 
     @field_validator("log_level", "log_console_level", "log_file_level", mode="before")
     def validate_log_level(cls, value: Union[int, str]) -> str:
