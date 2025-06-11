@@ -1,13 +1,16 @@
+import logging
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Callable, Awaitable
 
 from fastapi import FastAPI as _FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html, get_swagger_ui_oauth2_redirect_html
 from pydantic import BaseModel, Field, computed_field
-from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from wiederverwendbar.default import Default
 from wiederverwendbar.fastapi.settings import FastAPISettings
+
+logger = logging.getLogger(__name__)
 
 
 class InfoModel(BaseModel):
@@ -192,6 +195,12 @@ class FastAPI(_FastAPI):
         self.version_response_model = version_response_model
         self.root_redirect = root_redirect
 
+        # For storing the original "add_api_route" method from router.
+        # If None, the access to router will be blocked.
+        self._original_add_route: Union[None, bool, Callable, Any] = None
+        self._original_add_api_route: Union[None, bool, Callable, Any] = None
+        self._original_add_api_websocket_route: Union[None, bool, Callable, Any] = None
+
         super().__init__(debug=debug,
                          title=title,
                          summary=summary,
@@ -209,7 +218,64 @@ class FastAPI(_FastAPI):
                          deprecated=deprecated,
                          **kwargs)
 
+        logger.info(f"Initialized FastAPI: {self}")
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(title={self.title}, version={self.version})"
+
+    def __getattribute__(self, item):
+        # block router access if the init flag is not set
+        if item == "router":
+            if self._original_add_route is None or self._original_add_api_route is None or self._original_add_api_websocket_route is None:
+                raise RuntimeError("Class is not initialized!")
+        return super().__getattribute__(item)
+
+    def _add_route(self,
+                   path: str,
+                   endpoint: Callable[[Request], Union[Awaitable[Response], Response]],
+                   methods: Optional[list[str]] = None,
+                   name: Optional[str] = None,
+                   include_in_schema: bool = True, *args, **kwargs) -> None:
+        if self._original_add_route is None or self._original_add_route is True:
+            raise RuntimeError("Original add_route method is not set!")
+        logger.debug(f"Adding route for {self} -> {path}")
+        return self._original_add_route(path, endpoint, methods, name, include_in_schema, *args, **kwargs)
+
+    def _add_api_route(self,
+                       path: str,
+                       endpoint: Callable[..., Any],
+                       *args,
+                       **kwargs) -> None:
+        if self._original_add_api_route is None or self._original_add_api_route is True:
+            raise RuntimeError("Original add_api_route method is not set!")
+        logger.debug(f"Adding API route for {self} -> {path}")
+        return self._original_add_api_route(path, endpoint, *args, **kwargs)
+
+    def _add_api_websocket_route(self,
+                                 path: str,
+                                 endpoint: Callable[..., Any],
+                                 name: Optional[str] = None,
+                                 *args,
+                                 **kwargs) -> None:
+        if self._original_add_api_websocket_route is None or self._original_add_api_websocket_route is True:
+            raise RuntimeError("Original add_api_websocket_route method is not set!")
+        logger.debug(f"Adding API websocket route for {self} -> {path}")
+        return self._original_add_api_websocket_route(path, endpoint, name, *args, **kwargs)
+
     def setup(self) -> None:
+        # to unblock router access
+        self._original_add_route = True
+        self._original_add_api_route = True
+        self._original_add_api_websocket_route = True
+
+        # overwrite add_api_route for router
+        self._original_add_api_route = self.router.add_api_route
+        self.router.add_api_route = self._add_api_route
+        self._original_add_api_websocket_route = self.router.add_api_websocket_route
+        self.router.add_api_websocket_route = self._add_api_websocket_route
+        self._original_add_route = self.router.add_route
+        self.router.add_route = self._add_route
+
         # create openapi route
         if self.openapi_url:
             self.add_route(path=self.openapi_url, route=self.get_openapi, include_in_schema=False)
