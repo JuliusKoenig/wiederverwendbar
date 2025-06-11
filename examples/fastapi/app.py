@@ -4,7 +4,7 @@ import uvicorn
 
 from fastapi import Depends
 
-from wiederverwendbar.fastapi import FastAPISettings, FastAPI, get_app
+from wiederverwendbar.fastapi import FastAPISettings, FastAPI, protected, get_app, HttpBasicAuthScheme, OAuth2PasswordBearerScheme
 from wiederverwendbar import __author__, __author_email__, __license__, __license_url__, __terms_of_service__
 from wiederverwendbar.logger import LoggerSettings, LogLevels, LoggerSingleton
 
@@ -25,7 +25,8 @@ settings = MySettings(branding_title="Test App",
                       branding_license_url=__license_url__,
                       branding_terms_of_service=__terms_of_service__,
                       log_level=LogLevels.DEBUG,
-                      api_docs_favicon=TEST_ICO)
+                      api_docs_favicon=TEST_ICO,
+                      api_auth_scheme=OAuth2PasswordBearerScheme())
 
 LoggerSingleton(name=__name__, settings=settings, init=True)  # ToDo fix this unresolved attr
 
@@ -49,6 +50,24 @@ def get_sync(_app: Annotated["MyApi", Depends(get_app)], query_param: str = "tes
 @app.get("/async")
 def get_async(_app: Annotated["MyApi", Depends(get_app)], query_param: str = "test_query_param"):
     return {"async": {
+        "test_query_param": query_param,
+        "test_app_attr": _app.test_attr
+    }}
+
+
+@app.get("/protected/sync")
+@protected()
+def get_sync(_app: Annotated["MyApi", Depends(get_app)], query_param: str = "test_query_param"):
+    return {"protected_sync": {
+        "test_query_param": query_param,
+        "test_app_attr": _app.test_attr
+    }}
+
+
+@app.get("/protected/async")
+@protected()
+def get_async(_app: Annotated["MyApi", Depends(get_app)], query_param: str = "test_query_param"):
+    return {"protected_async": {
         "test_query_param": query_param,
         "test_app_attr": _app.test_attr
     }}
