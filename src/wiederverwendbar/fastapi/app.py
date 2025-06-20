@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field, computed_field
 from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from wiederverwendbar.default import Default
-from wiederverwendbar.fastapi.auth.schemes import AVAILABLE_AUTH_SCHEMES
 from wiederverwendbar.fastapi.settings import FastAPISettings
 
 logger = logging.getLogger(__name__)
@@ -86,7 +85,6 @@ class FastAPI(_FastAPI):
                  version_url: Union[None, Default, str] = Default(),
                  version_response_model: Union[Default, type[InfoModel]] = Default(),
                  root_redirect: Union[Default, None, FastAPISettings.RootRedirect, str] = Default(),
-                 auth_scheme: Union[Default, AVAILABLE_AUTH_SCHEMES] = Default(),
                  settings: Optional[FastAPISettings] = None,
                  **kwargs):
 
@@ -184,8 +182,6 @@ class FastAPI(_FastAPI):
                 root_redirect = FastAPISettings.RootRedirect.REDOC
             else:
                 root_redirect = None
-        if type(auth_scheme) is Default:
-            auth_scheme = settings.api_auth_scheme
 
         # set attrs
         self.docs_title = docs_title
@@ -199,7 +195,6 @@ class FastAPI(_FastAPI):
         self.version_url = version_url
         self.version_response_model = version_response_model
         self.root_redirect = root_redirect
-        self.auth_scheme = auth_scheme
 
         # For storing the original "add_api_route" method from router.
         # If None, the access to router will be blocked.
@@ -254,20 +249,7 @@ class FastAPI(_FastAPI):
                        **kwargs) -> None:
         if self._original_add_api_route is None or self._original_add_api_route is True:
             raise RuntimeError("Original add_api_route method is not set!")
-
-        # get protected_flag
-        protected_flag = getattr(endpoint, "_protected", False)
-
-        if protected_flag and self.auth_scheme is not None:
-            logger.debug(f"Adding protected API route for {self} -> {path}")
-            endpoint_signature = inspect.signature(endpoint)
-            endpoint_signature_parameters = list(endpoint_signature.parameters.values())
-            endpoint_signature_parameters.append(inspect.Parameter(name="credentials",
-                                                                   kind=inspect.Parameter.KEYWORD_ONLY,
-                                                                   annotation=Annotated[str, Depends(self.auth_scheme())]))
-            endpoint.__signature__ = endpoint_signature.replace(parameters=endpoint_signature_parameters)
-        else:
-            logger.debug(f"Adding API route for {self} -> {path}")
+        logger.debug(f"Adding API route for {self} -> {path}")
         return self._original_add_api_route(path, endpoint, *args, **kwargs)
 
     def _add_api_websocket_route(self,
@@ -327,10 +309,6 @@ class FastAPI(_FastAPI):
         # create root redirect route
         if self.root_redirect:
             self.add_route(path="/", route=self.get_root_redirect, include_in_schema=False)
-
-        # include auth_scheme router
-        if self.auth_scheme:
-            self.include_router(self.auth_scheme.router)
 
     async def get_openapi(self, request: Request) -> JSONResponse:
         root_path = request.scope.get("root_path", "").rstrip("/")

@@ -6,7 +6,6 @@ from pydantic import Field
 
 from wiederverwendbar.branding import BrandingSettings
 from wiederverwendbar.default import Default
-from wiederverwendbar.fastapi.auth.schemes import AVAILABLE_AUTH_SCHEMES
 
 
 class FastAPISettings(BrandingSettings):
@@ -38,4 +37,3 @@ class FastAPISettings(BrandingSettings):
         REDOC = "redoc"
 
     api_root_redirect: Union[None, Default, RootRedirect, str] = Field(default=Default(), title="FastAPI Root Redirect", description="The root redirect of the FastAPI.")
-    api_auth_scheme: AVAILABLE_AUTH_SCHEMES = Field(default=None, title="FastAPI Auth scheme", description="The auth scheme of the FastAPI.")
