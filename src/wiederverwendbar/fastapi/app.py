@@ -367,7 +367,10 @@ class FastAPI(_FastAPI):
                 "terms_of_service": self.terms_of_service}
 
     async def get_version(self, request: Request) -> dict[str, Any]:
-        return {"version": self.version}
+        version = self.version
+        if version.startswith("v"):
+            version = version[1:]
+        return {"version": version}
 
     async def get_root_redirect(self, request: Request) -> RedirectResponse:
         root_path = request.scope.get("root_path", "").rstrip("/")
