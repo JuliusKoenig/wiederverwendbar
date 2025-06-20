@@ -22,6 +22,7 @@ class BrandingSettings(BaseModel):
         main_module = sys.modules["__main__"]
         module_data = self.get_attributes(main_module.__dict__)
         if module_data is None:
+            # ToDO: this code is not working for pyprojects.toml [project.scripts]
             init_file = Path(main_module.__file__).parent / "__init__.py"
             if init_file.is_file():
                 init_file_module_spec = importlib.util.spec_from_file_location("__main__.__init__", init_file)
