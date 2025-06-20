@@ -1,6 +1,6 @@
 import time
 
-from tests.shared import manager
+from incubator.task_manager.shared import manager
 
 if __name__ == '__main__':
     worker = manager.create_worker()

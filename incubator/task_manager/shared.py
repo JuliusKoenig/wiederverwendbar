@@ -4,7 +4,7 @@ import time
 from wiederverwendbar.logger import LoggerSingleton, LoggerSettings
 from wiederverwendbar.mongoengine import MongoengineDbSingleton
 
-from tests.task_manager import Manager, Worker, ScheduledTask
+from incubator.task_manager.task_manager import Manager, Worker, ScheduledTask
 
 # init logging
 LoggerSingleton(name="test", settings=LoggerSettings(log_level="DEBUG"), ignored_loggers_like=["pymongo"], init=True)
