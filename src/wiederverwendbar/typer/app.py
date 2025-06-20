@@ -136,11 +136,15 @@ class Typer(_Typer):
         # register the main callback
         self.callback()(self.main_callback)
 
+    @property
+    def title_header(self) -> str:
+        return text2art(self.title)
+
     def main_callback(self, *args, **kwargs):
         ...
 
     def info_command(self) -> Optional[int]:
-        card_body = [text2art(self.title)]
+        card_body = [self.title_header]
         second_section = ""
         if self.description is not None:
             second_section += f"{self.description}"
