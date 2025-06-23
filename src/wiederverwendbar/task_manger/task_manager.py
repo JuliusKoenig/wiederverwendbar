@@ -1,13 +1,15 @@
 import logging
 import multiprocessing
 import threading
-from datetime import datetime
+from datetime import datetime as _datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional, Union, TYPE_CHECKING
 
 from wiederverwendbar.task_manger.task import Task
-from wiederverwendbar.task_manger.trigger import Trigger
 from wiederverwendbar.timer import timer_loop
+
+if TYPE_CHECKING:
+    from wiederverwendbar.task_manger.trigger import Trigger
 
 
 class TaskManagerStates(str, Enum):
@@ -17,16 +19,19 @@ class TaskManagerStates(str, Enum):
 
 
 class TaskManager:
+    class States(str, Enum):
+        INITIAL = "INITIAL"
+        RUNNING = "RUNNING"
+        STOPPED = "STOPPED"
+
     lock = threading.Lock()
 
     def __init__(self,
                  name: Optional[str] = None,
                  worker_count: Optional[int] = None,
                  daemon: bool = False,
-                 keep_done_tasks: bool = False,
                  loop_delay: Optional[float] = None,
-                 logger: Optional[logging.Logger] = None,
-                 log_self: bool = True):
+                 logger: Optional[logging.Logger] = None):
         self._id = id(self)
         if name is None:
             name = self.__class__.__name__
@@ -34,8 +39,8 @@ class TaskManager:
         self._workers: list[threading.Thread] = []
         self._tasks: list[Task] = []
         self._state: TaskManagerStates = TaskManagerStates.INITIAL
-        self._creation_time: datetime = datetime.now()
-        self._keep_done_tasks = keep_done_tasks
+        self._creation_time: _datetime = _datetime.now()
+        self._start_time: Optional[_datetime] = None
         self.logger = logger or logging.getLogger(self._name)
 
         # create workers
@@ -83,7 +88,7 @@ class TaskManager:
             return self._state
 
     @property
-    def creation_time(self) -> datetime:
+    def creation_time(self) -> _datetime:
         """
         Manager creation time.
 
@@ -91,8 +96,18 @@ class TaskManager:
         """
 
         with self.lock:
-            creation_time = self._creation_time
-        return creation_time
+            return self._creation_time
+
+    @property
+    def start_time(self) -> Optional[_datetime]:
+        """
+        Manager start time.
+
+        :return: datetime or None
+        """
+
+        with self.lock:
+            return self._start_time
 
     def start(self) -> None:
         """
@@ -113,6 +128,10 @@ class TaskManager:
         for worker in self._workers:
             self.logger.debug(f"{self} -> Starting worker '{worker.name}' ...")
             worker.start()
+
+        # set the start time
+        with self.lock:
+            self._start_time = _datetime.now()
 
         self.logger.debug(f"Manager {self} started.")
 
@@ -140,45 +159,6 @@ class TaskManager:
 
         self.logger.debug(f"Manager {self} stopped.")
 
-    def _pop_task(self) -> Optional[Task]:
-        next_task = None
-        with self.lock:
-            for i, task in enumerate(self._tasks):
-                if task.next_run is None:
-                    continue
-                if task.next_run > datetime.now():
-                    continue
-                next_task = self._tasks.pop(i)
-                break
-        return next_task
-
-    def _run_task(self, task: Task) -> None:
-        self.logger.debug(f"{self} -> Running task {task} ...")
-
-        with self.lock:
-            if task.time_measurement_before_run:
-                task.set_last_run()
-                task.set_next_run()
-
-        # run task
-        task.payload()
-
-        self.logger.debug(f"{self} -> Task {task} successfully run.")
-
-        with self.lock:
-            if not task.time_measurement_before_run:
-                task.set_last_run()
-                task.set_next_run()
-
-    def _append_task(self, task: Task) -> None:
-        with self.lock:
-            if not task.is_done:
-                self._tasks.append(task)
-            else:
-                self.logger.debug(f"{self} -> Task {task} is done.")
-                if self._keep_done_tasks:
-                    self._tasks.append(task)
-
     def loop(self, stay_in_loop: bool = True) -> None:
         """
         Manager loop. All workers run this loop. If worker_count is 0, you can run this loop manually.
@@ -197,17 +177,38 @@ class TaskManager:
                     raise ValueError(f"{self} -> Running manager loop outside of worker thread is not allowed, if worker_count > 0.")
 
         while self.state == TaskManagerStates.RUNNING:
-            task = self._pop_task()
+            # get the next task from the list
+            task = None
+            with self.lock:
+                for i, _task in enumerate(self._tasks):
+                    if not _task():
+                        continue
+                    task = self._tasks.pop(i)
+                    break
+
+            # if a task to run available, run the task
             if task is not None:
-                self._run_task(task)
-                self._append_task(task)
+                self.logger.debug(f"{self} -> Running task {task} ...")
+                if task.time_measurement == Task.TimeMeasurement.START:
+                    task._last_run = _datetime.now()
+                try:
+                    task.payload()
+                    self.logger.debug(f"{self} -> Task {task} successfully run.")
+                except Exception as e:
+                    self.logger.error(f"{self} -> Task {task} failed: {e}")
+                if task.time_measurement == Task.TimeMeasurement.END:
+                    task._last_run = _datetime.now()
+
+                # put the task back to list
+                with self.lock:
+                    self._tasks.append(task)
 
             if not stay_in_loop:
                 break
             if self._loop_delay:
                 timer_loop(name=f"{self._name}_{self._id}_LOOP", seconds=self._loop_delay, loop_delay=self._loop_delay)
 
-    def add_task(self, task: Task):
+    def add_task(self, task: Task) -> None:
         """
         Add task to manager.
 
@@ -215,12 +216,9 @@ class TaskManager:
         :return:
         """
 
-        task.init(self)
-        with self.lock:
-            self._tasks.append(task)
-        self.logger.debug(f"{self} -> Task {task} added.")
+        task.manager = self
 
-    def remove_task(self, task: Task):
+    def remove_task(self, task: Task) -> None:
         """
         Remove task from manager.
 
@@ -228,38 +226,34 @@ class TaskManager:
         :return:
         """
 
-        with self.lock:
-            self._tasks.remove(task)
-        self.logger.debug(f"{self} -> Task {task.name} removed.")
+        if task.manager is not self:
+            raise ValueError(f"Task {task} is not assigned to manager {self}.")
+        task.manager = None
 
     def task(self,
+             *triggers: "Trigger",
              name: Optional[str] = None,
-             trigger: Optional[Trigger] = None,
-             time_measurement_before_run: bool = True,
-             return_func: bool = True,
-             *args,
-             **kwargs) -> Any:
+             time_measurement: Optional[Task.TimeMeasurement] = None,
+             task_args: Optional[Union[list, tuple]] = None,
+             task_kwargs: Optional[dict] = None):
         """
         Task decorator.
 
+        :param triggers: The trigger of the task.
         :param name: The name of the task.
-        :param trigger: The trigger of the task.
-        :param time_measurement_before_run: Time measurement before run flag.
-        :param return_func: Return function flag. If True, the function will be returned instead of the task.
-        :param args: Args for the task payload.
-        :param kwargs: Kwargs for the task payload.
+        :param time_measurement: Time measurement for the task.
+        :param task_args: Args for the task payload.
+        :param task_kwargs: Kwargs for the task payload.
         :return: Task or function
         """
 
         def decorator(func):
-            task = Task(name=name,
-                        manager=self,
-                        trigger=trigger,
-                        time_measurement_before_run=time_measurement_before_run,
-                        payload=func,
-                        auto_add=True,
-                        *args,
-                        **kwargs)
-            return task if not return_func else func
+            self.add_task(task=Task(func,
+                                    *triggers,
+                                    name=name,
+                                    time_measurement=time_measurement,
+                                    task_args=task_args,
+                                    task_kwargs=task_kwargs))
+            return func
 
         return decorator
