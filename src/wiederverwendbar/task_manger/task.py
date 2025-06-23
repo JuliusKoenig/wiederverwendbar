@@ -59,6 +59,9 @@ class Task:
                 raise ValueError("Manager object is required.")
             manager.add_task(self)
 
+    def __str__(self):
+        return f"{self.__class__.__name__}(name={self.name})"
+
     def init(self, manager):
         self.manager = manager
         self.trigger.init(manager)
