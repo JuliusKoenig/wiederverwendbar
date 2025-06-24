@@ -1,0 +1,74 @@
+services:
+  db:
+    image: mariadb:${DB_VERSION:?}
+    container_name: db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT}:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?}"
+      MARIADB_USER: "${DB_USERNAME:?}"
+      MARIADB_PASSWORD: "${DB_PASSWORD:?}"
+      MARIADB_DATABASE: "${DB_DATABASE_NAME:?}"
+    volumes:
+      - "${ROOT_PATH:?}/db:/var/lib/mysql"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_interval: 1s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  db-admin:
+    image: phpmyadmin/phpmyadmin:${DB_ADMIN_VERSION:?}
+    container_name: db-admin
+    restart: unless-stopped
+    ports:
+      - "${DB_ADMIN_PORT}:80"
+    links:
+      - db
+    environment:
+      PMA_HOST: "db"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?}"
+    depends_on:
+      - db
+
+  broker:
+    image: rabbitmq:${BROKER_VERSION:?}
+    container_name: broker
+    restart: unless-stopped
+    ports:
+      - "${BROKER_PORT}:5672"
+      - "${BROKER_ADMIN_PORT}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "${BROKER_USERNAME:?}"
+      RABBITMQ_DEFAULT_PASS: "${BROKER_PASSWORD:?}"
+    configs:
+      - source: broker-plugins
+        target: /etc/rabbitmq/enabled_plugins
+    volumes:
+      - "${ROOT_PATH:?}/broker:/var/lib/rabbitmq/"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      start_interval: 1s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  broker-admin:
+    image: mher/flower:${FLOWER_VERSION:?}
+    container_name: broker-admin
+    restart: unless-stopped
+    ports:
+      - "${FLOWER_PORT}:5555"
+    links:
+      - broker
+    environment:
+      CELERY_BROKER_URL: "amqp://${BROKER_USERNAME:?}:${BROKER_PASSWORD:?}@broker:5672//"
+      FLOWER_BASIC_AUTH: "${FLOWER_USERNAME:?}:${FLOWER_PASSWORD:?}"
+    depends_on:
+      - broker
+
+configs:
+  broker-plugins:
+    content: "[rabbitmq_management]."
