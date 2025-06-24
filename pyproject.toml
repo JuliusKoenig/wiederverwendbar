@@ -1,6 +1,6 @@
 [project]
 name = "celery-test"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A test Celery setup, reusable as a template for further projects."
 authors = [
     { name = "Julius Koenig", email = "info@bastelquartier.de" },
@@ -16,3 +16,7 @@ build-backend = "pdm.backend"
 
 [tool.pdm]
 distribution = true
+
+[tool.pdm.version]
+source = "file"
+path = "src/celery_test/__init__.py"
