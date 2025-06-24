@@ -1,19 +1,94 @@
 services:
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: worker
+    command:
+      - "worker"
+    restart: unless-stopped
+    links:
+      - db
+      - broker
+    environment:
+      TZ: "${TZ:?}"
+      WORKER_LOG_LEVEL: "${WORKER_LOG_LEVEL:?}"
+      WORKER_UID: "${WORKER_UID:?}"
+      WORKER_GID: "${WORKER_GID:?}"
+      BROKER_HOST: "broker"
+      BROKER_PORT: "5672"
+      BROKER_USERNAME: "${BROKER_USERNAME:?}"
+      BROKER_PASSWORD: "${BROKER_PASSWORD:?}"
+      DB_HOST: "db"
+      DB_PORT: "3306"
+      DB_DATABASE_NAME: "${DB_DATABASE_NAME:?}"
+      DB_USERNAME: "${DB_USERNAME:?}"
+      DB_PASSWORD: "${DB_PASSWORD:?}"
+    volumes:
+      - "${ROOT_PATH:?}/worker/log:/var/log/celery"
+    healthcheck:
+      test: [ "CMD", "/healthcheck.sh", "worker" ]
+      start_interval: 1s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: beat
+    command:
+      - "beat"
+    restart: unless-stopped
+    links:
+      - db
+      - broker
+    environment:
+      TZ: "${TZ:?}"
+      BEAT_LOG_LEVEL: "${WORKER_LOG_LEVEL:?}"
+      BROKER_PORT: "5672"
+      BROKER_USERNAME: "${BROKER_USERNAME:?}"
+      BROKER_PASSWORD: "${BROKER_PASSWORD:?}"
+      DB_HOST: "db"
+      DB_PORT: "3306"
+      DB_DATABASE_NAME: "${DB_DATABASE_NAME:?}"
+      DB_USERNAME: "${DB_USERNAME:?}"
+      DB_PASSWORD: "${DB_PASSWORD:?}"
+    volumes:
+      - "${ROOT_PATH:?}/beat/log:/var/log/celery"
+    healthcheck:
+      test: [ "CMD", "/healthcheck.sh", "beat" ]
+      start_interval: 1s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   db:
     image: mariadb:${DB_VERSION:?}
     container_name: db
+    command:
+      - "--general-log=1"
+      - "--general-log-file=/var/log/mysql/general.log"
+      - "--log_error=/var/log/mysql/error.log"
+      - "--slow_query_log=1"
+      - "--slow_query_log_file=/var/log/mysql/slow-query.log"
+      - "--long_query_time=2"
+      - "--log_queries_not_using_indexes=1"
     restart: unless-stopped
     ports:
       - "${DB_PORT}:3306"
     environment:
+      TZ: "${TZ:?}"
       MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?}"
       MARIADB_USER: "${DB_USERNAME:?}"
       MARIADB_PASSWORD: "${DB_PASSWORD:?}"
       MARIADB_DATABASE: "${DB_DATABASE_NAME:?}"
     volumes:
-      - "${ROOT_PATH:?}/db:/var/lib/mysql"
+      - "${ROOT_PATH:?}/db/log:/var/log/mysql"
+      - "${ROOT_PATH:?}/db/data:/var/lib/mysql"
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
       start_interval: 1s
       interval: 10s
       timeout: 3s
@@ -41,13 +116,17 @@ services:
       - "${BROKER_PORT}:5672"
       - "${BROKER_ADMIN_PORT}:15672"
     environment:
+      TZ: "${TZ:?}"
       RABBITMQ_DEFAULT_USER: "${BROKER_USERNAME:?}"
       RABBITMQ_DEFAULT_PASS: "${BROKER_PASSWORD:?}"
+      RABBITMQ_LOGS: "/var/log/rabbitmq/rabbit.log"
+      RABBITMQ_SASL_LOGS: "/var/log/rabbitmq/rabbit-sasl.log"
     configs:
       - source: broker-plugins
         target: /etc/rabbitmq/enabled_plugins
     volumes:
-      - "${ROOT_PATH:?}/broker:/var/lib/rabbitmq/"
+      - "${ROOT_PATH:?}/broker/log:/var/log/rabbitmq/"
+      - "${ROOT_PATH:?}/broker/data:/var/lib/rabbitmq/"
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       start_interval: 1s
@@ -64,6 +143,7 @@ services:
     links:
       - broker
     environment:
+      TZ: "${TZ:?}"
       CELERY_BROKER_URL: "amqp://${BROKER_USERNAME:?}:${BROKER_PASSWORD:?}@broker:5672//"
       FLOWER_BASIC_AUTH: "${FLOWER_USERNAME:?}:${FLOWER_PASSWORD:?}"
     depends_on:
