@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:fd780e86842f5e8ef294f01dc39e63b6fc372bb949d4d3682dfe1fef7ee0d517"
+content_hash = "sha256:141eca376e30407a7b6deb5b49b33e3e1a3c9d80aa046effedd4880f6f5c9b7a"
 
 [[metadata.targets]]
 requires_python = ">=3.13"
@@ -139,6 +139,27 @@ marker = "platform_system == \"Windows\""
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
+]
+
+[[package]]
+name = "ephem"
+version = "4.2"
+summary = "Compute positions of the planets and stars"
+groups = ["default"]
+files = [
+    {file = "ephem-4.2-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:ea8d23e7d452537fbbe1da12891ccaea5bf890a0ae35007d6c773842ad08ec16"},
+    {file = "ephem-4.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c7dcd7425cc82945b0d6cb31a0897aeae835d5e68082243e210b59036950b61e"},
+    {file = "ephem-4.2-cp313-cp313-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:797fb2a6ecef2866f7a2d57f897dfb9f34bea60462950b94a22935272f4d7e5c"},
+    {file = "ephem-4.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68976d765a78ff3c534e11c8b9f87e83b67cacd461e7074664fb8a0c0b9ab341"},
+    {file = "ephem-4.2-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:5c787ef694db5e56151595ec237f960836e672a8770b41f09f9c65c26133291b"},
+    {file = "ephem-4.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0fbf26f0c99d7ba100df584cd4899044e582af57bbe313aecfecefd6ab389753"},
+    {file = "ephem-4.2-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:4b1c87517be414f67c3b35c6dbd8bd7c28d664e06d857b4a4224511bdb06ad2e"},
+    {file = "ephem-4.2-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:599df915cd37dae047e4d885885afff23102d33a33f9900ae95c11195cbe83cb"},
+    {file = "ephem-4.2-cp313-cp313-musllinux_1_2_s390x.whl", hash = "sha256:38a74e63cfb6fcee6b23ad183c6d02da0c0113ae7ad4f433422a15e401c3aa92"},
+    {file = "ephem-4.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:e9083fe4144478a43fbba07169957b6eb3797fd97955145dd614eaa0a934ad79"},
+    {file = "ephem-4.2-cp313-cp313-win32.whl", hash = "sha256:94cad00341ed5367144f3dfec98b6a33f285b5eb5c35971f697f8cac14f12a00"},
+    {file = "ephem-4.2-cp313-cp313-win_amd64.whl", hash = "sha256:9f72002f2f6dd8ad838fcbe7b4e9bdf8daadfe3e7093383336a234da458c77a5"},
+    {file = "ephem-4.2.tar.gz", hash = "sha256:3c4fd64f453e8f40cf862420a70da95a71b6487ace75e8e0cf85d73707db6065"},
 ]
 
 [[package]]
@@ -352,6 +373,22 @@ files = [
 ]
 
 [[package]]
+name = "sqlalchemy-celery-beat"
+version = "0.8.4"
+summary = "A Scheduler Based SQLalchemy For Celery"
+groups = ["default"]
+dependencies = [
+    "celery>=5.0",
+    "ephem",
+    "sqlalchemy>=1.4",
+    "tzdata",
+]
+files = [
+    {file = "sqlalchemy_celery_beat-0.8.4-py3-none-any.whl", hash = "sha256:0bba9e821c9152cc5b1d406df8dd814162b7f44aad62b9f5636c934a2d007514"},
+    {file = "sqlalchemy_celery_beat-0.8.4.tar.gz", hash = "sha256:c5f3f7b456f76072ea7dcd3f9363d45b05ae915b17496d9f49225fd0e918a623"},
+]
+
+[[package]]
 name = "tornado"
 version = "6.5.1"
 requires_python = ">=3.9"
@@ -389,7 +426,6 @@ version = "2025.2"
 requires_python = ">=2"
 summary = "Provider of IANA time zone data"
 groups = ["default"]
-marker = "python_version >= \"3.9\""
 files = [
     {file = "tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8"},
     {file = "tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"},
