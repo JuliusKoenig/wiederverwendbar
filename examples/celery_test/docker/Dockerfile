@@ -6,11 +6,11 @@ LABEL author_email="info@bastelquartier.de"
 RUN pip install --upgrade pip
 
 # copy source files
-COPY ../src /app/src
-COPY ../tests /app/tests
-COPY ../pyproject.toml /app/pyproject.toml
-COPY ../README.md /app/README.md
-COPY ../LICENSE /app/LICENSE
+#COPY ../src /app/src
+#COPY ../tests /app/tests
+#COPY ../pyproject.toml /app/pyproject.toml
+#COPY ../README.md /app/README.md
+#COPY ../LICENSE /app/LICENSE
 
 # install project requirements
 RUN pip install -e /app

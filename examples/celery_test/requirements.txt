@@ -1,0 +1,5 @@
+celery>=5.5.3
+flower>=2.0.1
+sqlalchemy>=2.0.41
+pymysql>=1.1.1
+sqlalchemy-celery-beat>=0.8.4
