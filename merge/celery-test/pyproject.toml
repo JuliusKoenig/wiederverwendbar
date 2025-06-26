@@ -1,0 +1,22 @@
+[project]
+name = "celery-test"
+dynamic = ["version"]
+description = "A test Celery setup, reusable as a template for further projects."
+authors = [
+    { name = "Julius Koenig", email = "info@bastelquartier.de" },
+]
+dependencies = ["celery[redis]>=5.5.3", "flower>=2.0.1", "sqlalchemy>=2.0.41", "pymysql>=1.1.1", "sqlalchemy-celery-beat>=0.8.4"]
+requires-python = ">=3.13"
+readme = "README.md"
+license = { file = "LICENSE" }
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.version]
+source = "file"
+path = "src/celery_test/__init__.py"
