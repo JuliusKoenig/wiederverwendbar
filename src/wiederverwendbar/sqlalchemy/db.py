@@ -172,13 +172,13 @@ class SqlalchemyDb:
                 else:
                     connection_string += self.password
             if self.host is None:
-                raise RuntimeError(f"No host specified for {self}")
+                raise RuntimeError(f"No host specified for {self.__class__.__name__}")
             connection_string += f"@{self.host}"
             if self.port is None:
-                raise RuntimeError(f"No port specified for {self}")
+                raise RuntimeError(f"No port specified for {self.__class__.__name__}")
             connection_string += f":{self.port}"
             if self.name is None:
-                raise RuntimeError(f"No name specified for {self}")
+                raise RuntimeError(f"No name specified for {self.__class__.__name__}")
             connection_string += f"/{self.name}"
         return connection_string
 
