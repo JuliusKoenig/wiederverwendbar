@@ -20,7 +20,7 @@ def get_db_url():
             f"{os.environ.get('DB_PASSWORD', 'password')}@"
             f"{os.environ.get('DB_HOST', 'localhost')}:"
             f"{os.environ.get('DB_PORT', '3306')}/"
-            f"{os.environ.get('DB_DATABASE_NAME', 'test')}")
+            f"{os.environ.get('DB_NAME', 'test')}")
 
 
 def get_result_backend_url():

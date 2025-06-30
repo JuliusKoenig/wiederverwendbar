@@ -21,7 +21,7 @@ services:
       BROKER_PASSWORD: "${BROKER_PASSWORD:?}"
       DB_HOST: "db"
       DB_PORT: "3306"
-      DB_DATABASE_NAME: "${DB_DATABASE_NAME:?}"
+      DB_NAME: "${DB_NAME:?}"
       DB_USERNAME: "${DB_USERNAME:?}"
       DB_PASSWORD: "${DB_PASSWORD:?}"
     volumes:
@@ -52,7 +52,7 @@ services:
       BROKER_PASSWORD: "${BROKER_PASSWORD:?}"
       DB_HOST: "db"
       DB_PORT: "3306"
-      DB_DATABASE_NAME: "${DB_DATABASE_NAME:?}"
+      DB_NAME: "${DB_NAME:?}"
       DB_USERNAME: "${DB_USERNAME:?}"
       DB_PASSWORD: "${DB_PASSWORD:?}"
     volumes:
@@ -83,7 +83,7 @@ services:
       MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?}"
       MARIADB_USER: "${DB_USERNAME:?}"
       MARIADB_PASSWORD: "${DB_PASSWORD:?}"
-      MARIADB_DATABASE: "${DB_DATABASE_NAME:?}"
+      MARIADB_DATABASE: "${DB_NAME:?}"
     volumes:
       - "${ROOT_PATH:?}/db/log:/var/log/mysql"
       - "${ROOT_PATH:?}/db/data:/var/lib/mysql"
