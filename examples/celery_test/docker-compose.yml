@@ -12,6 +12,7 @@ services:
       - broker
     environment:
       TZ: "${TZ:?}"
+      MODULE_NAME: "${MODULE_NAME:?}"
       WORKER_LOG_LEVEL: "${WORKER_LOG_LEVEL:?}"
       WORKER_UID: "${WORKER_UID:?}"
       WORKER_GID: "${WORKER_GID:?}"
@@ -29,6 +30,7 @@ services:
     healthcheck:
       test: [ "CMD", "/healthcheck.sh", "worker" ]
       start_interval: 1s
+      start_period: 5s
       interval: 10s
       timeout: 3s
       retries: 3
@@ -46,7 +48,9 @@ services:
       - broker
     environment:
       TZ: "${TZ:?}"
+      MODULE_NAME: "${MODULE_NAME:?}"
       BEAT_LOG_LEVEL: "${WORKER_LOG_LEVEL:?}"
+      BROKER_HOST: "broker"
       BROKER_PORT: "5672"
       BROKER_USERNAME: "${BROKER_USERNAME:?}"
       BROKER_PASSWORD: "${BROKER_PASSWORD:?}"
@@ -60,6 +64,7 @@ services:
     healthcheck:
       test: [ "CMD", "/healthcheck.sh", "beat" ]
       start_interval: 1s
+      start_period: 5s
       interval: 10s
       timeout: 3s
       retries: 3
@@ -90,6 +95,7 @@ services:
     healthcheck:
       test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
       start_interval: 1s
+      start_period: 5s
       interval: 10s
       timeout: 3s
       retries: 3
@@ -130,6 +136,7 @@ services:
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       start_interval: 1s
+      start_period: 5s
       interval: 10s
       timeout: 3s
       retries: 3
