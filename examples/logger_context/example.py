@@ -5,7 +5,7 @@ import threading
 from wiederverwendbar.logger import LoggingContext
 from wiederverwendbar.logger import LoggerSingleton, LoggerSettings
 
-from wiederverwendbar.examples.logger_context.example_module import example_function
+from example_module import example_function
 
 LoggerSingleton(init=True, name="test", settings=LoggerSettings(log_level="DEBUG"), ignored_loggers_like=["logger1", "logger2"])
 
