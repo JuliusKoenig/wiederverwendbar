@@ -149,7 +149,7 @@ class LoggingContext:
         context_frame_index = None
         stack = inspect.stack()
         for i, frame_info in enumerate(stack):
-            if "with" in frame_info.code_context[0] and frame_info.function != "__enter__":
+            if frame_info.function != "__enter__":
                 context_frame_index = i
                 break
         if context_frame_index is None:
