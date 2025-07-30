@@ -12,9 +12,9 @@ from wiederverwendbar.logger.log_levels import LogLevels
 
 
 class LoggerSettings(BaseModel):
-    log_level: LogLevels = Field(default=LogLevels.WARNING,
-                                 title="Log Level",
-                                 description="The log level")
+    log_level: Union[Default, LogLevels] = Field(default=Default(),
+                                                 title="Log Level",
+                                                 description="The log level")
 
     log_console: bool = Field(default=True,
                               title="Console Logging",
@@ -81,6 +81,8 @@ class LoggerSettings(BaseModel):
                                                description="The number of backup log archives to keep")
 
     def model_post_init(self, context: Any, /):
+        if type(self.log_level) is Default:
+            self.log_console_level = LogLevels.WARNING
         if type(self.log_console_level) is Default:
             self.log_console_level = self.log_level
         if type(self.log_file_level) is Default:
