@@ -7,7 +7,7 @@ authors = [
 ]
 dependencies = [
     "pydantic>=2.11.7",
-    "pydantic-settings>=2.9.1",
+    "pydantic-settings>=2.10.1",
     "devtools>=0.12.2",
 ]
 requires-python = ">=3.9"
@@ -16,45 +16,45 @@ license = { file = "LICENSE" }
 
 [project.optional-dependencies]
 full = [
-    "rich>=14.0.0",
+    "rich>=14.1.0",
     "typer>=0.16.0",
     "pythonping>=1.1.4",
     "mongoengine>=0.29.1",
-    "nicegui>=2.20.0",
-    "uvicorn>=0.34.3",
-    "fastapi>=0.115.13",
+    "nicegui>=2.21.1",
+    "uvicorn>=0.35.0",
+    "fastapi>=0.116.1",
     "starlette-admin[i18n]>=0.15.1",
-    "pillow>=11.2.1",
+    "pillow>=11.3.0",
     "blinker>=1.9.0",
     "kombu>=5.5.4",
     "nest-asyncio>=1.6.0",
-    "sqlalchemy>=2.0.41",
+    "sqlalchemy>=2.0.42",
     "art>=6.5",
 ]
 rich = [
-    "rich>=14.0.0",
+    "rich>=14.1.0",
 ]
 typer = [
     "typer>=0.16.0",
     "art>=6.5",
-    "rich>=14.0.0",
+    "rich>=14.1.0",
 ]
 mongoengine = [
     "mongoengine>=0.29.1",
     "blinker>=1.9.0",
 ]
 uvicorn = [
-    "uvicorn>=0.34.3",
+    "uvicorn>=0.35.0",
 ]
 fastapi = [
-    "fastapi>=0.115.13",
+    "fastapi>=0.116.1",
 ]
 nicegui = [
-    "nicegui>=2.20.0",
+    "nicegui>=2.21.1",
 ]
 starlette-admin = [
     "starlette-admin[i18n]>=0.15.1",
-    "pillow>=11.2.1",
+    "pillow>=11.3.0",
     "kombu>=5.5.4",
     "nest-asyncio>=1.6.0",
 ]
@@ -62,8 +62,11 @@ fuctions = [
     "pythonping>=1.1.4",
 ]
 sqlalchemy = [
-    "sqlalchemy>=2.0.41",
+    "sqlalchemy>=2.0.42",
 ]
+
+[project.scripts]
+wv-branding-testapp = "nextcloud_csv_import.cli:start"
 
 [build-system]
 requires = ["pdm-backend"]
