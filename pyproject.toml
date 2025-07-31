@@ -65,9 +65,6 @@ sqlalchemy = [
     "sqlalchemy>=2.0.42",
 ]
 
-[project.scripts]
-wv-branding-testapp = "nextcloud_csv_import.cli:start"
-
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
