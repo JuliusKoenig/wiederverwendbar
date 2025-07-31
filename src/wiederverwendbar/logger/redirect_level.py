@@ -12,6 +12,7 @@ def redirect_level(logger: Union[str, logging.Logger],
                    gt: Optional[int] = None) -> None:
     """
     Redirects the log level of a logger to a specified level based on conditions.
+
     :param logger: The logger or logger name to redirect the level for.
     :param to: The log level to redirect to.
     :param lt: If the current level is less than this value, redirect to `to`.
@@ -30,9 +31,9 @@ def redirect_level(logger: Union[str, logging.Logger],
     if lt is None and lte is None and eq is None and gte is None and gt is None:
         _all = True
 
-    original_make_record = logger.makeRecord
+    original__log = logger._log
 
-    def make_record(name, level, *args, **kwargs):
+    def _log(level, *args, **kwargs):
         if _all:
             level = to
         elif lt is not None and level < lt:
@@ -45,7 +46,7 @@ def redirect_level(logger: Union[str, logging.Logger],
             level = to
         elif gt is not None and level > gt:
             level = to
-        rv = original_make_record(name, level, *args, **kwargs)
-        return rv
+        if logger.isEnabledFor(level):
+            original__log(level, *args, **kwargs)
 
-    logger.makeRecord = make_record
+    logger._log = _log
