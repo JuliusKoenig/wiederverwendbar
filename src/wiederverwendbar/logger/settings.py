@@ -82,7 +82,7 @@ class LoggerSettings(BaseModel):
 
     def model_post_init(self, context: Any, /):
         if type(self.log_level) is Default:
-            self.log_console_level = LogLevels.WARNING
+            self.log_level = LogLevels.WARNING
         if type(self.log_console_level) is Default:
             self.log_console_level = self.log_level
         if type(self.log_file_level) is Default:
