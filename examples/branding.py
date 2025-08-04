@@ -11,6 +11,7 @@ class MyAppSettings(BrandingSettings, module=examples):
 def main():
     app_settings = MyAppSettings(attr1="value1", attr2="value2")
     print(app_settings.model_dump_json(indent=2))
+    print(app_settings.branding_version.minor)
 
 
 if __name__ == '__main__':
