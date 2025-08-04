@@ -1,9 +1,8 @@
-import inspect
 import logging
 from pathlib import Path
-from typing import Optional, Union, Any, Callable, Awaitable, Annotated
+from typing import Optional, Union, Any, Callable, Awaitable
 
-from fastapi import FastAPI as _FastAPI, Request, Depends
+from fastapi import FastAPI as _FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html, get_swagger_ui_oauth2_redirect_html
 from pydantic import BaseModel, Field, computed_field
 from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
