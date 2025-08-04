@@ -2,12 +2,7 @@ from typing import Annotated, Any, Optional
 
 from pydantic_core import core_schema
 
-from pydantic import (
-    BaseModel,
-    GetCoreSchemaHandler,
-    GetJsonSchemaHandler,
-    ValidationError,
-)
+from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 
 
@@ -115,7 +110,10 @@ class _VersionTypePydanticAnnotation:
 
     @classmethod
     def __get_pydantic_json_schema__(cls, _core_schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
-        return handler(core_schema.int_schema())
+        h = handler(core_schema.str_schema())
+        h["example"] = str(VersionType("0.1.0"))
+        return h
+
 
 
 Version = Annotated[VersionType, _VersionTypePydanticAnnotation]
