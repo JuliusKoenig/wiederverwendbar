@@ -4,11 +4,12 @@ from typing import Optional, Union, Any, Callable, Awaitable
 
 from fastapi import FastAPI as _FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html, get_swagger_ui_oauth2_redirect_html
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field
 from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from wiederverwendbar.default import Default
 from wiederverwendbar.fastapi.settings import FastAPISettings
+from wiederverwendbar.pydantic.types.version import Version
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class InfoModel(BaseModel):
     title: str = Field(..., title="Title", description="The title of the application.")
     description: str = Field(..., title="Description", description="The description of the application.")
-    version: str = Field(..., title="Version", description="The version of the application.")
+    version: Version = Field(..., title="Version", description="The version of the application.")
 
     class Contact(BaseModel):
         name: str = Field(..., title="Name", description="The name of the contact.")
@@ -32,38 +33,13 @@ class InfoModel(BaseModel):
     terms_of_service: Optional[str] = Field(None, title="Terms of Service", description="The terms of service of the application.")
 
 
-class VersionModel(BaseModel):
-    version: Union[None, Default, str] = Field(default=Default(), title="Version", description="The version of the application.")
-
-    @computed_field(title="Version Major", description="The major version of the application.")
-    @property
-    def version_major(self) -> Optional[int]:
-        if self.version is None:
-            return None
-        return int(self.version.split(".")[0])
-
-    @computed_field(title="Version Minor", description="The minor version of the application.")
-    @property
-    def version_minor(self) -> Optional[int]:
-        if self.version is None:
-            return None
-        return int(self.version.split(".")[1])
-
-    @computed_field(title="Version Patch", description="The patch version of the application.")
-    @property
-    def version_patch(self) -> Optional[int]:
-        if self.version is None:
-            return None
-        return int(self.version.split(".")[2])
-
-
 class FastAPI(_FastAPI):
     def __init__(self,
                  debug: Union[Default, bool] = Default(),
                  title: Union[Default, str] = Default(),
                  summary: Union[None, Default, str] = Default(),
                  description: Union[Default, str] = Default(),
-                 version: Union[Default, str] = Default(),
+                 version: Union[Default, Version] = Default(),
                  openapi_url: Union[None, Default, str] = Default(),
                  redirect_slashes: Union[Default, bool] = Default(),
                  favicon: Union[None, Default, Path] = Default(),
@@ -82,7 +58,6 @@ class FastAPI(_FastAPI):
                  info_url: Union[None, Default, str] = Default(),
                  info_response_model: Union[Default, type[InfoModel]] = Default(),
                  version_url: Union[None, Default, str] = Default(),
-                 version_response_model: Union[Default, type[InfoModel]] = Default(),
                  root_redirect: Union[Default, None, FastAPISettings.RootRedirect, str] = Default(),
                  settings: Optional[FastAPISettings] = None,
                  **kwargs):
@@ -119,7 +94,7 @@ class FastAPI(_FastAPI):
         if type(version) is Default:
             version = settings.branding_version
         if type(version) is Default:
-            version = "0.1.0"
+            version = Version("0.1.0")
 
         if type(openapi_url) is Default:
             openapi_url = settings.api_openapi_url
@@ -219,9 +194,6 @@ class FastAPI(_FastAPI):
         if type(version_url) is Default:
             version_url = "/version"
 
-        if type(version_response_model) is Default:
-            version_response_model = VersionModel
-
         if type(root_redirect) is Default:
             root_redirect = settings.api_root_redirect
         if type(root_redirect) is Default:
@@ -242,7 +214,6 @@ class FastAPI(_FastAPI):
         self.info_url = info_url
         self.info_response_model = info_response_model
         self.version_url = version_url
-        self.version_response_model = version_response_model
         self.root_redirect = root_redirect
 
         # For storing the original "add_api_route" method from router.
@@ -255,7 +226,7 @@ class FastAPI(_FastAPI):
                          title=title,
                          summary=summary,
                          description=description,
-                         version=version,
+                         version=str(version),
                          openapi_url=openapi_url,
                          redirect_slashes=redirect_slashes,
                          docs_url=docs_url,
@@ -353,7 +324,7 @@ class FastAPI(_FastAPI):
 
         # create version route
         if self.version_url:
-            self.add_api_route(path=self.version_url, endpoint=self.get_version, response_model=self.version_response_model)
+            self.add_api_route(path=self.version_url, endpoint=self.get_version, response_model=Version)
 
         # create root redirect route
         if self.root_redirect:
@@ -416,10 +387,7 @@ class FastAPI(_FastAPI):
                 "terms_of_service": self.terms_of_service}
 
     async def get_version(self, request: Request) -> dict[str, Any]:
-        version = self.version
-        if version.startswith("v"):
-            version = version[1:]
-        return {"version": version}
+        return self.version
 
     async def get_root_redirect(self, request: Request) -> RedirectResponse:
         root_path = request.scope.get("root_path", "").rstrip("/")

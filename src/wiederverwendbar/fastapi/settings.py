@@ -1,11 +1,12 @@
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from pydantic import Field
 
 from wiederverwendbar.branding import BrandingSettings
 from wiederverwendbar.default import Default
+from wiederverwendbar.pydantic.types.version import Version
 
 
 class FastAPISettings(BrandingSettings):
@@ -13,7 +14,7 @@ class FastAPISettings(BrandingSettings):
     api_title: Union[Default, str] = Field(default=Default(), title="FastAPI Title", description="The title of the FastAPI.")
     api_summary: Union[None, Default, str] = Field(default=Default(), title="FastAPI Summary", description="The summary of the FastAPI.")
     api_description: Union[Default, str] = Field(default=Default(), title="FastAPI Description", description="The description of the FastAPI.")
-    api_version: Union[Default, str] = Field(default=Default(), title="FastAPI Version", description="The version of the FastAPI.")
+    api_version: Union[Default, Version] = Field(default=Default(), title="FastAPI Version", description="The version of the FastAPI.")
     api_openapi_url: Union[None, Default, str] = Field(default=Default(), title="FastAPI OpenAPI URL", description="The OpenAPI URL of the FastAPI.")
     api_redirect_slashes: Union[Default, bool] = Field(default=Default(), title="FastAPI Redirect Slashes", description="Whether the FastAPI redirects slashes.")
     api_favicon: Union[None, Default, Path] = Field(default=Default(), title="FastAPI Favicon", description="The favicon of the FastAPI.")
