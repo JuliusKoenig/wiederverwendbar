@@ -60,25 +60,25 @@ class VersionModel(BaseModel):
 
 class FastAPI(_FastAPI):
     def __init__(self,
-                 debug: Union[None, Default, bool] = Default(),
-                 title: Union[None, Default, str] = Default(),
+                 debug: Union[Default, bool] = Default(),
+                 title: Union[Default, str] = Default(),
                  summary: Union[None, Default, str] = Default(),
-                 description: Union[None, Default, str] = Default(),
-                 version: Union[None, Default, str] = Default(),
+                 description: Union[Default, str] = Default(),
+                 version: Union[Default, str] = Default(),
                  openapi_url: Union[None, Default, str] = Default(),
-                 redirect_slashes: Union[None, Default, bool] = Default(),
+                 redirect_slashes: Union[Default, bool] = Default(),
                  favicon: Union[None, Default, Path] = Default(),
                  docs_url: Union[None, Default, str] = Default(),
-                 docs_title: Union[None, Default, str] = Default(),
+                 docs_title: Union[Default, str] = Default(),
                  docs_favicon: Union[None, Default, Path] = Default(),
                  redoc_url: Union[None, Default, str] = Default(),
-                 redoc_title: Union[None, Default, str] = Default(),
+                 redoc_title: Union[Default, str] = Default(),
                  redoc_favicon: Union[None, Default, Path] = Default(),
                  terms_of_service: Union[None, Default, str] = Default(),
                  contact: Union[None, Default, dict[str, str]] = Default(),
                  license_info: Union[None, Default, dict[str, str]] = Default(),
-                 root_path: Union[None, Default, str] = Default(),
-                 root_path_in_servers: Union[None, Default, bool] = Default(),
+                 root_path: Union[Default, str] = Default(),
+                 root_path_in_servers: Union[Default, bool] = Default(),
                  deprecated: Union[None, Default, bool] = Default(),
                  info_url: Union[None, Default, str] = Default(),
                  info_response_model: Union[Default, type[InfoModel]] = Default(),
@@ -93,86 +93,136 @@ class FastAPI(_FastAPI):
             settings = FastAPISettings()
         if type(debug) is Default:
             debug = settings.api_debug
+        if type(debug) is Default:
+            debug = False
+
         if type(title) is Default:
             title = settings.api_title
         if type(title) is Default:
             title = settings.branding_title
-        if title is None:
+        if type(title) is Default:
             title = "FastAPI"
+
         if type(summary) is Default:
             summary = settings.api_summary
+        if type(summary) is Default:
+            summary = None
+
         if type(description) is Default:
             description = settings.api_description
         if type(description) is Default:
             description = settings.branding_description
-        if description is None:
+        if type(description) is Default:
             description = ""
+
         if type(version) is Default:
             version = settings.api_version
         if type(version) is Default:
             version = settings.branding_version
-        if version is None:
+        if type(version) is Default:
             version = "0.1.0"
+
         if type(openapi_url) is Default:
             openapi_url = settings.api_openapi_url
+        if type(openapi_url) is Default:
+            openapi_url = "/openapi.json"
+
         if type(redirect_slashes) is Default:
             redirect_slashes = settings.api_redirect_slashes
+        if type(redirect_slashes) is Default:
+            redirect_slashes = True
+
         if type(favicon) is Default:
             favicon = settings.api_favicon
+        if type(favicon) is Default:
+            favicon = None
+
         if type(docs_url) is Default:
             docs_url = settings.api_docs_url
+        if type(docs_url) is Default:
+            docs_url = "/docs"
+
         if type(docs_title) is Default:
             docs_title = settings.api_docs_title
         if type(docs_title) is Default:
             docs_title = title
+
         if type(docs_favicon) is Default:
             docs_favicon = settings.api_docs_favicon
         if type(docs_favicon) is Default:
             docs_favicon = favicon
+
         if type(redoc_url) is Default:
             redoc_url = settings.api_redoc_url
+        if type(redoc_url) is Default:
+            redoc_url = "/redoc"
+
         if type(redoc_title) is Default:
             redoc_title = settings.api_redoc_title
         if type(redoc_title) is Default:
             redoc_title = title
+
         if type(redoc_favicon) is Default:
             redoc_favicon = settings.api_redoc_favicon
         if type(redoc_favicon) is Default:
             redoc_favicon = favicon
+
         if type(terms_of_service) is Default:
             terms_of_service = settings.api_terms_of_service
         if type(terms_of_service) is Default:
             terms_of_service = settings.branding_terms_of_service
+        if type(terms_of_service) is Default:
+            terms_of_service = None
+
         if type(contact) is Default:
             contact = settings.api_contact
         if type(contact) is Default:
-            if settings.branding_author is not None and settings.branding_author_email is not None:
+            if type(settings.branding_author) is str and str(settings.branding_author_email) is str:
                 contact = {"name": settings.branding_author,
                            "email": settings.branding_author_email}
         if type(contact) is Default:
             contact = None
+
         if type(license_info) is Default:
             license_info = settings.api_license_info
         if type(license_info) is Default:
-            if settings.branding_license is not None and settings.branding_license_url is not None:
+            if type(settings.branding_license) is str and type(settings.branding_license_url) is str:
                 license_info = {"name": settings.branding_license,
                                 "url": settings.branding_license_url}
         if type(license_info) is Default:
             license_info = None
+
         if type(root_path) is Default:
             root_path = settings.api_root_path
+        if type(root_path) is Default:
+            root_path = ""
+
         if root_path_in_servers is None:
             root_path_in_servers = settings.api_root_path_in_servers
+        if type(root_path_in_servers) is Default:
+            root_path_in_servers = True
+
         if type(deprecated) is Default:
             deprecated = settings.api_deprecated
+        if type(deprecated) is Default:
+            deprecated = None
+
         if type(info_url) is Default:
             info_url = settings.api_info_url
+        if type(info_url) is Default:
+            info_url = "/info"
+
         if type(info_response_model) is Default:
             info_response_model = InfoModel
+
         if type(version_url) is Default:
             version_url = settings.api_version_url
+        if type(version_url) is Default:
+            version_url = "/version"
+
         if type(version_response_model) is Default:
             version_response_model = VersionModel
+
         if type(root_redirect) is Default:
             root_redirect = settings.api_root_redirect
         if type(root_redirect) is Default:
@@ -180,8 +230,8 @@ class FastAPI(_FastAPI):
                 root_redirect = FastAPISettings.RootRedirect.DOCS
             elif redoc_url is not None:
                 root_redirect = FastAPISettings.RootRedirect.REDOC
-            else:
-                root_redirect = None
+        if type(root_redirect) is Default:
+            root_redirect = None
 
         # set attrs
         self.docs_title = docs_title
