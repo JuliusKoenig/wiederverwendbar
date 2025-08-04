@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Optional
+from typing import Any, Optional
 
 from pydantic_core import core_schema
 
@@ -6,7 +6,7 @@ from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 
 
-class VersionType:
+class Version:
     """
     A class representing a version number in the format major.minor.patch.
     """
@@ -38,6 +38,25 @@ class VersionType:
 
     def __repr__(self):
         return f"{self.__class__.__name__}(major={self.major}, minor={self.minor}, patch={self.patch})"
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls,
+                                     _source_type: Any,
+                                     _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+        from_str_schema = core_schema.chain_schema([core_schema.str_schema(),
+                                                    core_schema.no_info_plain_validator_function(lambda value: value if isinstance(value, cls) else cls(value))])
+
+        return core_schema.json_or_python_schema(json_schema=from_str_schema,
+                                                 python_schema=core_schema.union_schema([
+                                                     core_schema.is_instance_schema(cls),
+                                                     from_str_schema]),
+                                                 serialization=core_schema.plain_serializer_function_ser_schema(lambda instance: str(instance)))
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, _core_schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
+        h = handler(core_schema.str_schema())
+        h["example"] = str(cls("0.1.0"))
+        return h
 
     @property
     def major(self) -> int:
@@ -92,28 +111,3 @@ class VersionType:
         if value < 0:
             raise ValueError("Patch version must be a non-negative integer")
         self._patch = value
-
-
-class _VersionTypePydanticAnnotation:
-    @classmethod
-    def __get_pydantic_core_schema__(cls,
-                                     _source_type: Any,
-                                     _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
-        from_str_schema = core_schema.chain_schema([core_schema.str_schema(),
-                                                    core_schema.no_info_plain_validator_function(lambda value: value if isinstance(value, VersionType) else VersionType(value))])
-
-        return core_schema.json_or_python_schema(json_schema=from_str_schema,
-                                                 python_schema=core_schema.union_schema([
-                                                     core_schema.is_instance_schema(VersionType),
-                                                     from_str_schema]),
-                                                 serialization=core_schema.plain_serializer_function_ser_schema(lambda instance: str(instance)))
-
-    @classmethod
-    def __get_pydantic_json_schema__(cls, _core_schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
-        h = handler(core_schema.str_schema())
-        h["example"] = str(VersionType("0.1.0"))
-        return h
-
-
-
-Version = Annotated[VersionType, _VersionTypePydanticAnnotation]
