@@ -30,25 +30,30 @@ class BrandingSettings(BaseModel):
             raise TypeError(f"Expected a module or module name, got {type(module)}")
         cls._branding_module = module
 
-    def __init__(self, /, **data: Any):
+    def model_post_init(self, context: Any, /):
         branding_module = getattr(self, "_branding_module", None)
         if branding_module is not None:
-            for key, module_key in {"branding_title": "__title__",
-                                    "branding_description": "__description__",
-                                    "branding_version": "__version__",
-                                    "branding_author": "__author__",
-                                    "branding_author_email": "__author_email__",
-                                    "branding_license": "__license__",
-                                    "branding_license_url": "__license_url__",
-                                    "branding_terms_of_service": "__terms_of_service__"}.items():
+            for key, target_type, module_key in [("branding_title", str, "__title__"),
+                                    ("branding_description", str, "__description__"),
+                                    ("branding_version", Version, "__version__"),
+                                    ("branding_author", str, "__author__"),
+                                    ("branding_author_email", str, "__author_email__"),
+                                    ("branding_license", str, "__license__"),
+                                    ("branding_license_url", str, "__license_url__"),
+                                    ("branding_terms_of_service", str, "__terms_of_service__")]:
+                # check if the branding module has the attribute
                 if not hasattr(branding_module, module_key):
                     continue
-                data_value = data.get(key, Default())
-                module_value = getattr(branding_module, module_key)
-                if isinstance(data_value, Default):
-                    data[key] = module_value
-        super().__init__(**data)
 
-    def model_post_init(self, context: Any, /):
+                # get the value from the branding module
+                module_value = getattr(branding_module, module_key)
+
+                # cast the value to the target type if necessary
+                if not isinstance(module_value, target_type):
+                    module_value = target_type(module_value)
+
+                # set the value if it is a Default
+                if isinstance(getattr(self, key), Default):
+                    setattr(self, key, module_value)
         super().model_post_init(context)
 
