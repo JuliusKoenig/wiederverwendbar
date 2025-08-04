@@ -1,17 +1,17 @@
 import importlib.util
 import sys
-from pathlib import Path
 from types import ModuleType
-from typing import Optional, Any, Union
-from pydantic import BaseModel, Field, computed_field
+from typing import Any, Union
+from pydantic import BaseModel, Field
 
 from wiederverwendbar.default import Default
+from wiederverwendbar.pydantic.types.version import Version
 
 
 class BrandingSettings(BaseModel):
     branding_title: Union[None, Default, str] = Field(default=Default(), title="Branding Title", description="Branding title.")
     branding_description: Union[None, Default, str] = Field(default=Default(), title="Branding Description", description="Branding description.")
-    branding_version: Union[None, Default, str] = Field(default=Default(), title="Branding Version", description="Branding version.")
+    branding_version: Union[None, Default, Version] = Field(default=Default(), title="Branding Version", description="Branding version.")
     branding_author: Union[None, Default, str] = Field(default=Default(), title="Branding Author", description="Branding author.")
     branding_author_email: Union[None, Default, str] = Field(default=Default(), title="Branding Author Email", description="Branding author email.")
     branding_license: Union[None, Default, str] = Field(default=Default(), title="Branding License Name", description="Branding license name.")
@@ -30,7 +30,7 @@ class BrandingSettings(BaseModel):
             raise TypeError(f"Expected a module or module name, got {type(module)}")
         cls._branding_module = module
 
-    def model_post_init(self, context: Any, /):
+    def __init__(self, /, **data: Any):
         branding_module = getattr(self, "_branding_module", None)
         if branding_module is not None:
             for key, module_key in {"branding_title": "__title__",
@@ -43,29 +43,12 @@ class BrandingSettings(BaseModel):
                                     "branding_terms_of_service": "__terms_of_service__"}.items():
                 if not hasattr(branding_module, module_key):
                     continue
-                value = getattr(branding_module, module_key)
-                if type(getattr(self, key)) is Default:
-                    setattr(self, key, value)
+                data_value = data.get(key, Default())
+                module_value = getattr(branding_module, module_key)
+                if isinstance(data_value, Default):
+                    data[key] = module_value
+        super().__init__(**data)
 
+    def model_post_init(self, context: Any, /):
         super().model_post_init(context)
 
-    @computed_field(title="Branding Version Major", description="Branding version major.")
-    @property
-    def branding_version_major(self) -> Optional[int]:
-        if self.branding_version is None:
-            return None
-        return int(self.branding_version.split(".")[0])
-
-    @computed_field(title="Branding Version Minor", description="Branding version minor.")
-    @property
-    def branding_version_minor(self) -> Optional[int]:
-        if self.branding_version is None:
-            return None
-        return int(self.branding_version.split(".")[1])
-
-    @computed_field(title="Branding Version Patch", description="Branding version patch.")
-    @property
-    def branding_version_patch(self) -> Optional[int]:
-        if self.branding_version is None:
-            return None
-        return int(self.branding_version.split(".")[2])
