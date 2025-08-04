@@ -39,6 +39,49 @@ class Version:
     def __repr__(self):
         return f"{self.__class__.__name__}(major={self.major}, minor={self.minor}, patch={self.patch})"
 
+    def __int__(self):
+        """
+        Convert the version to an integer representation.
+
+        :return: The integer representation of the version.
+        :rtype: int
+        """
+
+        return self.major * 10000 + self.minor * 100 + self.patch
+
+    def __eq__(self, other):
+        if isinstance(other, Version):
+            return int(self) == int(other)
+        else:
+            return self == other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        if isinstance(other, Version):
+            return int(self) < int(other)
+        else:
+            return int(self) < other
+
+    def __le__(self, other):
+        if isinstance(other, Version):
+            return int(self) <= int(other)
+        else:
+            return int(self) <= other
+
+    def __gt__(self, other):
+        if isinstance(other, Version):
+            return int(self) > int(other)
+        else:
+            return int(self) > other
+
+    def __ge__(self, other):
+        if isinstance(other, Version):
+            return int(self) >= int(other)
+        else:
+            return int(self) >= other
+
     @classmethod
     def __get_pydantic_core_schema__(cls,
                                      _source_type: Any,
