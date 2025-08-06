@@ -7,90 +7,27 @@ from warnings import warn
 from pathlib import Path
 from typing import Any, Union, Literal, Callable, Generator, Optional, Type, Mapping
 
-from pydantic import BaseModel, create_model, Field
+from pydantic import BaseModel, Field
 from pydantic._internal._model_construction import ModelMetaclass
 
-from wiederverwendbar.default import Default
 from wiederverwendbar.warnings import FileNotFoundWarning
 
 
-class FileConfig(BaseModel):
-    def __init__(self,
-                 file_path: Union[Path, str, None] = None,
-                 file_postfix: str = ".json",
-                 file_must_exist: Union[bool, Literal["yes_print", "yes_warn", "yes_raise", "no"]] = "no",
-                 **overwrite_data: Any):
-        if file_path is None:
-            file_path = Path(Path.cwd() / self.__class__.__name__.lower()).with_suffix(file_postfix)
-        else:
-            file_path = Path(file_path)
-            if file_path.suffix == "":
-                file_path = file_path.with_suffix(file_postfix)
-        file_path = file_path.absolute()
-
-        # read data from file
-        if file_path.is_file():
-            with file_path.open("r", encoding="utf-8") as file:
-                data = json.load(file)
-        elif file_path.is_dir():
-            raise ValueError(f"{self.__class__.__name__} file path '{file_path}' is a directory.")
-        else:
-            if file_must_exist is True:
-                file_must_exist = "yes_raise"
-            elif file_must_exist is False:
-                file_must_exist = "no"
-            msg = f"{self.__class__.__name__} file '{file_path}' not found."
-            if file_must_exist == "yes_print":
-                print(msg)
-                sys.exit(1)
-            elif file_must_exist == "yes_warn":
-                warn(msg, FileNotFoundWarning)
-                sys.exit(1)
-            elif file_must_exist == "yes_raise":
-                raise FileNotFoundError(msg)
-            data = {}
-
-        # overwrite data
-        for k, v in overwrite_data.items():
-            data[k] = v
-
-        super().__init__(**data)
-
-        self._file_path = file_path
-
-    @property
-    def file_path(self) -> Path:
-        """
-        File path
-
-        :return: Path
-        """
-
-        return self._file_path
-
-    def save(self, validate: bool = True, indent: int = 4, encoding: str = "utf-8"):
-        if validate:
-            validate_model_info = {}
-            for field_name, field_info in self.model_fields.items():
-                validate_model_info[field_name] = (field_info.annotation, field_info)
-            validate_model = create_model(f"{self.__class__.__name__}_Validate", **validate_model_info)
-
-            params = self.model_dump()
-            validated = validate_model(**params)
-            self_json = validated.model_dump_json(indent=indent)
-        else:
-            self_json = self.model_dump_json(indent=indent)
-
-        with self.file_path.open("w", encoding=encoding) as file:
-            file.write(self_json)
-
-
-class FileConfigLoadingError(Exception):
+class FileConfigError(Exception):
     ...
+
+
+class FileConfigLoadingError(FileConfigError):
+    ...
+
+
+class FileConfigSavingError(FileConfigError):
+    ...
+
 
 _LODER_FUNC_TYPE = Callable[[Type["FileConfigV2"], str, ...], dict[str, Any]]
 _LOADER: dict[str, tuple[list[str], _LODER_FUNC_TYPE]] = {}
-_SAVER_FUNC_TYPE = Callable[["FileConfigV2", dict[str, Any], ...], None]
+_SAVER_FUNC_TYPE = Callable[["FileConfigV2", dict[str, Any], ...], str]
 _SAVER: dict[str, _SAVER_FUNC_TYPE] = {}
 
 
@@ -177,18 +114,19 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
     _saver: dict[str, _SAVER_FUNC_TYPE]
     _file_path: Optional[Path] = None
     _mode: Optional[str] = None
+    _encoding: Optional[str] = None
+    _newline: Optional[str] = None
+    _loader_kwargs: dict[str, Any] = {}
+    _saver_kwargs: dict[str, Any] = {}
 
     @classmethod
     @register_loader("json", ".json")
     def _load_json(cls, content: str, **kwargs) -> dict[str, Any]:
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            raise FileConfigLoadingError(f"Invalid JSON content: {e}") from e
+        return json.loads(content, **kwargs)
 
     @register_saver("json")
-    def _save_json(self, data: dict[str, Any], **kwargs) -> None:
-        print()
+    def _save_json(self, data: dict[str, Any], **kwargs) -> str:
+        return json.dumps(data, **kwargs)
 
     @classmethod
     @register_loader("yaml", ".yaml", ".yml")
@@ -228,6 +166,23 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         """
 
         return cls._saver.get(mode, None)
+
+    @classmethod
+    def _convert_file_path(cls, file_path: Union[None, Path, str] = None) -> Path:
+        """
+        Convert the file path to an absolute Path object.
+
+        :param file_path: The file path to convert.
+        :return: An absolute Path object or None if the input is None.
+        """
+
+        if file_path is None:
+            file_path = Path(Path.cwd() / cls.__name__.lower())
+        elif type(file_path) is str:
+            if file_path == "":
+                file_path = Path(Path.cwd() / cls.__name__.lower())
+            file_path = Path(file_path)
+        return file_path.absolute()
 
     @property
     def file_path(self) -> Path:
@@ -273,12 +228,92 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
 
         self._mode = value
 
+    @property
+    def encoding(self) -> Optional[str]:
+        """
+        File encoding
+
+        :return: str or None
+        """
+
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, value: Optional[str]) -> None:
+        """
+        Set the file encoding for the configuration.
+
+        :param value: The new file encoding as a string.
+        """
+
+        self._encoding = value
+
+    @property
+    def newline(self) -> Optional[str]:
+        """
+        File newline character
+
+        :return: str or None
+        """
+
+        return self._newline
+
+    @newline.setter
+    def newline(self, value: Optional[str]) -> None:
+        """
+        Set the file newline character for the configuration.
+
+        :param value: The new file newline character as a string.
+        """
+
+        self._newline = value
+
+    @property
+    def loader_kwargs(self) -> dict[str, Any]:
+        """
+        Loader keyword arguments
+
+        :return: dict[str, Any]
+        """
+
+        return self._loader_kwargs
+
+    @loader_kwargs.setter
+    def loader_kwargs(self, value: dict[str, Any]) -> None:
+        """
+        Set the loader keyword arguments for the configuration.
+
+        :param value: The new loader keyword arguments as a dictionary.
+        """
+
+        self._loader_kwargs = value
+
+    @property
+    def saver_kwargs(self) -> dict[str, Any]:
+        """
+        Saver keyword arguments
+
+        :return: dict[str, Any]
+        """
+
+        return self._saver_kwargs
+
+    @saver_kwargs.setter
+    def saver_kwargs(self, value: dict[str, Any]) -> None:
+        """
+        Set the saver keyword arguments for the configuration.
+
+        :param value: The new saver keyword arguments as a dictionary.
+        """
+
+        self._saver_kwargs = value
+
     @classmethod
     def load(cls,
-             file_path: Union[Default, Path, str] = Default(),
-             encoding: Union[Default, str, None] = Default(),
-             newline: Union[Default, str, None] = Default(),
-             must_exist: Union[Default, bool, Literal[
+             file_path: Union[None, Path, str] = None,
+             encoding: Union[None, str, None] = None,
+             newline: Union[None, str, None] = None,
+             must_exist: Union[bool, Literal[
                  "yes_print",
                  "yes_warn",
                  "yes_raise",
@@ -286,7 +321,7 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
                  "no_warn",
                  "no_warn_create",
                  "no_create",
-                 "no"]] = Default(),
+                 "no"]] = True,
              strict: Optional[bool] = None,
              from_attributes: Optional[bool] = None,
              context: Optional[Any] = None,
@@ -321,24 +356,9 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         """
 
         # set default file path
-        if type(file_path) is Default:
-            file_path = Path(Path.cwd() / cls.__name__.lower())
-        elif type(file_path) is str:
-            if file_path == "":
-                file_path = Path(Path.cwd() / cls.__name__.lower())
-            file_path = Path(file_path)
-
-        # set default encoding
-        if type(encoding) is Default:
-            encoding = None
-
-        # set default newline
-        if type(newline) is Default:
-            newline = None
+        file_path = cls._convert_file_path(file_path=file_path)
 
         # set default must_exist behavior
-        if type(must_exist) is Default:
-            must_exist = "yes_raise"
         if must_exist is True:
             must_exist = "yes_raise"
         elif must_exist is False:
@@ -390,7 +410,10 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
                 raise AttributeError(f"No loader registered for suffix '{file_path.suffix}' in class '{cls.__name__}'.")
 
             # load data using the loader
-            data = current_loader(cls, content, **loader_kwargs)
+            try:
+                data = current_loader(cls, content, **loader_kwargs)
+            except Exception as e:
+                raise FileConfigLoadingError(f"Error loading {cls.__name__} from file '{file_path}': {e}") from e
 
         # overwrite data
         if overwrite_data is not None:
@@ -405,9 +428,11 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
                                   by_alias=by_alias,
                                   by_name=by_name)
 
-        # set the file path and mode
+        # set the file path, mode, encoding and newline
         self._file_path = file_path
         self._mode = current_mode
+        self._encoding = encoding
+        self._newline = newline
 
         return self
 
@@ -428,6 +453,7 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         Validate the model and return a dictionary representation of the model.
         This method uses the `model_dump` method to get the model data and then validates it
 
+        :param file_path: The file path to load the configuration from. If Default(), it will use the class name as the file name.
         :param include: A set of fields to include in the output.
         :param exclude: A set of fields to exclude from the output.
         :param context: Additional context to pass to the serializer.
@@ -461,9 +487,12 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         return self_dict
 
     def save(self,
-             file_path: Union[None, str, Path] = None,
-             mode: Optional[str] = None,
+             file_path: Union[None, Path, str] = None,
+             encoding: Union[None, str, None] = None,
+             newline: Union[None, str, None] = None,
+             mode: Union[None, str] = None,
              validate: bool = True,
+             create_parent_dirs: bool = True,
              include: Union[set[int], set[str], Mapping[int, Union[bool, Any]], Mapping[str, Union[bool, Any]], None] = None,
              exclude: Union[set[int], set[str], Mapping[int, Union[bool, Any]], Mapping[str, Union[bool, Any]], None] = None,
              context: Optional[Any] = None,
@@ -481,8 +510,11 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         Save the model to a file.
 
         :param file_path: The file path to save the model to. If None, the file path must be set in the class.
+        :param encoding: The encoding to use when saving the file. If None, the encoding is used from the class otherwise system default.
+        :param newline: The newline character to use when saving the file. If None, the newline is used from the class otherwise system default.
         :param mode: The mode to use for saving the model. If None, the mode must be set in the class.
         :param validate: Whether to validate the model before saving. If True, the model will be validated using the `validate` method.
+        :param create_parent_dirs: Whether to create parent directories if they do not exist.
         :param include: A set of fields to include in the output.
         :param exclude: A set of fields to exclude from the output.
         :param context: Additional context to pass to the serializer.
@@ -497,18 +529,26 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         a [PydanticSerializationError][pydantic_core.PydanticSerializationError] error is raised.
         :param serialize_as_any: Whether to serialize fields with duck-typing serialization behavior.
         :param overwrite_data: Additional data to overwrite in the model before saving.
+        :param saver_kwargs: Additional keyword arguments to pass to the saver function.
         :return: None
         """
 
-        # check if file_path is set
+        # set default file path
         if file_path is None:
             file_path = self.file_path
-        if type(file_path) is str:
-            file_path = Path(file_path)
+        file_path = self._convert_file_path(file_path=file_path)
         if file_path is None:
             raise ValueError(f"File path must be set in the class or passed as an argument.")
 
-        # check if mode is set
+        # set default encoding
+        if encoding is None:
+            encoding = self.encoding
+
+        # set default newline
+        if newline is None:
+            newline = self.newline
+
+        # set default mode
         if mode is None:
             mode = self.mode
         if mode is None:
@@ -552,12 +592,24 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
                 data[k] = v
 
         # save data using the saver
-        content = current_saver(self, data, **saver_kwargs)
+        try:
+            content = current_saver(self, data, **saver_kwargs)
+        except Exception as e:
+            raise FileConfigSavingError(f"Error saving {self.__class__.__name__} to file '{file_path}': {e}") from e
 
-        print()
+        # create parent directories if needed
+        if create_parent_dirs:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # with self.file_path.open("w", encoding=encoding) as file:
-        #     file.write(self_json)
+        # write content to file
+        with file_path.open("w", encoding=encoding, newline=newline) as file:
+            file.write(content)
+
+        # update file path, mode, encoding and newline
+        self._file_path = file_path
+        self._mode = mode
+        self._encoding = encoding
+        self._newline = newline
 
 
 class Config(FileConfigV2):
