@@ -1,34 +1,21 @@
-import json
-import yaml
-import xml
 import sys
 from typing_extensions import Self
 from warnings import warn
 from pathlib import Path
 from typing import Any, Union, Literal, Callable, Generator, Optional, Type, Mapping
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass
 
+from wiederverwendbar.pydantic.file_config.errors import FileConfigLoadingError, FileConfigSavingError
 from wiederverwendbar.warnings import FileNotFoundWarning
-
-
-class FileConfigError(Exception):
-    ...
-
-
-class FileConfigLoadingError(FileConfigError):
-    ...
-
-
-class FileConfigSavingError(FileConfigError):
-    ...
-
 
 _LODER_FUNC_TYPE = Callable[[Type["FileConfigV2"], str, ...], dict[str, Any]]
 _LOADER: dict[str, tuple[list[str], _LODER_FUNC_TYPE]] = {}
 _SAVER_FUNC_TYPE = Callable[["FileConfigV2", dict[str, Any], ...], str]
 _SAVER: dict[str, _SAVER_FUNC_TYPE] = {}
+
+
 
 
 def register_loader(mode: str, *suffixes: str) -> Callable[[_LODER_FUNC_TYPE], _LODER_FUNC_TYPE]:
@@ -43,7 +30,6 @@ def register_loader(mode: str, *suffixes: str) -> Callable[[_LODER_FUNC_TYPE], _
     def decorator(func: _LODER_FUNC_TYPE):
         if mode in _LOADER:
             raise ValueError(f"Loader for mode '{mode}' is already registered.")
-        # noinspection PyUnreachableCode
         if not callable(func):
             raise TypeError(f"Function '{func.__name__}' is not callable.")
         _LOADER[mode] = (list(suffixes), func)
@@ -63,7 +49,6 @@ def register_saver(mode: str) -> Callable[[_SAVER_FUNC_TYPE], _SAVER_FUNC_TYPE]:
     def decorator(func: _SAVER_FUNC_TYPE):
         if mode in _SAVER:
             raise ValueError(f"Saver for mode '{mode}' is already registered.")
-        # noinspection PyUnreachableCode
         if not callable(func):
             raise TypeError(f"Function '{func.__name__}' is not callable.")
         _SAVER[mode] = func
@@ -98,7 +83,7 @@ class FileConfigMeta(ModelMetaclass):
         _SAVER = {}
 
         # create the class
-        cls: Union[Type[FileConfigV2], Type] = super().__new__(mcs, name, bases, attrs)
+        cls: Union[Type[FileConfig], Type] = super().__new__(mcs, name, bases, attrs)
 
         # set the loader for the class
         cls._loader = loader
@@ -109,34 +94,15 @@ class FileConfigMeta(ModelMetaclass):
         return cls
 
 
-class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
+class FileConfig(BaseModel, metaclass=FileConfigMeta):
     _loader: dict[str, tuple[list[str], _LODER_FUNC_TYPE]]
     _saver: dict[str, _SAVER_FUNC_TYPE]
-    _file_path: Optional[Path] = None
-    _mode: Optional[str] = None
-    _encoding: Optional[str] = None
-    _newline: Optional[str] = None
-    _loader_kwargs: dict[str, Any] = {}
-    _saver_kwargs: dict[str, Any] = {}
-
-    @classmethod
-    @register_loader("json", ".json")
-    def _load_json(cls, content: str, **kwargs) -> dict[str, Any]:
-        return json.loads(content, **kwargs)
-
-    @register_saver("json")
-    def _save_json(self, data: dict[str, Any], **kwargs) -> str:
-        return json.dumps(data, **kwargs)
-
-    @classmethod
-    @register_loader("yaml", ".yaml", ".yml")
-    def _load_yaml(cls, content: str, **kwargs) -> dict[str, Any]:
-        return {}
-
-    @classmethod
-    @register_loader("xml", ".xml")
-    def _load_xml(cls, content: str, **kwargs) -> dict[str, Any]:
-        return {}
+    # _file_path: Optional[Path] = None
+    # _mode: Optional[str] = None
+    # _encoding: Optional[str] = None
+    # _newline: Optional[str] = None
+    # _loader_kwargs: dict[str, Any] = {}
+    # _saver_kwargs: dict[str, Any] = {}
 
     @classmethod
     def _get_loader(cls, search_suffix: str = "") -> Generator[tuple[str, str, _LODER_FUNC_TYPE], None, None]:
@@ -168,148 +134,6 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         return cls._saver.get(mode, None)
 
     @classmethod
-    def _convert_file_path(cls, file_path: Union[None, Path, str] = None) -> Path:
-        """
-        Convert the file path to an absolute Path object.
-
-        :param file_path: The file path to convert.
-        :return: An absolute Path object or None if the input is None.
-        """
-
-        if file_path is None:
-            file_path = Path(Path.cwd() / cls.__name__.lower())
-        elif type(file_path) is str:
-            if file_path == "":
-                file_path = Path(Path.cwd() / cls.__name__.lower())
-            file_path = Path(file_path)
-        return file_path.absolute()
-
-    @property
-    def file_path(self) -> Path:
-        """
-        File path
-
-        :return: Path
-        """
-
-        return self._file_path
-
-    @file_path.setter
-    def file_path(self, value: Union[None, Path, str]) -> None:
-        """
-        Set the file path for the configuration.
-
-        :param value: The new file path as a Path or string.
-        """
-
-        if isinstance(value, str):
-            value = Path(value)
-        if type(value) is Path:
-            value = value.absolute()
-        self._file_path = value
-
-    @property
-    def mode(self) -> Optional[str]:
-        """
-        File mode
-
-        :return: str or None
-        """
-
-        return self._mode
-
-    @mode.setter
-    def mode(self, value: Optional[str]) -> None:
-        """
-        Set the file mode for the configuration.
-
-        :param value: The new file mode as a string.
-        """
-
-        self._mode = value
-
-    @property
-    def encoding(self) -> Optional[str]:
-        """
-        File encoding
-
-        :return: str or None
-        """
-
-        return self._encoding
-
-    @encoding.setter
-    def encoding(self, value: Optional[str]) -> None:
-        """
-        Set the file encoding for the configuration.
-
-        :param value: The new file encoding as a string.
-        """
-
-        self._encoding = value
-
-    @property
-    def newline(self) -> Optional[str]:
-        """
-        File newline character
-
-        :return: str or None
-        """
-
-        return self._newline
-
-    @newline.setter
-    def newline(self, value: Optional[str]) -> None:
-        """
-        Set the file newline character for the configuration.
-
-        :param value: The new file newline character as a string.
-        """
-
-        self._newline = value
-
-    @property
-    def loader_kwargs(self) -> dict[str, Any]:
-        """
-        Loader keyword arguments
-
-        :return: dict[str, Any]
-        """
-
-        return self._loader_kwargs
-
-    @loader_kwargs.setter
-    def loader_kwargs(self, value: dict[str, Any]) -> None:
-        """
-        Set the loader keyword arguments for the configuration.
-
-        :param value: The new loader keyword arguments as a dictionary.
-        """
-
-        self._loader_kwargs = value
-
-    @property
-    def saver_kwargs(self) -> dict[str, Any]:
-        """
-        Saver keyword arguments
-
-        :return: dict[str, Any]
-        """
-
-        return self._saver_kwargs
-
-    @saver_kwargs.setter
-    def saver_kwargs(self, value: dict[str, Any]) -> None:
-        """
-        Set the saver keyword arguments for the configuration.
-
-        :param value: The new saver keyword arguments as a dictionary.
-        """
-
-        self._saver_kwargs = value
-
-
-    @classmethod
     def load(cls,
              file_path: Union[None, Path, str] = None,
              encoding: Union[None, str, None] = None,
@@ -323,41 +147,15 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
                  "no_warn_create",
                  "no_create",
                  "no"]] = True,
-             strict: Optional[bool] = None,
-             from_attributes: Optional[bool] = None,
-             context: Optional[Any] = None,
-             by_alias: Optional[bool] = None,
-             by_name: Optional[bool] = None,
-             overwrite_data: Optional[dict[Any, Any]] = None,
              **loader_kwargs) -> Self:
-        """
-        Load a configuration from a file.
-
-        :param file_path: The file path to load the configuration from. If Default(), it will use the class name as the file name.
-        :param encoding: The encoding to use when reading the file. If Default(), it will use the system default encoding.
-        :param newline: The newline character to use when reading the file. If Default(), it will use the system default newline.
-        :param must_exist: Indicates whether the file must exist. True will translate to "yes_raise" behavior.
-        If False, it will translate to "no" behavior.
-        If "yes_print", it will print a warning if the file does not exist and exit with code 1.
-        If "yes_warn", it will trigger a warning if the file does not exist and exit with code 1.
-        If "yes_raise", it will raise a FileNotFoundError if the file does not exist.
-        If "no_print", it will print a warning if the file does not exist but continue execution.
-        If "no_warn", it will trigger a warning if the file does not exist but continue execution.
-        If "no_warn_create", it will trigger a warning if the file does not exist but continue execution and create the file.
-        If "no_create", it will continue execution and create the file if it does not exist.
-        If "no", it will continue execution without checking if the file exists.
-        :param strict: Whether to enforce types strictly.
-        :param from_attributes: Whether to extract data from object attributes.
-        :param context: Additional context to pass to the validator.
-        :param by_alias: Whether to use the field's alias when validating against the provided input data.
-        :param by_name: Whether to use the field's name when validating against the provided input data
-        :param overwrite_data: A dictionary of data to overwrite in the loaded file.
-        :param loader_kwargs: Additional keyword arguments to pass to the loader function.
-        :return: Self
-        """
-
         # set default file path
-        file_path = cls._convert_file_path(file_path=file_path)
+        if file_path is None:
+            file_path = Path(Path.cwd() / cls.__name__.lower())
+        elif type(file_path) is str:
+            if file_path == "":
+                file_path = Path(Path.cwd() / cls.__name__.lower())
+            file_path = Path(file_path)
+        file_path = file_path.absolute()
 
         # set default must_exist behavior
         if must_exist is True:
@@ -454,7 +252,6 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         Validate the model and return a dictionary representation of the model.
         This method uses the `model_dump` method to get the model data and then validates it
 
-        :param file_path: The file path to load the configuration from. If Default(), it will use the class name as the file name.
         :param include: A set of fields to include in the output.
         :param exclude: A set of fields to exclude from the output.
         :param context: Additional context to pass to the serializer.
@@ -612,18 +409,3 @@ class FileConfigV2(BaseModel, metaclass=FileConfigMeta):
         self._mode = mode
         self._encoding = encoding
         self._newline = newline
-
-
-class Config(FileConfigV2):
-    asd: int = Field(123, le=150)
-    qwe: str = "qwe"
-    yxc: bool = False
-
-
-if __name__ == '__main__':
-    # config = Config.parse_file(file_path="test", file_must_exist="yes_raise")
-    # config = Config()
-    c = Config.load()
-    c.asd = 120
-    c.save(exclude=["qwe"])
-    print()
