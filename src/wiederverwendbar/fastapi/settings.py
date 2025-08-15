@@ -31,7 +31,9 @@ class FastAPISettings(BrandingSettings):
     api_root_path_in_servers: Union[Default, bool] = Field(default=Default(), title="FastAPI Root Path in Servers", description="Whether the root path of the FastAPI is in servers.")
     api_deprecated: Union[None, Default, str] = Field(default=Default(), title="FastAPI Deprecated", description="Whether the FastAPI is deprecated.")
     api_info_url: Union[None, Default, str] = Field(default=Default(), title="FastAPI Info URL", description="The info URL of the FastAPI.")
+    api_info_tags: list[str] = Field(default_factory=lambda: ["Info"], title="FastAPI Info tags", description="The info tags for info route in OpenAPI schema.")
     api_version_url: Union[None, Default, str] = Field(default=Default(), title="FastAPI Version URL", description="The version URL of the FastAPI.")
+    api_version_tags: list[str] = Field(default_factory=lambda: ["Info"], title="FastAPI Version tags", description="The version tags for version route in OpenAPI schema.")
 
     class RootRedirect(str, Enum):
         DOCS = "docs"

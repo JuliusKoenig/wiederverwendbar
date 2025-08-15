@@ -56,8 +56,10 @@ class FastAPI(_FastAPI):
                  root_path_in_servers: Union[Default, bool] = Default(),
                  deprecated: Union[None, Default, bool] = Default(),
                  info_url: Union[None, Default, str] = Default(),
+                 info_tags: Union[Default, list[str]] = Default(),
                  info_response_model: Union[Default, type[InfoModel]] = Default(),
                  version_url: Union[None, Default, str] = Default(),
+                 version_tags: Union[Default, list[str]] = Default(),
                  root_redirect: Union[Default, None, FastAPISettings.RootRedirect, str] = Default(),
                  settings: Optional[FastAPISettings] = None,
                  **kwargs):
@@ -186,6 +188,11 @@ class FastAPI(_FastAPI):
         if type(info_url) is Default:
             info_url = "/info"
 
+        if type(info_tags) is Default:
+            info_tags = settings.api_info_tags
+        if len(info_tags) == 0:
+            info_tags = ["default"]
+
         if type(info_response_model) is Default:
             info_response_model = InfoModel
 
@@ -193,6 +200,11 @@ class FastAPI(_FastAPI):
             version_url = settings.api_version_url
         if type(version_url) is Default:
             version_url = "/version"
+
+        if type(version_tags) is Default:
+            version_tags = settings.api_version_tags
+        if len(version_tags) == 0:
+            info_tags = ["default"]
 
         if type(root_redirect) is Default:
             root_redirect = settings.api_root_redirect
@@ -212,8 +224,10 @@ class FastAPI(_FastAPI):
         self.redoc_favicon = redoc_favicon
         self.redoc_favicon_url = "/redoc-favicon.ico"
         self.info_url = info_url
+        self.info_tags = info_tags
         self.info_response_model = info_response_model
         self.version_url = version_url
+        self.version_tags = version_tags
         self.root_redirect = root_redirect
 
         # For storing the original "add_api_route" method from router.
@@ -320,11 +334,11 @@ class FastAPI(_FastAPI):
 
         # create info route
         if self.info_url:
-            self.add_api_route(path=self.info_url, endpoint=self.get_info, response_model=self.info_response_model)
+            self.add_api_route(path=self.info_url, endpoint=self.get_info, response_model=self.info_response_model, tags=self.info_tags)
 
         # create version route
         if self.version_url:
-            self.add_api_route(path=self.version_url, endpoint=self.get_version, response_model=Version)
+            self.add_api_route(path=self.version_url, endpoint=self.get_version, response_model=Version, tags=self.version_tags)
 
         # create root redirect route
         if self.root_redirect:
