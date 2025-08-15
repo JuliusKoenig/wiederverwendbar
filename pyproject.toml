@@ -30,6 +30,7 @@ full = [
     "nest-asyncio>=1.6.0",
     "sqlalchemy>=2.0.42",
     "art>=6.5",
+    "email-validator>=2.2.0",
 ]
 rich = [
     "rich>=14.1.0",
@@ -48,6 +49,7 @@ uvicorn = [
 ]
 fastapi = [
     "fastapi>=0.116.1",
+    "email-validator>=2.2.0",
 ]
 nicegui = [
     "nicegui>=2.21.1",
