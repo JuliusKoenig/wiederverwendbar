@@ -1,6 +1,8 @@
 import sys
 from enum import Enum
-from typing import IO, Any, Union
+from typing import IO, Any, Union, Literal
+
+OutFilesLiteral = Literal["stdout", "stderr"]
 
 
 class OutFiles(str, Enum):

@@ -1,6 +1,6 @@
-from typing import Optional, Any, Literal, Union
+from typing import Optional, Any, Literal, Union, IO
 
-from wiederverwendbar.console.out_files import OutFiles
+from wiederverwendbar.console.out_files import OutFilesLiteral, OutFiles
 from wiederverwendbar.console.settings import ConsoleSettings
 
 
@@ -45,7 +45,7 @@ class Console:
               *args: Any,
               sep: Optional[str] = None,
               end: Optional[str] = None,
-              file: Optional[OutFiles] = None,
+              file: Union[None, OutFilesLiteral, OutFiles, IO] = None,
               **kwargs) -> None:
         """
         Prints the values.
@@ -63,6 +63,8 @@ class Console:
             end = self._console_end
         if file is None:
             file = self._console_file
+        if type(file) is str:
+            file = OutFiles(file)
         if isinstance(file, OutFiles):
             file = file.get_file()
 
