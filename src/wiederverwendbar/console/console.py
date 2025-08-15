@@ -6,7 +6,6 @@ from wiederverwendbar.console.settings import ConsoleSettings
 
 class Console:
     print_function = print
-    print_function_blacklist_kwargs = ["file"]
     console_border_styles = {
         "single_line": ["─", "│", "┌", "┐", "└", "┘", "├", "┤"],
         "double_line": ["═", "║", "╔", "╗", "╚", "╝", "╠", "╣"]
@@ -42,24 +41,19 @@ class Console:
             console_end = settings.console_end
         self._console_end = console_end
 
-    def _print_method_kwargs_filter(self, **kwargs) -> dict[str, Any]:
-        for key in kwargs.copy():
-            if key not in self.print_function_blacklist_kwargs:
-                continue
-            del kwargs[key]
-        return kwargs
-
     def print(self,
               *args: Any,
               sep: Optional[str] = None,
               end: Optional[str] = None,
+              file: Optional[OutFiles] = None,
               **kwargs) -> None:
         """
         Prints the values.
 
         :param args: values to be printed.
-        :param sep:  string inserted between values, default a space.
-        :param end:  string appended after the last value, default a newline.
+        :param sep:  string inserted between values, Default is class variable.
+        :param end:  string appended after the last value, Default is class variable.
+        :param file: Output file. Default is class variable.
         :param kwargs: Additional parameters.
         """
 
@@ -67,7 +61,12 @@ class Console:
             sep = self._console_seperator
         if end is None:
             end = self._console_end
-        self.print_function(*args, **self._print_method_kwargs_filter(sep=sep, end=end, file=OutFiles.STDOUT.get_file(), **kwargs))
+        if file is None:
+            file = self._console_file
+        if isinstance(file, OutFiles):
+            file = file.get_file()
+
+        self.print_function(*args, sep=sep, end=end, file=file, **kwargs)
 
     def _card_kwargs(self, mode: Literal["text", "header", "border", "print"], **kwargs) -> dict[str, Any]:
         return {}

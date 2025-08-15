@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Union, Any
+from typing import Optional, Literal, Union, Any, IO
 
 from rich.console import Console as _RichConsole
 
@@ -7,9 +7,23 @@ from wiederverwendbar.console.out_files import OutFiles
 from wiederverwendbar.rich.settings import RichConsoleSettings
 
 
+def _print_function(self: "RichConsole", *a, **kw):
+    for k in kw.copy():
+        if k not in ["color", "header_color", "border_color"]:
+            continue
+        del kw[k]
+    b_file = ...
+    if "file" in kw:
+        b_file = getattr(self, f"_{self.__class__.__name__}__file")
+        self._file = kw["file"]
+        del kw["file"]
+    _RichConsole.print(self, *a, **kw)
+    if b_file is not ...:
+        self._file = b_file
+
+
 class RichConsole(_Console, _RichConsole):
-    print_function = _RichConsole.print
-    print_function_blacklist_kwargs = _Console.print_function_blacklist_kwargs + ["color", "header_color", "border_color"]
+    print_function = _print_function  # _RichConsole.print
 
     def __init__(self,
                  *,
@@ -140,6 +154,16 @@ class RichConsole(_Console, _RichConsole):
                               log_time=console_log_time,
                               log_path=console_log_path,
                               **kwargs)
+
+    @property
+    def _file(self) -> Optional[IO[str]]:
+        if self.__file is not None:
+            return self.__file
+        return self._console_file.get_file()
+
+    @_file.setter
+    def _file(self, value: Optional[IO[str]]) -> None:
+        self.__file = value
 
     def _card_kwargs(self, mode: Literal["text", "header", "border", "print"], **kwargs) -> dict[str, Any]:
         out = super()._card_kwargs(mode=mode, **kwargs)
