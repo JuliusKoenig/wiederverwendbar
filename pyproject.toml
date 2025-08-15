@@ -20,7 +20,7 @@ full = [
     "typer>=0.16.0",
     "pythonping>=1.1.4",
     "mongoengine>=0.29.1",
-    "nicegui>=2.21.1",
+    "nicegui>=2.22.2",
     "uvicorn>=0.35.0",
     "fastapi>=0.116.1",
     "starlette-admin[i18n]>=0.15.1",
@@ -28,7 +28,7 @@ full = [
     "blinker>=1.9.0",
     "kombu>=5.5.4",
     "nest-asyncio>=1.6.0",
-    "sqlalchemy>=2.0.42",
+    "sqlalchemy>=2.0.43",
     "art>=6.5",
     "email-validator>=2.2.0",
 ]
@@ -52,7 +52,7 @@ fastapi = [
     "email-validator>=2.2.0",
 ]
 nicegui = [
-    "nicegui>=2.21.1",
+    "nicegui>=2.22.2",
 ]
 starlette-admin = [
     "starlette-admin[i18n]>=0.15.1",
@@ -64,7 +64,7 @@ fuctions = [
     "pythonping>=1.1.4",
 ]
 sqlalchemy = [
-    "sqlalchemy>=2.0.42",
+    "sqlalchemy>=2.0.43",
 ]
 
 [build-system]
