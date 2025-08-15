@@ -153,7 +153,7 @@ class FastAPI(_FastAPI):
         if type(contact) is Default:
             contact = settings.api_contact
         if type(contact) is Default:
-            if type(settings.branding_author) is str and str(settings.branding_author_email) is str:
+            if type(settings.branding_author) is str and type(settings.branding_author_email) is str:
                 contact = {"name": settings.branding_author,
                            "email": settings.branding_author_email}
         if type(contact) is Default:
