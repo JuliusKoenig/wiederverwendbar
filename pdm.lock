@@ -5,7 +5,7 @@
 groups = ["default", "fastapi", "fuctions", "full", "mongoengine", "nicegui", "rich", "sqlalchemy", "starlette-admin", "typer", "uvicorn"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:33b3bde7f246694e41323923535bcdec9a0f56eb6d058e97a35dff964b860cb5"
+content_hash = "sha256:55408e78ed2273fac74f04545ca41d709dde090b0f04f3128076ffc0499240ce"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
