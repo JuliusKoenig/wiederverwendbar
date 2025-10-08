@@ -65,6 +65,7 @@ class Console:
                  console_file: Optional[OutFiles] = None,
                  console_seperator: Optional[str] = None,
                  console_end: Optional[str] = None,
+                 console_exclamation_bracket_style: Optional[str] = None,
                  settings: Optional[ConsoleSettings] = None):
         """
         Create a new console.
@@ -72,6 +73,7 @@ class Console:
         :param console_file: Console file. Default is STDOUT.
         :param console_seperator: Console seperator. Default is a space.
         :param console_end: Console end. Default is a newline.
+        :param console_exclamation_bracket_style: Console exclamation bracket style. Default is "square".
         :param settings: A settings object to use. If None, defaults to ConsoleSettings().
         """
 
@@ -89,6 +91,10 @@ class Console:
         if console_end is None:
             console_end = settings.console_end
         self._console_end = console_end
+
+        if console_exclamation_bracket_style is None:
+            console_exclamation_bracket_style = settings.console_exclamation_bracket_style
+        self._console_exclamation_bracket_style = console_exclamation_bracket_style
 
     def print(self,
               *args: Any,
@@ -286,7 +292,7 @@ class Console:
         :param message: Main message content.
         :param prefix: Prefix content.
         :param postfix: Postfix content.
-        :param brackets_style: Bracket style for all parts. Can be overridden by specific styles. Default is first key in console_exclamation_bracket_styles.
+        :param brackets_style: Bracket style for all parts. Can be overridden by specific styles. Default is class attribute.
         :param prefix_brackets_style: Prefix bracket style. Default is brackets_style.
         :param postfix_brackets_style: Postfix bracket style. Default is brackets_style.
         :param padding_left: Padding on the left side of the message. Default is 1 if prefix is used else 0.
@@ -296,7 +302,7 @@ class Console:
         """
 
         if brackets_style is None:
-            brackets_style = list(self.console_exclamation_bracket_styles.keys())[0]
+            brackets_style = self._console_exclamation_bracket_style
         if padding_left is None:
             padding_left = 0 if prefix is None else 1
         if padding_right is None:

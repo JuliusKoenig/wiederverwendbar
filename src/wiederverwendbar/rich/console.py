@@ -30,10 +30,12 @@ class RichConsole(_Console, _RichConsole):
         "info": {**_Console.console_exclamation_message_templates["info"], **{"prefix_content_color": "light_grey"}},
         "warning": {**_Console.console_exclamation_message_templates["warning"], **{"prefix_content_color": "yellow"}},
         "error": {**_Console.console_exclamation_message_templates["error"], **{"prefix_content_color": "red3"}},
-        "critical": {**_Console.console_exclamation_message_templates["critical"], **{"prefix_content_color": "dark_red"}},
+        "critical": {**_Console.console_exclamation_message_templates["critical"],
+                     **{"prefix_content_color": "dark_red"}},
         "panic": {**_Console.console_exclamation_message_templates["panic"], **{"prefix_content_color": "bright_red"}},
         "okay": {**_Console.console_exclamation_message_templates["okay"], **{"prefix_content_color": "bright_green"}},
-        "success": {**_Console.console_exclamation_message_templates["success"], **{"prefix_content_color": "bright_green"}},
+        "success": {**_Console.console_exclamation_message_templates["success"],
+                    **{"prefix_content_color": "bright_green"}},
         "fail": {**_Console.console_exclamation_message_templates["fail"], **{"prefix_content_color": "red3"}}
     }
 
@@ -42,6 +44,7 @@ class RichConsole(_Console, _RichConsole):
                  console_file: Optional[OutFiles] = None,
                  console_seperator: Optional[str] = None,
                  console_end: Optional[str] = None,
+                 console_exclamation_bracket_style: Optional[str] = None,
                  console_color_system: Optional[Literal["auto", "standard", "256", "truecolor", "windows"]] = None,
                  console_force_terminal: Optional[bool] = None,
                  console_force_jupyter: Optional[bool] = None,
@@ -67,6 +70,7 @@ class RichConsole(_Console, _RichConsole):
         :param console_file: Console file. Default is STDOUT.
         :param console_seperator: Console seperator. Default is a space.
         :param console_end: Console end. Default is a newline.
+        :param console_exclamation_bracket_style: Console exclamation bracket style. Default is "square".
         :param console_color_system: Rich Console color system.
         :param console_force_terminal: Rich Console force terminal.
         :param console_force_jupyter: Rich Console force jupyter.
@@ -94,6 +98,7 @@ class RichConsole(_Console, _RichConsole):
                           console_file=console_file,
                           console_seperator=console_seperator,
                           console_end=console_end,
+                          console_exclamation_bracket_style=console_exclamation_bracket_style,
                           settings=settings)
 
         if console_color_system is None:
