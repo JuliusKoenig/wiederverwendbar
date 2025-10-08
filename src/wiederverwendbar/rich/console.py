@@ -44,7 +44,7 @@ class RichConsole(_Console, _RichConsole):
                  console_file: Optional[OutFiles] = None,
                  console_seperator: Optional[str] = None,
                  console_end: Optional[str] = None,
-                 console_exclamation_bracket_style: Optional[str] = None,
+                 console_exclamation_prefix_brackets_style: Optional[str] = None,
                  console_color_system: Optional[Literal["auto", "standard", "256", "truecolor", "windows"]] = None,
                  console_force_terminal: Optional[bool] = None,
                  console_force_jupyter: Optional[bool] = None,
@@ -70,7 +70,7 @@ class RichConsole(_Console, _RichConsole):
         :param console_file: Console file. Default is STDOUT.
         :param console_seperator: Console seperator. Default is a space.
         :param console_end: Console end. Default is a newline.
-        :param console_exclamation_bracket_style: Console exclamation bracket style. Default is "square".
+        :param console_exclamation_prefix_brackets_style: Console exclamation bracket style. Default is "square".
         :param console_color_system: Rich Console color system.
         :param console_force_terminal: Rich Console force terminal.
         :param console_force_jupyter: Rich Console force jupyter.
@@ -98,7 +98,7 @@ class RichConsole(_Console, _RichConsole):
                           console_file=console_file,
                           console_seperator=console_seperator,
                           console_end=console_end,
-                          console_exclamation_bracket_style=console_exclamation_bracket_style,
+                          console_exclamation_prefix_brackets_style=console_exclamation_prefix_brackets_style,
                           settings=settings)
 
         if console_color_system is None:
@@ -256,71 +256,56 @@ class RichConsole(_Console, _RichConsole):
                             border_color=border_color,
                             **kwargs)
 
-    def _get_exclamation_fix(self,
+    def _get_exclamation_prefix(self,
                              content: Any,
                              brackets_style: Optional[str] = None,
-                             color: Optional[str] = None,
-                             content_color: Optional[str] = None,
-                             brackets_color: Optional[str] = None,
+                             prefix_color: Optional[str] = None,
+                             prefix_content_color: Optional[str] = None,
+                             prefix_brackets_color: Optional[str] = None,
                              **kwargs) -> tuple[str, str, str]:
-        opening_bracket, content, closing_bracket = super()._get_exclamation_fix(content=content,
-                                                                                 brackets_style=brackets_style,
-                                                                                 **kwargs)
+        opening_bracket, content, closing_bracket = super()._get_exclamation_prefix(content=content,
+                                                                                    brackets_style=brackets_style,
+                                                                                    **kwargs)
         # escape square brackets
         if brackets_style == "square":
             opening_bracket = "\\" + opening_bracket
 
-        if content_color is None:
-            content_color = color
-        if content_color is not None:
-            content = f"[{content_color}]{content}[/{content_color}]"
+        if prefix_content_color is None:
+            prefix_content_color = prefix_color
+        if prefix_content_color is not None:
+            content = f"[{prefix_content_color}]{content}[/{prefix_content_color}]"
 
-        if brackets_color is None:
-            brackets_color = color
-        if brackets_color is not None:
-            opening_bracket = f"[{brackets_color}]{opening_bracket}[/{brackets_color}]"
-            closing_bracket = f"[{brackets_color}]{closing_bracket}[/{brackets_color}]"
+        if prefix_brackets_color is None:
+            prefix_brackets_color = prefix_color
+        if prefix_brackets_color is not None:
+            opening_bracket = f"[{prefix_brackets_color}]{opening_bracket}[/{prefix_brackets_color}]"
+            closing_bracket = f"[{prefix_brackets_color}]{closing_bracket}[/{prefix_brackets_color}]"
 
         return opening_bracket, content, closing_bracket
 
     def exclamation(self,
-                    message: Any,
-                    prefix: Any = None,
-                    postfix: Any = None,
-                    *,
+                    *message: Any,
+                    prefix: Any,
+                    prefix_brackets_style: Optional[str] = None,
+                    prefix_margin: Optional[int] = None,
                     color: Optional[str] = None,
                     message_color: Optional[str] = None,
-                    brackets_style: Optional[str] = None,
                     prefix_color: Optional[str] = None,
                     prefix_content_color: Optional[str] = None,
-                    prefix_brackets_style: Optional[str] = None,
                     prefix_brackets_color: Optional[str] = None,
-                    postfix_color: Optional[str] = None,
-                    postfix_content_color: Optional[str] = None,
-                    postfix_brackets_style: Optional[str] = None,
-                    postfix_brackets_color: Optional[str] = None,
-                    padding_left: Optional[int] = None,
-                    padding_right: Optional[int] = None,
                     **kwargs) -> None:
         """
         Prints an exclamation message.
 
-        :param message: Main message content.
         :param prefix: Prefix content.
-        :param postfix: Postfix content.
-        :param brackets_style: Bracket style for all parts. Can be overridden by specific styles. Default is first key in console_exclamation_bracket_styles.
+        :param message: Main message content.
+        :param prefix_brackets_style: Prefix bracket style. Default is class variable.
+        :param prefix_margin: Margin on the right side of the prefix. Default is 1.
         :param color: Color for all parts. Can be overridden by specific colors. Default is None.
         :param message_color: Color for the main message. Default is color.
         :param prefix_color: Color for the prefix part. Default is color.
         :param prefix_content_color: Color for the prefix content. Default is prefix_color.
-        :param prefix_brackets_style: Prefix bracket style. Default is brackets_style.
         :param prefix_brackets_color: Color for the prefix brackets. Default is prefix_color.
-        :param postfix_color: Color for the postfix part. Default is color.
-        :param postfix_content_color: Color for the postfix content. Default is postfix_color.
-        :param postfix_brackets_style: Postfix bracket style. Default is brackets_style.
-        :param postfix_brackets_color: Color for the postfix brackets. Default is postfix_color.
-        :param padding_left: Padding on the left side of the message. Default is 1 if prefix is used else 0.
-        :param padding_right: Padding on the right side of the message. Default is 1 if postfix is used else 0.
         :param kwargs: Additional parameters.
         :return: None
         """
@@ -332,21 +317,12 @@ class RichConsole(_Console, _RichConsole):
 
         if prefix_color is None:
             prefix_color = color
-        if postfix_color is None:
-            postfix_color = color
 
-        return super().exclamation(message,
-                                   prefix,
-                                   postfix,
-                                   brackets_style=brackets_style,
+        return super().exclamation(*message,
+                                   prefix=prefix,
+                                   prefix_brackets_style=prefix_brackets_style,
+                                   prefix_margin=prefix_margin,
                                    prefix_color=prefix_color,
                                    prefix_content_color=prefix_content_color,
-                                   prefix_brackets_style=prefix_brackets_style,
                                    prefix_brackets_color=prefix_brackets_color,
-                                   postfix_color=postfix_color,
-                                   postfix_content_color=postfix_content_color,
-                                   postfix_brackets_style=postfix_brackets_style,
-                                   postfix_brackets_color=postfix_brackets_color,
-                                   padding_left=padding_left,
-                                   padding_right=padding_right,
                                    **kwargs)

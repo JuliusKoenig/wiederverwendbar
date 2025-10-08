@@ -13,6 +13,6 @@ class ConsoleSettings(BaseModel):
     console_end: str = Field(default="\n",
                              title="Console End",
                              description="The end to be used after the last value.")
-    console_exclamation_bracket_style: str = Field(default="square",
-                                                   title="Console Exclamation Bracket Style",
-                                                   description="The style to be used for the exclamation brackets.")
+    console_exclamation_prefix_brackets_style: str = Field(default="square",
+                                                           title="Console Exclamation Bracket Style",
+                                                           description="The style to be used for the exclamation brackets.")

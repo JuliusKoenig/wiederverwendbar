@@ -20,43 +20,43 @@ class Console:
     console_exclamation_message_templates = {
         "trace": {
             "prefix": "TRACE",
-            "padding_left": 4
+            "prefix_margin": 4
         },
         "debug": {
             "prefix": "DEBUG",
-            "padding_left": 4
+            "prefix_margin": 4
         },
         "info": {
             "prefix": "INFO",
-            "padding_left": 5
+            "prefix_margin": 5
         },
         "warning": {
             "prefix": "WARNING",
-            "padding_left": 2
+            "prefix_margin": 2
         },
         "error": {
             "prefix": "ERROR",
-            "padding_left": 4
+            "prefix_margin": 4
         },
         "critical": {
             "prefix": "CRITICAL",
-            "padding_left": 1
+            "prefix_margin": 1
         },
         "panic": {
             "prefix": "PANIC",
-            "padding_left": 4
+            "prefix_margin": 4
         },
         "okay": {
             "prefix": "OKAY",
-            "padding_left": 5
+            "prefix_margin": 5
         },
         "success": {
             "prefix": "SUCCESS",
-            "padding_left": 2
+            "prefix_margin": 2
         },
         "fail": {
             "prefix": "FAIL",
-            "padding_left": 5
+            "prefix_margin": 5
         }
     }
 
@@ -65,7 +65,7 @@ class Console:
                  console_file: Optional[OutFiles] = None,
                  console_seperator: Optional[str] = None,
                  console_end: Optional[str] = None,
-                 console_exclamation_bracket_style: Optional[str] = None,
+                 console_exclamation_prefix_brackets_style: Optional[str] = None,
                  settings: Optional[ConsoleSettings] = None):
         """
         Create a new console.
@@ -73,7 +73,7 @@ class Console:
         :param console_file: Console file. Default is STDOUT.
         :param console_seperator: Console seperator. Default is a space.
         :param console_end: Console end. Default is a newline.
-        :param console_exclamation_bracket_style: Console exclamation bracket style. Default is "square".
+        :param console_exclamation_prefix_brackets_style: Console exclamation bracket style. Default is "square".
         :param settings: A settings object to use. If None, defaults to ConsoleSettings().
         """
 
@@ -92,9 +92,9 @@ class Console:
             console_end = settings.console_end
         self._console_end = console_end
 
-        if console_exclamation_bracket_style is None:
-            console_exclamation_bracket_style = settings.console_exclamation_bracket_style
-        self._console_exclamation_bracket_style = console_exclamation_bracket_style
+        if console_exclamation_prefix_brackets_style is None:
+            console_exclamation_prefix_brackets_style = settings.console_exclamation_prefix_brackets_style
+        self._console_exclamation_prefix_brackets_style = console_exclamation_prefix_brackets_style
 
     def print(self,
               *args: Any,
@@ -266,103 +266,86 @@ class Console:
                          f"{self._card_get_border(border_style, 'bottom_right', **kwargs)}")
         return self.print(card, **kwargs)
 
-    def _get_exclamation_fix(self,
-                             content: Any,
-                             *,
-                             brackets_style: Optional[str] = None,
-                             **kwargs) -> tuple[str, str, str]:
-        return (self.console_exclamation_bracket_styles[brackets_style][0],
+    def _get_exclamation_prefix(self,
+                                content: Any,
+                                *,
+                                prefix_brackets_style: Optional[str] = None,
+                                **kwargs) -> tuple[str, str, str]:
+        return (self.console_exclamation_bracket_styles[prefix_brackets_style][0],
                 str(content),
-                self.console_exclamation_bracket_styles[brackets_style][1])
+                self.console_exclamation_bracket_styles[prefix_brackets_style][1])
 
     def exclamation(self,
-                    message: Any,
-                    prefix: Any = None,
-                    postfix: Any = None,
-                    *,
-                    brackets_style: Optional[str] = None,
+                    *message: Any,
+                    prefix: Any,
                     prefix_brackets_style: Optional[str] = None,
-                    postfix_brackets_style: Optional[str] = None,
-                    padding_left: Optional[int] = None,
-                    padding_right: Optional[int] = None,
+                    prefix_margin: Optional[int] = None,
                     **kwargs) -> None:
         """
         Prints an exclamation message.
 
         :param message: Main message content.
         :param prefix: Prefix content.
-        :param postfix: Postfix content.
-        :param brackets_style: Bracket style for all parts. Can be overridden by specific styles. Default is class attribute.
-        :param prefix_brackets_style: Prefix bracket style. Default is brackets_style.
-        :param postfix_brackets_style: Postfix bracket style. Default is brackets_style.
-        :param padding_left: Padding on the left side of the message. Default is 1 if prefix is used else 0.
-        :param padding_right: Padding on the right side of the message. Default is 1 if postfix is used else 0.
+        :param prefix_brackets_style: Prefix bracket style. Default is class variable.
+        :param prefix_margin: Margin on the right side of the prefix. Default is 1.
         :param kwargs: Additional parameters.
         :return: None
         """
 
-        if brackets_style is None:
-            brackets_style = self._console_exclamation_bracket_style
-        if padding_left is None:
-            padding_left = 0 if prefix is None else 1
-        if padding_right is None:
-            padding_right = 0 if postfix is None else 1
         if prefix_brackets_style is None:
-            prefix_brackets_style = brackets_style
-        if postfix_brackets_style is None:
-            postfix_brackets_style = brackets_style
+            prefix_brackets_style = self._console_exclamation_prefix_brackets_style
+        if prefix_margin is None:
+            prefix_margin = 1
 
-        def get_fix_kwargs(filter: str, **kw) -> dict[str, Any]:
+        def get_prefix_kwargs(f: str, **kw) -> dict[str, Any]:
             for key in kwargs.copy():
-                if not key.startswith(filter):
+                if not key.startswith(f):
                     continue
-                kw_key = key[len(filter):]
-                kw[kw_key] = kwargs[key]
+                kw[key] = kwargs[key]
                 del kwargs[key]
             return kw
 
-        exclamation = f"{' ' * padding_left}{message}{' ' * padding_right}"
-
-        prefix_kwargs = get_fix_kwargs("prefix_", content=prefix, brackets_style=prefix_brackets_style)
-        if prefix is not None:
-            prefix_parts = self._get_exclamation_fix(**prefix_kwargs)
-            exclamation = f"{prefix_parts[0]}{prefix_parts[1]}{prefix_parts[2]}{exclamation}"
-        postfix_kwargs = get_fix_kwargs("postfix_", content=postfix, brackets_style=postfix_brackets_style)
-        if postfix is not None:
-            postfix_parts = self._get_exclamation_fix(**postfix_kwargs)
-            exclamation = f"{exclamation}{postfix_parts[0]}{postfix_parts[1]}{postfix_parts[2]}"
+        prefix_kwargs = get_prefix_kwargs("prefix_", content=prefix, prefix_brackets_style=prefix_brackets_style)
+        prefix_parts = self._get_exclamation_prefix(**prefix_kwargs)
+        exclamation = f"{prefix_parts[0]}{prefix_parts[1]}{prefix_parts[2]}{' ' * prefix_margin}"
+        first = True
+        for line in message:
+            if not first:
+                exclamation += "\n  "
+            exclamation += line
+            first = False
         return self.print(exclamation, **kwargs)
 
-    trace = lambda self, message, **kwargs: self.exclamation(message,
+    trace = lambda self, *message, **kwargs: self.exclamation(*message,
                                                              **{**self.console_exclamation_message_templates["trace"],
                                                                 **kwargs})
-    debug = lambda self, message, **kwargs: self.exclamation(message,
+    debug = lambda self, *message, **kwargs: self.exclamation(*message,
                                                              **{**self.console_exclamation_message_templates["debug"],
                                                                 **kwargs})
-    info = lambda self, message, **kwargs: self.exclamation(message,
+    info = lambda self, *message, **kwargs: self.exclamation(*message,
                                                             **{**self.console_exclamation_message_templates["info"],
                                                                **kwargs})
-    warning = lambda self, message, **kwargs: self.exclamation(message,
+    warning = lambda self, *message, **kwargs: self.exclamation(*message,
                                                                **{**self.console_exclamation_message_templates[
                                                                    "warning"],
                                                                   **kwargs})
-    error = lambda self, message, **kwargs: self.exclamation(message,
+    error = lambda self, *message, **kwargs: self.exclamation(*message,
                                                              **{**self.console_exclamation_message_templates["error"],
                                                                 **kwargs})
-    critical = lambda self, message, **kwargs: self.exclamation(message,
+    critical = lambda self, *message, **kwargs: self.exclamation(*message,
                                                                 **{**self.console_exclamation_message_templates[
                                                                     "critical"],
                                                                    **kwargs})
-    panic = lambda self, message, **kwargs: self.exclamation(message,
+    panic = lambda self, *message, **kwargs: self.exclamation(*message,
                                                              **{**self.console_exclamation_message_templates["panic"],
                                                                 **kwargs})
-    okay = lambda self, message, **kwargs: self.exclamation(message,
+    okay = lambda self, *message, **kwargs: self.exclamation(*message,
                                                             **{**self.console_exclamation_message_templates["okay"],
                                                                **kwargs})
-    success = lambda self, message, **kwargs: self.exclamation(message,
+    success = lambda self, *message, **kwargs: self.exclamation(*message,
                                                                **{**self.console_exclamation_message_templates[
                                                                    "success"],
                                                                   **kwargs})
-    fail = lambda self, message, **kwargs: self.exclamation(message,
+    fail = lambda self, *message, **kwargs: self.exclamation(*message,
                                                             **{**self.console_exclamation_message_templates["fail"],
                                                                **kwargs})
