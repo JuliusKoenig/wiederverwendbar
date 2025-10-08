@@ -10,6 +10,55 @@ class Console:
         "single_line": ["─", "│", "┌", "┐", "└", "┘", "├", "┤"],
         "double_line": ["═", "║", "╔", "╗", "╚", "╝", "╠", "╣"]
     }
+    console_exclamation_bracket_styles = {
+        "square": ["[", "]"],
+        "round": ["(", ")"],
+        "curly": ["{", "}"],
+        "angle": ["<", ">"],
+        "none": ["", ""]
+    }
+    console_exclamation_message_templates = {
+        "trace": {
+            "prefix": "TRACE",
+            "padding_left": 4
+        },
+        "debug": {
+            "prefix": "DEBUG",
+            "padding_left": 4
+        },
+        "info": {
+            "prefix": "INFO",
+            "padding_left": 5
+        },
+        "warning": {
+            "prefix": "WARNING",
+            "padding_left": 2
+        },
+        "error": {
+            "prefix": "ERROR",
+            "padding_left": 4
+        },
+        "critical": {
+            "prefix": "CRITICAL",
+            "padding_left": 1
+        },
+        "panic": {
+            "prefix": "PANIC",
+            "padding_left": 4
+        },
+        "okay": {
+            "prefix": "OKAY",
+            "padding_left": 5
+        },
+        "success": {
+            "prefix": "SUCCESS",
+            "padding_left": 2
+        },
+        "fail": {
+            "prefix": "FAIL",
+            "padding_left": 5
+        }
+    }
 
     def __init__(self,
                  *,
@@ -70,9 +119,6 @@ class Console:
 
         self.print_function(*args, sep=sep, end=end, file=file, **kwargs)
 
-    def _card_kwargs(self, mode: Literal["text", "header", "border", "print"], **kwargs) -> dict[str, Any]:
-        return {}
-
     def _card_get_text(self, text: str, **kwargs) -> str:
         return text
 
@@ -81,7 +127,8 @@ class Console:
 
     def _card_get_border(self,
                          border_style: Literal["single_line", "double_line"],
-                         border_part: Literal["horizontal", "vertical", "top_left", "top_right", "bottom_left", "bottom_right", "vertical_left", "vertical_right"],
+                         border_part: Literal[
+                             "horizontal", "vertical", "top_left", "top_right", "bottom_left", "bottom_right", "vertical_left", "vertical_right"],
                          **kwargs):
         border_style = self.console_border_styles[border_style]
         if border_part == "horizontal":
@@ -112,6 +159,20 @@ class Console:
              padding_left: int = 0,
              padding_right: int = 0,
              **kwargs) -> None:
+        """
+        Prints a card with sections.
+
+        :param sections: Sections to be printed. Each section can be a string or a tuple of (topic, string).
+        :param min_width: Minimum width of the card (including borders). Default is None (no minimum).
+        :param max_width: Maximum width of the card (including borders). Default is None (no maximum).
+        :param border_style: Border style to be used. Default is "single_line".
+        :param topic_offest: Offset for the topic. Default is 1.
+        :param padding_left: Padding on the left side of each line.
+        :param padding_right: Padding on the right side of each line.
+        :param kwargs: Additional parameters.
+        :return: None
+        """
+
         if min_width and max_width and min_width > max_width:
             raise ValueError(f"min_width '{min_width}' is greater than max_width '{max_width}'.")
         if min_width is not None:
@@ -198,3 +259,104 @@ class Console:
                          f"{self._card_get_border(border_style, 'horizontal', **kwargs) * real_width}"
                          f"{self._card_get_border(border_style, 'bottom_right', **kwargs)}")
         return self.print(card, **kwargs)
+
+    def _get_exclamation_fix(self,
+                             content: Any,
+                             *,
+                             brackets_style: Optional[str] = None,
+                             **kwargs) -> tuple[str, str, str]:
+        return (self.console_exclamation_bracket_styles[brackets_style][0],
+                str(content),
+                self.console_exclamation_bracket_styles[brackets_style][1])
+
+    def exclamation(self,
+                    message: Any,
+                    prefix: Any = None,
+                    postfix: Any = None,
+                    *,
+                    brackets_style: Optional[str] = None,
+                    prefix_brackets_style: Optional[str] = None,
+                    postfix_brackets_style: Optional[str] = None,
+                    padding_left: Optional[int] = None,
+                    padding_right: Optional[int] = None,
+                    **kwargs) -> None:
+        """
+        Prints an exclamation message.
+
+        :param message: Main message content.
+        :param prefix: Prefix content.
+        :param postfix: Postfix content.
+        :param brackets_style: Bracket style for all parts. Can be overridden by specific styles. Default is first key in console_exclamation_bracket_styles.
+        :param prefix_brackets_style: Prefix bracket style. Default is brackets_style.
+        :param postfix_brackets_style: Postfix bracket style. Default is brackets_style.
+        :param padding_left: Padding on the left side of the message. Default is 1 if prefix is used else 0.
+        :param padding_right: Padding on the right side of the message. Default is 1 if postfix is used else 0.
+        :param kwargs: Additional parameters.
+        :return: None
+        """
+
+        if brackets_style is None:
+            brackets_style = list(self.console_exclamation_bracket_styles.keys())[0]
+        if padding_left is None:
+            padding_left = 0 if prefix is None else 1
+        if padding_right is None:
+            padding_right = 0 if postfix is None else 1
+        if prefix_brackets_style is None:
+            prefix_brackets_style = brackets_style
+        if postfix_brackets_style is None:
+            postfix_brackets_style = brackets_style
+
+        def get_fix_kwargs(filter: str, **kw) -> dict[str, Any]:
+            for key in kwargs.copy():
+                if not key.startswith(filter):
+                    continue
+                kw_key = key[len(filter):]
+                kw[kw_key] = kwargs[key]
+                del kwargs[key]
+            return kw
+
+        exclamation = f"{' ' * padding_left}{message}{' ' * padding_right}"
+
+        prefix_kwargs = get_fix_kwargs("prefix_", content=prefix, brackets_style=prefix_brackets_style)
+        if prefix is not None:
+            prefix_parts = self._get_exclamation_fix(**prefix_kwargs)
+            exclamation = f"{prefix_parts[0]}{prefix_parts[1]}{prefix_parts[2]}{exclamation}"
+        postfix_kwargs = get_fix_kwargs("postfix_", content=postfix, brackets_style=postfix_brackets_style)
+        if postfix is not None:
+            postfix_parts = self._get_exclamation_fix(**postfix_kwargs)
+            exclamation = f"{exclamation}{postfix_parts[0]}{postfix_parts[1]}{postfix_parts[2]}"
+        return self.print(exclamation, **kwargs)
+
+    trace = lambda self, message, **kwargs: self.exclamation(message,
+                                                             **{**self.console_exclamation_message_templates["trace"],
+                                                                **kwargs})
+    debug = lambda self, message, **kwargs: self.exclamation(message,
+                                                             **{**self.console_exclamation_message_templates["debug"],
+                                                                **kwargs})
+    info = lambda self, message, **kwargs: self.exclamation(message,
+                                                            **{**self.console_exclamation_message_templates["info"],
+                                                               **kwargs})
+    warning = lambda self, message, **kwargs: self.exclamation(message,
+                                                               **{**self.console_exclamation_message_templates[
+                                                                   "warning"],
+                                                                  **kwargs})
+    error = lambda self, message, **kwargs: self.exclamation(message,
+                                                             **{**self.console_exclamation_message_templates["error"],
+                                                                **kwargs})
+    critical = lambda self, message, **kwargs: self.exclamation(message,
+                                                                **{**self.console_exclamation_message_templates[
+                                                                    "critical"],
+                                                                   **kwargs})
+    panic = lambda self, message, **kwargs: self.exclamation(message,
+                                                             **{**self.console_exclamation_message_templates["panic"],
+                                                                **kwargs})
+    okay = lambda self, message, **kwargs: self.exclamation(message,
+                                                            **{**self.console_exclamation_message_templates["okay"],
+                                                               **kwargs})
+    success = lambda self, message, **kwargs: self.exclamation(message,
+                                                               **{**self.console_exclamation_message_templates[
+                                                                   "success"],
+                                                                  **kwargs})
+    fail = lambda self, message, **kwargs: self.exclamation(message,
+                                                            **{**self.console_exclamation_message_templates["fail"],
+                                                               **kwargs})

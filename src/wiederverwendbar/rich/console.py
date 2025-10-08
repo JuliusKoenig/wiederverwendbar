@@ -24,6 +24,18 @@ def _print_function(self: "RichConsole", *a, **kw):
 
 class RichConsole(_Console, _RichConsole):
     print_function = _print_function  # _RichConsole.print
+    console_exclamation_message_templates = {
+        "trace": {**_Console.console_exclamation_message_templates["trace"], **{"prefix_content_color": "purple"}},
+        "debug": {**_Console.console_exclamation_message_templates["debug"], **{"prefix_content_color": "cyan"}},
+        "info": {**_Console.console_exclamation_message_templates["info"], **{"prefix_content_color": "light_grey"}},
+        "warning": {**_Console.console_exclamation_message_templates["warning"], **{"prefix_content_color": "yellow"}},
+        "error": {**_Console.console_exclamation_message_templates["error"], **{"prefix_content_color": "red3"}},
+        "critical": {**_Console.console_exclamation_message_templates["critical"], **{"prefix_content_color": "dark_red"}},
+        "panic": {**_Console.console_exclamation_message_templates["panic"], **{"prefix_content_color": "bright_red"}},
+        "okay": {**_Console.console_exclamation_message_templates["okay"], **{"prefix_content_color": "bright_green"}},
+        "success": {**_Console.console_exclamation_message_templates["success"], **{"prefix_content_color": "bright_green"}},
+        "fail": {**_Console.console_exclamation_message_templates["fail"], **{"prefix_content_color": "red3"}}
+    }
 
     def __init__(self,
                  *,
@@ -165,23 +177,6 @@ class RichConsole(_Console, _RichConsole):
     def _file(self, value: Optional[IO[str]]) -> None:
         self.__file = value
 
-    def _card_kwargs(self, mode: Literal["text", "header", "border", "print"], **kwargs) -> dict[str, Any]:
-        out = super()._card_kwargs(mode=mode, **kwargs)
-        for key in kwargs:
-            if mode == "text":
-                if key not in ["color"]:
-                    continue
-                out[key] = kwargs[key]
-            elif mode == "header":
-                if key not in ["header_color"]:
-                    continue
-                out[key] = kwargs[key]
-            elif mode == "border":
-                if key not in ["border_color"]:
-                    continue
-                out[key] = kwargs[key]
-        return out
-
     def _card_get_text(self,
                        text: str,
                        color: Optional[str] = None,
@@ -204,7 +199,8 @@ class RichConsole(_Console, _RichConsole):
 
     def _card_get_border(self,
                          border_style: Literal["single_line", "double_line"],
-                         border_part: Literal["horizontal", "vertical", "top_left", "top_right", "bottom_left", "bottom_right", "vertical_left", "vertical_right"],
+                         border_part: Literal[
+                             "horizontal", "vertical", "top_left", "top_right", "bottom_left", "bottom_right", "vertical_left", "vertical_right"],
                          border_color: Optional[str] = None,
                          **kwargs):
         border = super()._card_get_border(border_style=border_style,
@@ -226,6 +222,23 @@ class RichConsole(_Console, _RichConsole):
              header_color: Optional[str] = None,
              border_color: Optional[str] = None,
              **kwargs) -> None:
+        """
+        Prints a card with sections.
+
+        :param sections: Sections to be printed. Each section can be a string or a tuple of (topic, string).
+        :param min_width: Minimum width of the card (including borders). Default is None (no minimum).
+        :param max_width: Maximum width of the card (including borders). Default is None (no maximum).
+        :param border_style: Border style to be used. Default is "single_line".
+        :param topic_offest: Offset for the topic. Default is 1.
+        :param padding_left: Padding on the left side of each line.
+        :param padding_right: Padding on the right side of each line.
+        :param color: Color for the text inside the card.
+        :param header_color: Color for the header text.
+        :param border_color: Color for the border.
+        :param kwargs: Additional parameters.
+        :return: None
+        """
+
         return super().card(*sections,
                             min_width=min_width,
                             max_width=max_width,
@@ -237,3 +250,98 @@ class RichConsole(_Console, _RichConsole):
                             header_color=header_color,
                             border_color=border_color,
                             **kwargs)
+
+    def _get_exclamation_fix(self,
+                             content: Any,
+                             brackets_style: Optional[str] = None,
+                             color: Optional[str] = None,
+                             content_color: Optional[str] = None,
+                             brackets_color: Optional[str] = None,
+                             **kwargs) -> tuple[str, str, str]:
+        opening_bracket, content, closing_bracket = super()._get_exclamation_fix(content=content,
+                                                                                 brackets_style=brackets_style,
+                                                                                 **kwargs)
+        # escape square brackets
+        if brackets_style == "square":
+            opening_bracket = "\\" + opening_bracket
+
+        if content_color is None:
+            content_color = color
+        if content_color is not None:
+            content = f"[{content_color}]{content}[/{content_color}]"
+
+        if brackets_color is None:
+            brackets_color = color
+        if brackets_color is not None:
+            opening_bracket = f"[{brackets_color}]{opening_bracket}[/{brackets_color}]"
+            closing_bracket = f"[{brackets_color}]{closing_bracket}[/{brackets_color}]"
+
+        return opening_bracket, content, closing_bracket
+
+    def exclamation(self,
+                    message: Any,
+                    prefix: Any = None,
+                    postfix: Any = None,
+                    *,
+                    color: Optional[str] = None,
+                    message_color: Optional[str] = None,
+                    brackets_style: Optional[str] = None,
+                    prefix_color: Optional[str] = None,
+                    prefix_content_color: Optional[str] = None,
+                    prefix_brackets_style: Optional[str] = None,
+                    prefix_brackets_color: Optional[str] = None,
+                    postfix_color: Optional[str] = None,
+                    postfix_content_color: Optional[str] = None,
+                    postfix_brackets_style: Optional[str] = None,
+                    postfix_brackets_color: Optional[str] = None,
+                    padding_left: Optional[int] = None,
+                    padding_right: Optional[int] = None,
+                    **kwargs) -> None:
+        """
+        Prints an exclamation message.
+
+        :param message: Main message content.
+        :param prefix: Prefix content.
+        :param postfix: Postfix content.
+        :param brackets_style: Bracket style for all parts. Can be overridden by specific styles. Default is first key in console_exclamation_bracket_styles.
+        :param color: Color for all parts. Can be overridden by specific colors. Default is None.
+        :param message_color: Color for the main message. Default is color.
+        :param prefix_color: Color for the prefix part. Default is color.
+        :param prefix_content_color: Color for the prefix content. Default is prefix_color.
+        :param prefix_brackets_style: Prefix bracket style. Default is brackets_style.
+        :param prefix_brackets_color: Color for the prefix brackets. Default is prefix_color.
+        :param postfix_color: Color for the postfix part. Default is color.
+        :param postfix_content_color: Color for the postfix content. Default is postfix_color.
+        :param postfix_brackets_style: Postfix bracket style. Default is brackets_style.
+        :param postfix_brackets_color: Color for the postfix brackets. Default is postfix_color.
+        :param padding_left: Padding on the left side of the message. Default is 1 if prefix is used else 0.
+        :param padding_right: Padding on the right side of the message. Default is 1 if postfix is used else 0.
+        :param kwargs: Additional parameters.
+        :return: None
+        """
+
+        if message_color is None:
+            message_color = color
+        if message_color is not None:
+            message = f"[{message_color}]{message}[/{message_color}]"
+
+        if prefix_color is None:
+            prefix_color = color
+        if postfix_color is None:
+            postfix_color = color
+
+        return super().exclamation(message,
+                                   prefix,
+                                   postfix,
+                                   brackets_style=brackets_style,
+                                   prefix_color=prefix_color,
+                                   prefix_content_color=prefix_content_color,
+                                   prefix_brackets_style=prefix_brackets_style,
+                                   prefix_brackets_color=prefix_brackets_color,
+                                   postfix_color=postfix_color,
+                                   postfix_content_color=postfix_content_color,
+                                   postfix_brackets_style=postfix_brackets_style,
+                                   postfix_brackets_color=postfix_brackets_color,
+                                   padding_left=padding_left,
+                                   padding_right=padding_right,
+                                   **kwargs)
