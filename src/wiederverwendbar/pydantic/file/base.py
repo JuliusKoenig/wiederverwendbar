@@ -41,7 +41,6 @@ class BaseFile(BaseModel, ABC):
         file_on_validation_error = "print"
         file_on_from_dict_error = "print"
         file_on_saving_dict_error = "print"
-        file_indent = None
         file_console = Console()
         file_include = None
         file_exclude = None
@@ -61,8 +60,22 @@ class BaseFile(BaseModel, ABC):
             file_suffix (str | None): File extension. If None, no suffix will be used.
             file_encoding (str | None): File encoding. If None, the system default will be used.
             file_newline (str | None): Newline character(s). If None, the system default will be used.
+            file_overwrite (dict[str, Any] | None): Dictionary of values to overwrite after loading the file.
             file_must_exist (FILE_MUST_EXIST_ANNOTATION): Whether the file must exist. True means "yes_print", False means "no_ignore"
-            file_indent (int | None): Number of spaces for indentation. If None or 0, no indentation will be used.
+            file_save_on_load (FILE_SAVE_ON_LOAD_ANNOTATION): Whether to save the file upon loading if it does not exist.
+            file_on_reading_error (FILE_ON_ERROR_ANNOTATION): Action to take on reading error.
+            file_on_to_dict_error (FILE_ON_ERROR_ANNOTATION): Action to take on to_dict conversion error.
+            file_on_validation_error (FILE_ON_ERROR_ANNOTATION): Action to take on validation error.
+            file_on_from_dict_error (FILE_ON_ERROR_ANNOTATION): Action to take on from_dict conversion error.
+            file_on_saving_dict_error (FILE_ON_ERROR_ANNOTATION): Action to take on saving dict error.
+            file_console (Console): Console object for logging messages. If None, print statements will be used.
+            file_include (set[int] | set[str] | Mapping[int, bool | Any] | Mapping[str, bool | Any] | None): Fields to include when saving.
+            file_exclude (set[int] | set[str] | Mapping[int, bool | Any] | Mapping[str, bool | Any] | None): Fields to exclude when saving.
+            file_context (Any | None): Context to pass to Pydantic serialization methods.
+            file_by_alias (bool | None): Whether to use field aliases when saving.
+            file_exclude_unset (bool): Whether to exclude unset fields when saving.
+            file_exclude_defaults (bool): Whether to exclude fields with default values when saving.
+            file_exclude_none (bool): Whether to exclude fields with None values when saving.
         """
 
         file_dir: str | Path
@@ -78,8 +91,6 @@ class BaseFile(BaseModel, ABC):
         file_on_validation_error: FILE_ON_ERROR_ANNOTATION
         file_on_from_dict_error: FILE_ON_ERROR_ANNOTATION
         file_on_saving_dict_error: FILE_ON_ERROR_ANNOTATION
-        file_sort_keys: bool = False
-        file_indent: int | None
         file_console: Console
         file_include: set[int] | set[str] | Mapping[int, bool | Any] | Mapping[str, bool | Any] | None
         file_exclude: set[int] | set[str] | Mapping[int, bool | Any] | Mapping[str, bool | Any] | None

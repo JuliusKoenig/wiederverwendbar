@@ -1,3 +1,4 @@
+from wiederverwendbar.pydantic.file import (BaseFile)
 from wiederverwendbar.pydantic.security import (HashedPasswordModel)
 from wiederverwendbar.pydantic.types import (Version)
 from wiederverwendbar.pydantic.indexable_model import (IndexableModel)
