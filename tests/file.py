@@ -1,9 +1,10 @@
+import json
 import logging
 import os
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Literal, Union, Optional
+from typing import Any, Literal, Union, Optional, Mapping
 from warnings import warn
 from typing_extensions import Self  # ToDo: Remove when Python 3.10 support is dropped
 
@@ -52,6 +53,13 @@ class BaseFile(BaseModel, ABC):
         file_on_validation_error = "print"
         file_indent = None
         file_console = Console()
+        file_include = None
+        file_exclude = None
+        file_context = None
+        file_by_alias = None
+        file_exclude_unset = False
+        file_exclude_defaults = False
+        file_exclude_none = False
 
     class _InstanceConfig:
         """
@@ -74,8 +82,16 @@ class BaseFile(BaseModel, ABC):
         file_newline: str | None
         file_must_exist: FILE_MUST_EXIST_ANNOTATION
         file_on_validation_error: FILE_ON_VALIDATION_ERROR_ANNOTATION
+        file_sort_keys: bool = False
         file_indent: int | None
         file_console: Console
+        file_include: set[int] | set[str] | Mapping[int, bool | Any] | Mapping[str, bool | Any] | None
+        file_exclude: set[int] | set[str] | Mapping[int, bool | Any] | Mapping[str, bool | Any] | None
+        file_context: Any | None
+        file_by_alias: bool | None
+        file_exclude_unset: bool
+        file_exclude_defaults: bool
+        file_exclude_none: bool
 
         def __init__(self,
                      cls: type["BaseFile"],
@@ -147,8 +163,6 @@ class BaseFile(BaseModel, ABC):
 
     @classmethod
     def _read_file(cls, config: _InstanceConfig) -> str | None:
-        logger.debug(f"Reading {cls.__name__} from '{config.file_path}' ...")
-
         # handle file existence
         content = None
         if not config.file_path.is_file():
@@ -177,6 +191,7 @@ class BaseFile(BaseModel, ABC):
                                        encoding=config.file_encoding,
                                        newline=config.file_newline) as file:
                 content = file.read()
+
         return content
 
     @classmethod
@@ -191,13 +206,20 @@ class BaseFile(BaseModel, ABC):
         # get instance config
         config = cls._InstanceConfig(cls=cls, instance_config=instance_config)
 
+        logger.debug(f"Loading {config} ...")
+
         # read file
+        logger.debug(f"Reading {config} ...")
         content = cls._read_file(config=config)
+        logger.debug(f"Reading {config} ... Done")
 
         # parse content
         if content is not None:
+            logger.debug(f"Converting content of {config} to dict ...")
             data = cls._to_dict(content=content, config=config)
+            logger.debug(f"Converting content of {config} to dict ... Done")
         else:
+            logger.debug(f"No content in {config} ...")
             data = {}
 
         # overwrite data
@@ -226,20 +248,59 @@ class BaseFile(BaseModel, ABC):
         # set instance config
         instance._config = instance_config
 
+        logger.debug(f"Loading {config} ... Done")
+
         return instance
 
     def reload(self) -> None:
         print()
 
     @abstractmethod
-    def _from_dict(self) -> str:
+    def _from_dict(self, content_dict: dict[str, Any], config: _InstanceConfig) -> str:
         ...
 
-    def _write_file(self) -> None:
-        ...
+    def _write_file(self, content: str, config: _InstanceConfig) -> None:
+        with config.file_path.open(mode="w",
+                                   encoding=config.file_encoding,
+                                   newline=config.file_newline) as file:
+            file.write(content)
 
-    def save(self) -> None:
-        print()
+    def save(self, **extra_config: Any) -> None:
+        # create config from instance config and extra config
+        config_dict = {}
+        config_dict.update(self._config)
+        config_dict.update(extra_config)
+        config = self._InstanceConfig(cls=self.__class__, instance_config=config_dict)
+
+        logger.debug(f"Saving {config} ...")
+
+        # convert instance to dict
+        content_dict = self.model_dump(
+            mode="json",
+            include=config.file_include,
+            exclude=config.file_exclude,
+            context=config.file_context,
+            by_alias=config.file_by_alias,
+            exclude_unset=config.file_exclude_unset,
+            exclude_defaults=config.file_exclude_defaults,
+            exclude_none=config.file_exclude_none,
+            round_trip=False,
+            warnings=True,  # ToDo
+            fallback=None,
+            serialize_as_any=False
+        )
+
+        # convert dict to string
+        logger.debug(f"Converting {config} to string ...")
+        content = self._from_dict(content_dict=content_dict, config=config)
+        logger.debug(f"Converting {config} to string ... Done")
+
+        # write file
+        logger.debug(f"Writing {config} ...")
+        self._write_file(content=content, config=config)
+        logger.debug(f"Writing {config} ... Done")
+
+        logger.debug(f"Saving {config} ... Done")
 
 
 class JsonFile(BaseFile):
@@ -247,13 +308,15 @@ class JsonFile(BaseFile):
         file_suffix = ".json"
 
     @classmethod
-    def _to_dict(cls) -> dict:
-        print()
+    def _to_dict(cls, content: str, config: BaseFile._InstanceConfig) -> dict:
+        content_dict = json.loads(content)
+        return content_dict
 
-    def _from_dict(self) -> str:
-        print()
-
-    ...
+    def _from_dict(self, content_dict: dict[str, Any], config: BaseFile._InstanceConfig) -> str:
+        content = json.dumps(content_dict,
+                             sort_keys=config.file_sort_keys,
+                             indent=config.file_indent)
+        return content
 
 
 # class YamlFile(BaseFile):
@@ -309,38 +372,40 @@ if __name__ == "__main__":
     # )
 
     sample = SampleFile.load(
-        overwrite={
-            "attr_str1": "Hello",
-            "attr_str2": "World",
-            "attr_int1": 42,
-            "attr_int2": 7,
-            "attr_float1": 3.14,
-            "attr_float2": 2.71,
-            "attr_bool1": True,
-            "attr_bool2": False,
-            "attr_sub": {
-                "sub_attr_str": "asd",
-                "sub_attr_int": 123,
-                "sub_attr_float": 1.23,
-                "sub_attr_bool": True
-            },
-            "attr_list_sub": [
-                {
-                    "sub_attr_str": "qwe",
-                    "sub_attr_int": 456,
-                    "sub_attr_float": 4.56,
-                    "sub_attr_bool": False
-                },
-                {
-                    "sub_attr_str": "zxc",
-                    "sub_attr_int": 789,
-                    "sub_attr_float": 7.89,
-                    "sub_attr_bool": True
-                }
-            ]
-        },
+        # overwrite={
+        #     "attr_str1": "Hello",
+        #     "attr_str2": "World",
+        #     "attr_int1": 42,
+        #     "attr_int2": 7,
+        #     "attr_float1": 3.14,
+        #     "attr_float2": 2.71,
+        #     "attr_bool1": True,
+        #     "attr_bool2": False,
+        #     "attr_sub": {
+        #         "sub_attr_str": "asd",
+        #         "sub_attr_int": 123,
+        #         "sub_attr_float": 1.23,
+        #         "sub_attr_bool": True
+        #     },
+        #     "attr_list_sub": [
+        #         {
+        #             "sub_attr_str": "qwe",
+        #             "sub_attr_int": 456,
+        #             "sub_attr_float": 4.56,
+        #             "sub_attr_bool": False
+        #         },
+        #         {
+        #             "sub_attr_str": "zxc",
+        #             "sub_attr_int": 789,
+        #             "sub_attr_float": 7.89,
+        #             "sub_attr_bool": True
+        #         }
+        #     ]
+        # },
         file_name="custom",
         file_must_exist="no_print"
     )
+
+    sample.save()
 
     print()
