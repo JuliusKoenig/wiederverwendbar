@@ -3,8 +3,9 @@ import logging
 import os
 import sys
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Literal, Union, Mapping
+from typing import Any, Literal, Union, Mapping, Callable
 
 from warnings import warn
 from typing_extensions import Self  # ToDo: Remove when Python 3.10 support is dropped
@@ -50,6 +51,7 @@ class BaseFile(BaseModel, ABC):
         file_suffix = None
         file_encoding = None
         file_newline = None
+        file_overwrite = None
         file_must_exist = False
         file_on_reading_error = "print"
         file_on_to_dict_error = "print"
@@ -85,6 +87,7 @@ class BaseFile(BaseModel, ABC):
         file_suffix: str | None
         file_encoding: str | None
         file_newline: str | None
+        file_overwrite: dict[str, Any] | None
         file_must_exist: FILE_MUST_EXIST_ANNOTATION
         file_on_reading_error: FILE_ON_ERROR_ANNOTATION
         file_on_to_dict_error: FILE_ON_ERROR_ANNOTATION
@@ -171,15 +174,16 @@ class BaseFile(BaseModel, ABC):
                                     instance_config=self._config)
 
     @classmethod
-    def _create(cls, data: dict[str, Any], config: _InstanceConfig, error_message: str) -> Self:
+    def _create(cls, func: Callable, data: dict[str, Any], config: _InstanceConfig, error_message: str) -> Self:
         try:
-            instance = cls(**data)
+            instance = func(**data)
         except ValidationError as e:
-            logger.error(f"Error validating data for {config}: {e}")
             if config.file_on_validation_error == "raise":
+                logger.error(e)
                 raise e
             elif config.file_on_validation_error == "print":
                 lines = validation_error_make_pretty_lines(exception=e)
+                logger.error("\n  ".join((error_message, *lines)))
                 if config.file_console:
                     config.file_console.error(error_message, *lines)
                 else:
@@ -230,14 +234,7 @@ class BaseFile(BaseModel, ABC):
         ...
 
     @classmethod
-    def load(cls,
-             overwrite: dict[str, Any] | None = None,
-             **instance_config: Any) -> Self:
-        # get instance config
-        config = cls._InstanceConfig(cls=cls, instance_config=instance_config)
-
-        logger.debug(f"Loading {config} ...")
-
+    def _load(cls, config: _InstanceConfig) -> dict[str, Any]:
         # read file
         logger.debug(f"Reading {config} ...")
         try:
@@ -281,12 +278,24 @@ class BaseFile(BaseModel, ABC):
             data = {}
 
         # overwrite data
-        if overwrite is not None:
-            for key, value in overwrite.items():
+        if config.file_overwrite is not None:
+            for key, value in config.file_overwrite.items():
                 data[key] = value
 
+        return data
+
+    @classmethod
+    def load(cls, **instance_config: Any) -> Self:
+        # get instance config
+        config = cls._InstanceConfig(cls=cls, instance_config=instance_config)
+
+        logger.debug(f"Loading {config} ...")
+
+        # call internal load method
+        data = cls._load(config=config)
+
         # create instance
-        instance = cls._create(data=data, config=config, error_message=f"Loading error in {config}")
+        instance = cls._create(func=cls, data=data, config=config, error_message=f"Loading error in {config}")
 
         # set instance config
         instance._config = instance_config
@@ -295,8 +304,24 @@ class BaseFile(BaseModel, ABC):
 
         return instance
 
-    def reload(self) -> None:
-        print()
+    def reload(self, **extra_config: Any) -> None:
+        # create config from instance config and extra config
+        for key, value in self._config.items():
+            if key in extra_config:
+                continue
+            if type(value) in [list, dict]:
+                value = deepcopy(value)
+            extra_config[key] = value
+        config = self._InstanceConfig(cls=self.__class__, instance_config=extra_config)
+
+        logger.debug(f"Reloading {config} ...")
+
+        # call internal load method
+        data = self._load(config=config)
+
+        self._create(func=self.__init__, data=data, config=config, error_message=f"Reloading error in {config}")
+
+        logger.debug(f"Reloading {config} ... Done")
 
     @abstractmethod
     def _from_dict(self, data: dict[str, Any], config: _InstanceConfig) -> str:
@@ -310,10 +335,13 @@ class BaseFile(BaseModel, ABC):
 
     def save(self, **extra_config: Any) -> None:
         # create config from instance config and extra config
-        config_dict = {}
-        config_dict.update(self._config)
-        config_dict.update(extra_config)
-        config = self._InstanceConfig(cls=self.__class__, instance_config=config_dict)
+        for key, value in self._config.items():
+            if key in extra_config:
+                continue
+            if type(value) in [list, dict]:
+                value = deepcopy(value)
+            extra_config[key] = value
+        config = self._InstanceConfig(cls=self.__class__, instance_config=extra_config)
 
         logger.debug(f"Saving {config} ...")
 
@@ -334,7 +362,8 @@ class BaseFile(BaseModel, ABC):
         )
 
         # validate
-        self._create(data=data, config=config, error_message=f"Saving error in {config}")
+        self._create(func=self.__init__, data=data, config=config,
+                     error_message=f"Saving error in {config}")  # ToDo: test
 
         # convert dict to string
         logger.debug(f"Converting {config} to string ...")
@@ -446,40 +475,44 @@ if __name__ == "__main__":
     # )
 
     sample = SampleFile.load(
-        # overwrite={
-        #     "attr_str1": "Hello",
-        #     "attr_str2": "World",
-        #     "attr_int1": 42,
-        #     "attr_int2": 7,
-        #     "attr_float1": 3.14,
-        #     "attr_float2": 2.71,
-        #     "attr_bool1": True,
-        #     "attr_bool2": False,
-        #     "attr_sub": {
-        #         "sub_attr_str": "asd",
-        #         "sub_attr_int": 123,
-        #         "sub_attr_float": 1.23,
-        #         "sub_attr_bool": True
-        #     },
-        #     "attr_list_sub": [
-        #         {
-        #             "sub_attr_str": "qwe",
-        #             "sub_attr_int": 456,
-        #             "sub_attr_float": 4.56,
-        #             "sub_attr_bool": False
-        #         },
-        #         {
-        #             "sub_attr_str": "zxc",
-        #             "sub_attr_int": 789,
-        #             "sub_attr_float": 7.89,
-        #             "sub_attr_bool": True
-        #         }
-        #     ]
-        # },
+        file_overwrite={
+            "attr_str1": "Hello",
+            "attr_str2": "World",
+            "attr_int1": 42,
+            "attr_int2": 7,
+            "attr_float1": 3.14,
+            "attr_float2": 2.71,
+            "attr_bool1": True,
+            "attr_bool2": False,
+            "attr_sub": {
+                "sub_attr_str": "asd",
+                "sub_attr_int": 123,
+                "sub_attr_float": 1.23,
+                "sub_attr_bool": True
+            },
+            "attr_list_sub": [
+                {
+                    "sub_attr_str": "qwe",
+                    "sub_attr_int": 456,
+                    "sub_attr_float": 4.56,
+                    "sub_attr_bool": False
+                },
+                {
+                    "sub_attr_str": "zxc",
+                    "sub_attr_int": 789,
+                    "sub_attr_float": 7.89,
+                    "sub_attr_bool": True
+                }
+            ]
+        },
         file_name="custom",
         file_must_exist="no_print"
     )
 
-    sample.save(file_name="custom_saved", file_indent=4)
+    sample.attr_int1 = "qwasdyxc"
+
+    sample.reload()
+
+    # sample.save(file_name="custom_saved", file_indent=4)
 
     print()
