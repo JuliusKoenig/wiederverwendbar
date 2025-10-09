@@ -5,12 +5,12 @@ import sys
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Literal, Union, Mapping, Callable
+from typing import Any, Literal, Union, Mapping
 
 from warnings import warn
 from typing_extensions import Self  # ToDo: Remove when Python 3.10 support is dropped
 
-from pydantic import BaseModel, Field, PrivateAttr, ValidationError
+from pydantic import BaseModel, Field, PrivateAttr, ValidationError, computed_field
 from wiederverwendbar.warnings import FileNotFoundWarning
 
 try:
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_FILE_DIR = Path(os.getcwd())
 FILE_MUST_EXIST_ANNOTATION = Union[bool, Literal["yes_print", "yes_raise", "no_print", "no_warn", "no_ignore"]]
 FILE_ON_ERROR_ANNOTATION = Literal["print", "raise"]
+FILE_SAVE_ON_LOAD_ANNOTATION = Literal["if_not_exist", "no"]
 
 
 def validation_error_make_pretty_lines(exception: ValidationError) -> list[str]:
@@ -53,6 +54,7 @@ class BaseFile(BaseModel, ABC):
         file_newline = None
         file_overwrite = None
         file_must_exist = False
+        file_save_on_load= "no"
         file_on_reading_error = "print"
         file_on_to_dict_error = "print"
         file_on_validation_error = "print"
@@ -89,6 +91,7 @@ class BaseFile(BaseModel, ABC):
         file_newline: str | None
         file_overwrite: dict[str, Any] | None
         file_must_exist: FILE_MUST_EXIST_ANNOTATION
+        file_save_on_load: FILE_SAVE_ON_LOAD_ANNOTATION
         file_on_reading_error: FILE_ON_ERROR_ANNOTATION
         file_on_to_dict_error: FILE_ON_ERROR_ANNOTATION
         file_on_validation_error: FILE_ON_ERROR_ANNOTATION
@@ -174,9 +177,9 @@ class BaseFile(BaseModel, ABC):
                                     instance_config=self._config)
 
     @classmethod
-    def _create(cls, func: Callable, data: dict[str, Any], config: _InstanceConfig, error_message: str) -> Self:
+    def _create(cls, data: dict[str, Any], config: _InstanceConfig, error_message: str) -> Self:
         try:
-            instance = func(**data)
+            instance = cls(**data)
         except ValidationError as e:
             if config.file_on_validation_error == "raise":
                 logger.error(e)
@@ -294,13 +297,19 @@ class BaseFile(BaseModel, ABC):
         # call internal load method
         data = cls._load(config=config)
 
-        # create instance
-        instance = cls._create(func=cls, data=data, config=config, error_message=f"Loading error in {config}")
+        # validate and create instance
+        instance = cls._create(data=data, config=config, error_message=f"Loading error in {config}")
 
         # set instance config
         instance._config = instance_config
 
         logger.debug(f"Loading {config} ... Done")
+
+        # save file if not exist and wanted
+        if config.file_save_on_load == "if_not_exist" and not config.file_path.is_file():
+            logger.debug(f"Saving {config} because it did not exist ...")
+            instance.save()
+            logger.debug(f"Saving {config} because it did not exist ... Done")
 
         return instance
 
@@ -319,7 +328,13 @@ class BaseFile(BaseModel, ABC):
         # call internal load method
         data = self._load(config=config)
 
-        self._create(func=self.__init__, data=data, config=config, error_message=f"Reloading error in {config}")
+        # validate and create temporary instance
+        instance = self._create(data=data, config=config, error_message=f"Reloading error in {config}")
+
+        # update self
+        for field_name in self.__class__.model_fields.keys():
+            value = getattr(instance, field_name)
+            setattr(self, field_name, value)
 
         logger.debug(f"Reloading {config} ... Done")
 
@@ -362,8 +377,7 @@ class BaseFile(BaseModel, ABC):
         )
 
         # validate
-        self._create(func=self.__init__, data=data, config=config,
-                     error_message=f"Saving error in {config}")  # ToDo: test
+        self._create(data=data, config=config, error_message=f"Saving error in {config}")
 
         # convert dict to string
         logger.debug(f"Converting {config} to string ...")
@@ -461,6 +475,11 @@ class SampleFile(ParentFile):
         description="This is a test list of sub model attributes"
     )
 
+    @computed_field
+    @property
+    def attr_computed(self) -> str:
+        return f"{self.attr_str1} {self.attr_str2}"
+
 
 if __name__ == "__main__":
     # sample = SampleFile(
@@ -475,44 +494,44 @@ if __name__ == "__main__":
     # )
 
     sample = SampleFile.load(
-        file_overwrite={
-            "attr_str1": "Hello",
-            "attr_str2": "World",
-            "attr_int1": 42,
-            "attr_int2": 7,
-            "attr_float1": 3.14,
-            "attr_float2": 2.71,
-            "attr_bool1": True,
-            "attr_bool2": False,
-            "attr_sub": {
-                "sub_attr_str": "asd",
-                "sub_attr_int": 123,
-                "sub_attr_float": 1.23,
-                "sub_attr_bool": True
-            },
-            "attr_list_sub": [
-                {
-                    "sub_attr_str": "qwe",
-                    "sub_attr_int": 456,
-                    "sub_attr_float": 4.56,
-                    "sub_attr_bool": False
-                },
-                {
-                    "sub_attr_str": "zxc",
-                    "sub_attr_int": 789,
-                    "sub_attr_float": 7.89,
-                    "sub_attr_bool": True
-                }
-            ]
-        },
+        # file_overwrite={
+        #     "attr_str1": "Hello",
+        #     "attr_str2": "World",
+        #     "attr_int1": 42,
+        #     "attr_int2": 7,
+        #     "attr_float1": 3.14,
+        #     "attr_float2": 2.71,
+        #     "attr_bool1": True,
+        #     "attr_bool2": False,
+        #     "attr_sub": {
+        #         "sub_attr_str": "asd",
+        #         "sub_attr_int": 123,
+        #         "sub_attr_float": 1.23,
+        #         "sub_attr_bool": True
+        #     },
+        #     "attr_list_sub": [
+        #         {
+        #             "sub_attr_str": "qwe",
+        #             "sub_attr_int": 456,
+        #             "sub_attr_float": 4.56,
+        #             "sub_attr_bool": False
+        #         },
+        #         {
+        #             "sub_attr_str": "zxc",
+        #             "sub_attr_int": 789,
+        #             "sub_attr_float": 7.89,
+        #             "sub_attr_bool": True
+        #         }
+        #     ]
+        # },
         file_name="custom",
-        file_must_exist="no_print"
+        file_must_exist="no_print",
+        file_indent=4,
+        file_save_on_load="if_not_exist"
     )
 
     sample.attr_int1 = "qwasdyxc"
 
     sample.reload()
 
-    # sample.save(file_name="custom_saved", file_indent=4)
-
-    print()
+    # sample.save()
