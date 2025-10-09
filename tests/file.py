@@ -4,7 +4,8 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Literal, Union, Optional, Mapping
+from typing import Any, Literal, Union, Mapping
+
 from warnings import warn
 from typing_extensions import Self  # ToDo: Remove when Python 3.10 support is dropped
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_FILE_DIR = Path(os.getcwd())
 FILE_MUST_EXIST_ANNOTATION = Union[bool, Literal["yes_print", "yes_raise", "no_print", "no_warn", "no_ignore"]]
-FILE_ON_VALIDATION_ERROR_ANNOTATION = Literal["print", "raise"]  # ToDo: "ignore", "warn"?
+FILE_ON_ERROR_ANNOTATION = Literal["print", "raise"]
 
 
 def validation_error_make_pretty_lines(exception: ValidationError) -> list[str]:
@@ -50,7 +51,11 @@ class BaseFile(BaseModel, ABC):
         file_encoding = None
         file_newline = None
         file_must_exist = False
+        file_on_reading_error = "print"
+        file_on_to_dict_error = "print"
         file_on_validation_error = "print"
+        file_on_from_dict_error = "print"
+        file_on_saving_dict_error = "print"
         file_indent = None
         file_console = Console()
         file_include = None
@@ -81,7 +86,11 @@ class BaseFile(BaseModel, ABC):
         file_encoding: str | None
         file_newline: str | None
         file_must_exist: FILE_MUST_EXIST_ANNOTATION
-        file_on_validation_error: FILE_ON_VALIDATION_ERROR_ANNOTATION
+        file_on_reading_error: FILE_ON_ERROR_ANNOTATION
+        file_on_to_dict_error: FILE_ON_ERROR_ANNOTATION
+        file_on_validation_error: FILE_ON_ERROR_ANNOTATION
+        file_on_from_dict_error: FILE_ON_ERROR_ANNOTATION
+        file_on_saving_dict_error: FILE_ON_ERROR_ANNOTATION
         file_sort_keys: bool = False
         file_indent: int | None
         file_console: Console
@@ -162,6 +171,27 @@ class BaseFile(BaseModel, ABC):
                                     instance_config=self._config)
 
     @classmethod
+    def _create(cls, data: dict[str, Any], config: _InstanceConfig, error_message: str) -> Self:
+        try:
+            instance = cls(**data)
+        except ValidationError as e:
+            logger.error(f"Error validating data for {config}: {e}")
+            if config.file_on_validation_error == "raise":
+                raise e
+            elif config.file_on_validation_error == "print":
+                lines = validation_error_make_pretty_lines(exception=e)
+                if config.file_console:
+                    config.file_console.error(error_message, *lines)
+                else:
+                    print(f"ERROR: {error_message}")
+                    for line in lines:
+                        print("  " + line)
+                sys.exit(1)
+            else:
+                raise RuntimeError(f"Invalid value for file_on_validation_error: {config.file_on_validation_error}")
+        return instance
+
+    @classmethod
     def _read_file(cls, config: _InstanceConfig) -> str | None:
         # handle file existence
         content = None
@@ -210,13 +240,41 @@ class BaseFile(BaseModel, ABC):
 
         # read file
         logger.debug(f"Reading {config} ...")
-        content = cls._read_file(config=config)
+        try:
+            content = cls._read_file(config=config)
+        except Exception as e:
+            msg = f"Error reading {config}: {e}"
+            logger.error(msg)
+            if config.file_on_reading_error == "raise":
+                raise e
+            elif config.file_on_reading_error == "print":
+                if config.file_console:
+                    config.file_console.error(msg)
+                else:
+                    print(f"ERROR: {msg}")
+                sys.exit(1)
+            else:
+                raise RuntimeError(f"Invalid value for file_on_reading_error: {config.file_on_reading_error}")
         logger.debug(f"Reading {config} ... Done")
 
         # parse content
         if content is not None:
             logger.debug(f"Converting content of {config} to dict ...")
-            data = cls._to_dict(content=content, config=config)
+            try:
+                data = cls._to_dict(content=content, config=config)
+            except Exception as e:
+                msg = f"Error converting content of {config} to dict: {e}"
+                logger.error(msg)
+                if config.file_on_to_dict_error == "raise":
+                    raise e
+                elif config.file_on_to_dict_error == "print":
+                    if config.file_console:
+                        config.file_console.error(msg)
+                    else:
+                        print(f"ERROR: {msg}")
+                    sys.exit(1)
+                else:
+                    raise RuntimeError(f"Invalid value for file_on_to_dict_error: {config.file_on_to_dict_error}")
             logger.debug(f"Converting content of {config} to dict ... Done")
         else:
             logger.debug(f"No content in {config} ...")
@@ -228,22 +286,7 @@ class BaseFile(BaseModel, ABC):
                 data[key] = value
 
         # create instance
-        try:
-            instance = cls(**data)
-        except ValidationError as e:
-            if config.file_on_validation_error == "raise":
-                raise e
-            elif config.file_on_validation_error == "print":
-                lines = validation_error_make_pretty_lines(exception=e)
-                if config.file_console:
-                    config.file_console.error(f"Validation Error in {config}", *lines)
-                else:
-                    print(f"ERROR: Validation Error in {config}")
-                    for line in lines:
-                        print("  " + line)
-                sys.exit(1)
-            else:
-                raise RuntimeError(f"Invalid value for file_on_validation_error: {config.file_on_validation_error}")
+        instance = cls._create(data=data, config=config, error_message=f"Loading error in {config}")
 
         # set instance config
         instance._config = instance_config
@@ -256,7 +299,7 @@ class BaseFile(BaseModel, ABC):
         print()
 
     @abstractmethod
-    def _from_dict(self, content_dict: dict[str, Any], config: _InstanceConfig) -> str:
+    def _from_dict(self, data: dict[str, Any], config: _InstanceConfig) -> str:
         ...
 
     def _write_file(self, content: str, config: _InstanceConfig) -> None:
@@ -275,7 +318,7 @@ class BaseFile(BaseModel, ABC):
         logger.debug(f"Saving {config} ...")
 
         # convert instance to dict
-        content_dict = self.model_dump(
+        data = self.model_dump(
             mode="json",
             include=config.file_include,
             exclude=config.file_exclude,
@@ -285,19 +328,50 @@ class BaseFile(BaseModel, ABC):
             exclude_defaults=config.file_exclude_defaults,
             exclude_none=config.file_exclude_none,
             round_trip=False,
-            warnings=True,  # ToDo
+            warnings=False,
             fallback=None,
             serialize_as_any=False
         )
 
+        # validate
+        self._create(data=data, config=config, error_message=f"Saving error in {config}")
+
         # convert dict to string
         logger.debug(f"Converting {config} to string ...")
-        content = self._from_dict(content_dict=content_dict, config=config)
+        try:
+            content = self._from_dict(data=data, config=config)
+        except Exception as e:
+            msg = f"Error converting {config} to string: {e}"
+            logger.error(msg)
+            if config.file_on_from_dict_error == "raise":
+                raise e
+            elif config.file_on_from_dict_error == "print":
+                if config.file_console:
+                    config.file_console.error(msg)
+                else:
+                    print(f"ERROR: {msg}")
+                sys.exit(1)
+            else:
+                raise RuntimeError(f"Invalid value for file_on_from_dict_error: {config.file_on_from_dict_error}")
         logger.debug(f"Converting {config} to string ... Done")
 
         # write file
         logger.debug(f"Writing {config} ...")
-        self._write_file(content=content, config=config)
+        try:
+            self._write_file(content=content, config=config)
+        except Exception as e:
+            msg = f"Error writing {config}: {e}"
+            logger.error(msg)
+            if config.file_on_saving_dict_error == "raise":
+                raise e
+            elif config.file_on_saving_dict_error == "print":
+                if config.file_console:
+                    config.file_console.error(msg)
+                else:
+                    print(f"ERROR: {msg}")
+                sys.exit(1)
+            else:
+                raise RuntimeError(f"Invalid value for file_on_saving_dict_error: {config.file_on_saving_dict_error}")
         logger.debug(f"Writing {config} ... Done")
 
         logger.debug(f"Saving {config} ... Done")
@@ -309,11 +383,11 @@ class JsonFile(BaseFile):
 
     @classmethod
     def _to_dict(cls, content: str, config: BaseFile._InstanceConfig) -> dict:
-        content_dict = json.loads(content)
-        return content_dict
+        data = json.loads(content)
+        return data
 
-    def _from_dict(self, content_dict: dict[str, Any], config: BaseFile._InstanceConfig) -> str:
-        content = json.dumps(content_dict,
+    def _from_dict(self, data: dict[str, Any], config: BaseFile._InstanceConfig) -> str:
+        content = json.dumps(data,
                              sort_keys=config.file_sort_keys,
                              indent=config.file_indent)
         return content
@@ -406,6 +480,6 @@ if __name__ == "__main__":
         file_must_exist="no_print"
     )
 
-    sample.save()
+    sample.save(file_name="custom_saved", file_indent=4)
 
     print()
