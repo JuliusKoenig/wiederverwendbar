@@ -1,5 +1,4 @@
 from typing import Any
-
 from yaml import load, dump
 
 try:

@@ -3,6 +3,7 @@ from wiederverwendbar.pydantic.file import BaseFile
 from wiederverwendbar.pydantic.file.json import JsonFile
 from wiederverwendbar.pydantic.file.xml import XmlFile
 from wiederverwendbar.pydantic.file.yaml import YamlFile
+from wiederverwendbar.pydantic.file.toml import TomlFile
 
 
 class SampleFile(BaseFile):
@@ -32,12 +33,14 @@ class SampleFile(BaseFile):
     def attr_computed(self) -> str:
         return f"{self.attr_str1} {self.attr_str2}"
 
+
 class SampleFileJson(SampleFile, JsonFile):
     class Config:
         file_name = "custom"
         file_must_exist = "no_print"
         file_save_on_load = "if_not_exist"
         file_json_encode_indent = 4
+
 
 class SampleFileXml(SampleFile, XmlFile):
     class Config:
@@ -46,16 +49,25 @@ class SampleFileXml(SampleFile, XmlFile):
         file_save_on_load = "if_not_exist"
         file_xml_encode_indent = 4
 
+
 class SampleFileYaml(SampleFile, YamlFile):
     class Config:
         file_name = "custom"
         file_must_exist = "no_print"
         file_save_on_load = "if_not_exist"
-        file_xml_encode_indent = 4
+        file_yaml_encode_indent = 4
+
+
+class SampleFileToml(SampleFile, TomlFile):
+    class Config:
+        file_name = "custom"
+        file_must_exist = "no_print"
+        file_save_on_load = "if_not_exist"
+        file_toml_encode_indent = 4
 
 
 if __name__ == "__main__":
-    overwrite={
+    overwrite = {
         "attr_str1": "Hello",
         "attr_str2": "World",
         "attr_int1": 42,
@@ -88,7 +100,8 @@ if __name__ == "__main__":
 
     # sample = SampleFileJson.load(file_overwrite=overwrite)
     # sample = SampleFileXml.load(file_overwrite=overwrite)
-    sample = SampleFileYaml.load(file_overwrite=overwrite)
+    # sample = SampleFileYaml.load(file_overwrite=overwrite)
+    sample = SampleFileToml.load(file_overwrite=overwrite)
 
     # sample.reload()
 
