@@ -12,7 +12,7 @@ class XmlFile(BaseFile):
         file_suffix = ".xml"
         file_xml_root = True
         file_xml_custom_root = "root"
-        file_xml_encode_indent = 4
+        file_xml_encode_indent = None
 
     class _InstanceConfig(BaseFile._InstanceConfig):
         """
