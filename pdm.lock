@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "fastapi", "fuctions", "full", "mongoengine", "nicegui", "rich", "sqlalchemy", "starlette-admin", "typer", "uvicorn"]
+groups = ["default", "fastapi", "fuctions", "full", "mongoengine", "nicegui", "rich", "sqlalchemy", "starlette-admin", "typer", "uvicorn", "xml"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:55408e78ed2273fac74f04545ca41d709dde090b0f04f3128076ffc0499240ce"
+content_hash = "sha256:4bdff9fa1e72b0cd3c9cfb398152c8fb716b5e491ac48f626ff00d9099cab709"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -315,6 +315,17 @@ dependencies = [
 files = [
     {file = "devtools-0.12.2-py3-none-any.whl", hash = "sha256:c366e3de1df4cdd635f1ad8cbcd3af01a384d7abda71900e68d43b04eb6aaca7"},
     {file = "devtools-0.12.2.tar.gz", hash = "sha256:efceab184cb35e3a11fa8e602cc4fadacaa2e859e920fc6f87bf130b69885507"},
+]
+
+[[package]]
+name = "dicttoxml"
+version = "1.7.16"
+requires_python = ">=3.6"
+summary = "Converts a Python dictionary or other native data type into a valid XML string."
+groups = ["full", "xml"]
+files = [
+    {file = "dicttoxml-1.7.16-py3-none-any.whl", hash = "sha256:8677671496d0d38e66c7179f82a7e9059f94887777955dc71b0ac602ee637c26"},
+    {file = "dicttoxml-1.7.16.tar.gz", hash = "sha256:6f36ce644881db5cd8940bee9b7cb3f3f6b7b327ba8a67d83d3e2caa0538bf9d"},
 ]
 
 [[package]]
@@ -2158,6 +2169,17 @@ dependencies = [
 files = [
     {file = "wsproto-1.2.0-py3-none-any.whl", hash = "sha256:b9acddd652b585d75b20477888c56642fdade28bdfd3579aa24a4d2c037dd736"},
     {file = "wsproto-1.2.0.tar.gz", hash = "sha256:ad565f26ecb92588a3e43bc3d96164de84cd9902482b130d0ddbaa9664a85065"},
+]
+
+[[package]]
+name = "xmltodict"
+version = "1.0.2"
+requires_python = ">=3.9"
+summary = "Makes working with XML feel like you are working with JSON"
+groups = ["full", "xml"]
+files = [
+    {file = "xmltodict-1.0.2-py3-none-any.whl", hash = "sha256:62d0fddb0dcbc9f642745d8bbf4d81fd17d6dfaec5a15b5c1876300aad92af0d"},
+    {file = "xmltodict-1.0.2.tar.gz", hash = "sha256:54306780b7c2175a3967cad1db92f218207e5bc1aba697d887807c0fb68b7649"},
 ]
 
 [[package]]
