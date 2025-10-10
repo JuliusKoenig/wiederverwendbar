@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, computed_field
 from wiederverwendbar.pydantic.file import BaseFile
 from wiederverwendbar.pydantic.file.json import JsonFile
 from wiederverwendbar.pydantic.file.xml import XmlFile
+from wiederverwendbar.pydantic.file.yaml import YamlFile
 
 
 class SampleFile(BaseFile):
@@ -43,7 +44,14 @@ class SampleFileXml(SampleFile, XmlFile):
         file_name = "custom"
         file_must_exist = "no_print"
         file_save_on_load = "if_not_exist"
-        file_json_encode_indent = 4
+        file_xml_encode_indent = 4
+
+class SampleFileYaml(SampleFile, YamlFile):
+    class Config:
+        file_name = "custom"
+        file_must_exist = "no_print"
+        file_save_on_load = "if_not_exist"
+        file_xml_encode_indent = 4
 
 
 if __name__ == "__main__":
@@ -79,7 +87,8 @@ if __name__ == "__main__":
     }
 
     # sample = SampleFileJson.load(file_overwrite=overwrite)
-    sample = SampleFileXml.load(file_overwrite=overwrite)
+    # sample = SampleFileXml.load(file_overwrite=overwrite)
+    sample = SampleFileYaml.load(file_overwrite=overwrite)
 
     # sample.reload()
 
