@@ -2,7 +2,7 @@ from pathlib import Path
 
 __title__ = "Test App"
 __description__ = "A test App."
-__version__ = "0.1.0"
+__version__ = "0.1.0rc1"
 __author__ = "Julius Koenig"
 __author_email__ = "info@bastelquartier.de"
 __license__ = "GPL-3.0"
