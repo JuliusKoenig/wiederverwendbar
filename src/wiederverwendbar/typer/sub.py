@@ -35,6 +35,7 @@ class SubTyper(_Typer):
         super().add_typer(typer_instance, **kwargs)
         if isinstance(typer_instance, SubTyper):
             if typer_instance._parent is not None:
-                raise ValueError("The SubTyper instance already has a parent assigned.")
+                if typer_instance._parent is not self:
+                    raise ValueError("The SubTyper instance already has a parent assigned.")
             typer_instance._parent = self
 
