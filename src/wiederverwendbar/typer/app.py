@@ -7,6 +7,7 @@ from art import text2art
 from wiederverwendbar.default import Default
 from wiederverwendbar.rich.console import RichConsole
 from wiederverwendbar.typer.settings import TyperSettings
+from wiederverwendbar.typer.sub import SubTyper
 
 
 class Typer(_Typer):
@@ -174,3 +175,10 @@ class Typer(_Typer):
 
     def version_command(self) -> Optional[int]:
         self.console.print(f"{self.title} v[cyan]{self.version}[/cyan]")
+
+    def add_typer(self, typer_instance: _Typer, **kwargs) -> None:
+        super().add_typer(typer_instance, **kwargs)
+        if isinstance(typer_instance, SubTyper):
+            if typer_instance._parent is not None:
+                raise ValueError("The SubTyper instance already has a parent assigned.")
+            typer_instance._parent = self

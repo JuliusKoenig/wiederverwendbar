@@ -1,5 +1,5 @@
 from wiederverwendbar import __author__, __author_email__, __license__, __license_url__, __terms_of_service__
-from wiederverwendbar.typer import TyperSettings, Typer
+from wiederverwendbar.typer import TyperSettings, Typer, SubTyper
 
 settings = TyperSettings(branding_title="Test App",
                          branding_description="Test Description",
@@ -20,6 +20,23 @@ def test1():
 @app.command()
 def test2():
     app.console.print("test2")
+
+
+sub_app = SubTyper()
+
+@sub_app.command()
+def sub_test1():
+    sub_app.console.print("sub_test1")
+
+sub_sub_app = SubTyper()
+
+@sub_sub_app.command()
+def sub_sub_test1():
+    sub_sub_app.console.print("sub_test1")
+
+sub_app.add_typer(sub_sub_app, name="sub-sub")
+
+app.add_typer(sub_app, name="sub")
 
 
 if __name__ == "__main__":
