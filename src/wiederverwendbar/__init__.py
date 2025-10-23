@@ -1,6 +1,6 @@
 __title__ = "wiederverwendbar"
 __description__ = "A collection of scripts, classes and tools they are \\\"wiederverwendbar\\\"."
-__version__ = "0.10.0"
+__version__ = "0.11.0"
 __author__ = "Julius Koenig"
 __author_email__ = "info@bastelquartier.de"
 __license__ = "GPL-3.0"
