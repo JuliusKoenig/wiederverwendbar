@@ -156,10 +156,10 @@ class BaseFile(BaseModel, ABC):
             :return: Path object representing the full file path.
             """
 
-            fiel_path = Path(self.file_dir).with_name(self.file_name)
+            file_path = Path(self.file_dir) / self.file_name
             if self.file_suffix:
-                fiel_path = fiel_path.with_suffix(self.file_suffix)
-            return fiel_path.absolute()
+                file_path = file_path.with_suffix(self.file_suffix)
+            return file_path.absolute()
 
     _config: dict[str, Any] = PrivateAttr(default_factory=dict)
 
