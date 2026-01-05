@@ -98,7 +98,7 @@ class FastAPI(_FastAPI):
         if type(title) is Default:
             title = settings.api_title
         if type(title) is Default:
-            title = settings.branding_title
+            title = settings.title
         if title is None:
             title = "FastAPI"
         if type(summary) is Default:
@@ -106,13 +106,13 @@ class FastAPI(_FastAPI):
         if type(description) is Default:
             description = settings.api_description
         if type(description) is Default:
-            description = settings.branding_description
+            description = settings.description
         if description is None:
             description = ""
         if type(version) is Default:
             version = settings.api_version
         if type(version) is Default:
-            version = settings.branding_version
+            version = settings.version
         if version is None:
             version = "0.1.0"
         if type(openapi_url) is Default:
@@ -144,21 +144,21 @@ class FastAPI(_FastAPI):
         if type(terms_of_service) is Default:
             terms_of_service = settings.api_terms_of_service
         if type(terms_of_service) is Default:
-            terms_of_service = settings.branding_terms_of_service
+            terms_of_service = settings.terms_of_service
         if type(contact) is Default:
             contact = settings.api_contact
         if type(contact) is Default:
-            if settings.branding_author is not None and settings.branding_author_email is not None:
-                contact = {"name": settings.branding_author,
-                           "email": settings.branding_author_email}
+            if settings.author is not None and settings.author_email is not None:
+                contact = {"name": settings.author,
+                           "email": settings.author_email}
         if type(contact) is Default:
             contact = None
         if type(license_info) is Default:
             license_info = settings.api_license_info
         if type(license_info) is Default:
-            if settings.branding_license is not None and settings.branding_license_url is not None:
-                license_info = {"name": settings.branding_license,
-                                "url": settings.branding_license_url}
+            if settings.license is not None and settings.license_url is not None:
+                license_info = {"name": settings.license,
+                                "url": settings.license_url}
         if type(license_info) is Default:
             license_info = None
         if type(root_path) is Default:

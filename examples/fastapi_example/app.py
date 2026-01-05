@@ -4,37 +4,42 @@ import uvicorn
 
 from fastapi import Depends
 
+from wiederverwendbar.branding import BrandingSettings
 from wiederverwendbar.fastapi import FastAPISettings, FastAPI, get_app
 from wiederverwendbar import __author__, __author_email__, __license__, __license_url__, __terms_of_service__
 from wiederverwendbar.logger import LoggerSettings, LogLevels, LoggerSingleton
 
 from examples import TEST_ICO
 from examples.fastapi_example.router import router
+from wiederverwendbar.pydantic import PrintableSettings
 
 
-class MySettings(LoggerSettings, FastAPISettings):
-    ...
+class MySettings(PrintableSettings):
+    branding: BrandingSettings
+    logger: LoggerSettings
+    api: FastAPISettings
 
 
-settings = MySettings(branding_title="Test App",
-                      branding_description="Test Description",
-                      branding_version="0.1.0",
-                      branding_author=__author__,
-                      branding_author_email=__author_email__,
-                      branding_license=__license__,
-                      branding_license_url=__license_url__,
-                      branding_terms_of_service=__terms_of_service__,
-                      log_level=LogLevels.DEBUG,
-                      api_docs_favicon=TEST_ICO)
+settings = MySettings(branding=BrandingSettings(title="Test App",
+                                                description="Test Description",
+                                                version="0.1.0",
+                                                author=__author__,
+                                                author_email=__author_email__,
+                                                license=__license__,
+                                                license_url=__license_url__,
+                                                terms_of_service=__terms_of_service__),
+                      logger=LoggerSettings(log_level=LogLevels.DEBUG),
+                      api=FastAPISettings(api_docs_favicon=TEST_ICO))
 
-LoggerSingleton(name=__name__, settings=settings, init=True)  # ToDo fix this unresolved attr
+LoggerSingleton(name=__name__, settings=settings.logger, init=True)  # ToDo fix this unresolved attr
 
 
 class MyApi(FastAPI):
     test_attr = "test_app_attr"
 
 
-app = MyApi(settings=settings,
+app = MyApi(api_settings=settings.api,
+            branding_settings=settings.branding,
             separate_input_output_schemas=True)
 
 

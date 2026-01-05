@@ -34,25 +34,25 @@ class Typer(_Typer):
         if settings is None:
             settings = TyperSettings()
         if type(title) is Default:
-            title = settings.branding_title
+            title = settings.title
         if title is None:
             title = "Typer"
         if type(description) is Default:
-            description = settings.branding_description
+            description = settings.description
         if type(version) is Default:
-            version = settings.branding_version
+            version = settings.version
         if version is None:
             version = "0.1.0"
         if type(author) is Default:
-            author = settings.branding_author
+            author = settings.author
         if type(author_email) is Default:
-            author_email = settings.branding_author_email
+            author_email = settings.author_email
         if type(license) is Default:
-            license = settings.branding_license
+            license = settings.license
         if type(license_url) is Default:
-            license_url = settings.branding_license_url
+            license_url = settings.license_url
         if type(terms_of_service) is Default:
-            terms_of_service = settings.branding_terms_of_service
+            terms_of_service = settings.terms_of_service
         if type(info_enabled) is Default:
             info_enabled = settings.cli_info_enabled
         if type(version_enabled) is Default:

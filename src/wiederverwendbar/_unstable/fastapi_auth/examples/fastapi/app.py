@@ -16,14 +16,14 @@ class MySettings(LoggerSettings, FastAPISettings):
     ...
 
 
-settings = MySettings(branding_title="Test App",
-                      branding_description="Test Description",
-                      branding_version="0.1.0",
-                      branding_author=__author__,
-                      branding_author_email=__author_email__,
-                      branding_license=__license__,
-                      branding_license_url=__license_url__,
-                      branding_terms_of_service=__terms_of_service__,
+settings = MySettings(title="Test App",
+                      description="Test Description",
+                      version="0.1.0",
+                      author=__author__,
+                      author_email=__author_email__,
+                      license=__license__,
+                      license_url=__license_url__,
+                      terms_of_service=__terms_of_service__,
                       log_level=LogLevels.DEBUG,
                       api_docs_favicon=TEST_ICO,
                       api_auth_scheme=OAuth2PasswordBearerScheme())
