@@ -11,7 +11,7 @@ from wiederverwendbar.logger import LoggerSettings, LogLevels, LoggerSingleton
 
 from examples import TEST_ICO
 from examples.fastapi_example.router import router
-from wiederverwendbar.pydantic import PrintableSettings
+from wiederverwendbar.printable_settings import PrintableSettings
 
 
 class MySettings(PrintableSettings):
@@ -29,7 +29,7 @@ settings = MySettings(branding=BrandingSettings(title="Test App",
                                                 license_url=__license_url__,
                                                 terms_of_service=__terms_of_service__),
                       logger=LoggerSettings(log_level=LogLevels.DEBUG),
-                      api=FastAPISettings(api_docs_favicon=TEST_ICO))
+                      api=FastAPISettings(docs_favicon=TEST_ICO))
 
 LoggerSingleton(name=__name__, settings=settings.logger, init=True)  # ToDo fix this unresolved attr
 

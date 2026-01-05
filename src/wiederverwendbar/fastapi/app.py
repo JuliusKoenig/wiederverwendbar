@@ -62,101 +62,101 @@ class FastAPI(_FastAPI):
                  version_url: Union[None, Default, str] = Default(),
                  version_tags: Union[Default, list[str]] = Default(),
                  root_redirect: Union[Default, None, FastAPISettings.RootRedirect, str] = Default(),
-                 api_settings: Optional[FastAPISettings] = None,
+                 settings: Optional[FastAPISettings] = None,
                  branding_settings: Optional[BrandingSettings] = None,
                  **kwargs):
 
         # set default
-        if api_settings is None:
-            api_settings = FastAPISettings()
+        if settings is None:
+            settings = FastAPISettings()
         if branding_settings is None:
             branding_settings = BrandingSettings()
 
         if type(debug) is Default:
-            debug = api_settings.api_debug
+            debug = settings.debug
         if type(debug) is Default:
             debug = False
 
         if type(title) is Default:
-            title = api_settings.api_title
+            title = settings.title
         if type(title) is Default:
             title = branding_settings.title
         if type(title) is Default:
             title = "FastAPI"
 
         if type(summary) is Default:
-            summary = api_settings.api_summary
+            summary = settings.summary
         if type(summary) is Default:
             summary = None
 
         if type(description) is Default:
-            description = api_settings.api_description
+            description = settings.description
         if type(description) is Default:
             description = branding_settings.description
         if type(description) is Default:
             description = ""
 
         if type(version) is Default:
-            version = api_settings.api_version
+            version = settings.version
         if type(version) is Default:
             version = branding_settings.version
         if type(version) is Default:
             version = Version("0.1.0")
 
         if type(openapi_url) is Default:
-            openapi_url = api_settings.api_openapi_url
+            openapi_url = settings.openapi_url
         if type(openapi_url) is Default:
             openapi_url = "/openapi.json"
 
         if type(redirect_slashes) is Default:
-            redirect_slashes = api_settings.api_redirect_slashes
+            redirect_slashes = settings.redirect_slashes
         if type(redirect_slashes) is Default:
             redirect_slashes = True
 
         if type(favicon) is Default:
-            favicon = api_settings.api_favicon
+            favicon = settings.favicon
         if type(favicon) is Default:
             favicon = None
 
         if type(docs_url) is Default:
-            docs_url = api_settings.api_docs_url
+            docs_url = settings.docs_url
         if type(docs_url) is Default:
             docs_url = "/docs"
 
         if type(docs_title) is Default:
-            docs_title = api_settings.api_docs_title
+            docs_title = settings.docs_title
         if type(docs_title) is Default:
             docs_title = title
 
         if type(docs_favicon) is Default:
-            docs_favicon = api_settings.api_docs_favicon
+            docs_favicon = settings.docs_favicon
         if type(docs_favicon) is Default:
             docs_favicon = favicon
 
         if type(redoc_url) is Default:
-            redoc_url = api_settings.api_redoc_url
+            redoc_url = settings.redoc_url
         if type(redoc_url) is Default:
             redoc_url = "/redoc"
 
         if type(redoc_title) is Default:
-            redoc_title = api_settings.api_redoc_title
+            redoc_title = settings.redoc_title
         if type(redoc_title) is Default:
             redoc_title = title
 
         if type(redoc_favicon) is Default:
-            redoc_favicon = api_settings.api_redoc_favicon
+            redoc_favicon = settings.redoc_favicon
         if type(redoc_favicon) is Default:
             redoc_favicon = favicon
 
         if type(terms_of_service) is Default:
-            terms_of_service = api_settings.api_terms_of_service
+            terms_of_service = settings.terms_of_service
         if type(terms_of_service) is Default:
             terms_of_service = branding_settings.terms_of_service
         if type(terms_of_service) is Default:
             terms_of_service = None
 
         if type(contact) is Default:
-            contact = api_settings.api_contact
+            contact = settings.contact
         if type(contact) is Default:
             if type(branding_settings.author) is str and type(branding_settings.author_email) is str:
                 contact = {"name": branding_settings.author,
@@ -165,7 +165,7 @@ class FastAPI(_FastAPI):
             contact = None
 
         if type(license_info) is Default:
-            license_info = api_settings.api_license_info
+            license_info = settings.license_info
         if type(license_info) is Default:
             if type(branding_settings.license) is str and type(branding_settings.license_url) is str:
                 license_info = {"name": branding_settings.license,
@@ -174,27 +174,29 @@ class FastAPI(_FastAPI):
             license_info = None
 
         if type(root_path) is Default:
-            root_path = api_settings.api_root_path
+            root_path = settings.root_path
         if type(root_path) is Default:
             root_path = ""
 
         if root_path_in_servers is None:
-            root_path_in_servers = api_settings.api_root_path_in_servers
+            root_path_in_servers = settings.root_path_in_servers
         if type(root_path_in_servers) is Default:
             root_path_in_servers = True
 
         if type(deprecated) is Default:
-            deprecated = api_settings.api_deprecated
+            deprecated = settings.deprecated
         if type(deprecated) is Default:
             deprecated = None
 
         if type(info_url) is Default:
-            info_url = api_settings.api_info_url
+            info_url = settings.info_url
         if type(info_url) is Default:
             info_url = "/info"
 
         if type(info_tags) is Default:
-            info_tags = api_settings.api_info_tags
+            info_tags = settings.info_tags
+        if type(info_tags) is Default:
+            info_tags = []
         if len(info_tags) == 0:
             info_tags = ["default"]
 
@@ -202,17 +204,19 @@ class FastAPI(_FastAPI):
             info_response_model = InfoModel
 
         if type(version_url) is Default:
-            version_url = api_settings.api_version_url
+            version_url = settings.version_url
         if type(version_url) is Default:
             version_url = "/version"
 
         if type(version_tags) is Default:
-            version_tags = api_settings.api_version_tags
+            version_tags = settings.version_tags
+        if type(version_tags) is Default:
+            version_tags = []
         if len(version_tags) == 0:
             info_tags = ["default"]
 
         if type(root_redirect) is Default:
-            root_redirect = api_settings.api_root_redirect
+            root_redirect = settings.api_root_redirect
         if type(root_redirect) is Default:
             if docs_url is not None:
                 root_redirect = FastAPISettings.RootRedirect.DOCS

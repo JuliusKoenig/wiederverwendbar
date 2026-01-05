@@ -25,7 +25,7 @@ settings = MySettings(title="Test App",
                       license_url=__license_url__,
                       terms_of_service=__terms_of_service__,
                       log_level=LogLevels.DEBUG,
-                      api_docs_favicon=TEST_ICO,
+                      docs_favicon=TEST_ICO,
                       api_auth_scheme=OAuth2PasswordBearerScheme())
 
 LoggerSingleton(name=__name__, settings=settings, init=True)  # ToDo fix this unresolved attr

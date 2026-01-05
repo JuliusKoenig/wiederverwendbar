@@ -94,59 +94,59 @@ class FastAPI(_FastAPI):
         if settings is None:
             settings = FastAPISettings()
         if type(debug) is Default:
-            debug = settings.api_debug
+            debug = settings.debug
         if type(title) is Default:
-            title = settings.api_title
+            title = settings.title
         if type(title) is Default:
             title = settings.title
         if title is None:
             title = "FastAPI"
         if type(summary) is Default:
-            summary = settings.api_summary
+            summary = settings.summary
         if type(description) is Default:
-            description = settings.api_description
+            description = settings.description
         if type(description) is Default:
             description = settings.description
         if description is None:
             description = ""
         if type(version) is Default:
-            version = settings.api_version
+            version = settings.version
         if type(version) is Default:
             version = settings.version
         if version is None:
             version = "0.1.0"
         if type(openapi_url) is Default:
-            openapi_url = settings.api_openapi_url
+            openapi_url = settings.openapi_url
         if type(redirect_slashes) is Default:
-            redirect_slashes = settings.api_redirect_slashes
+            redirect_slashes = settings.redirect_slashes
         if type(favicon) is Default:
-            favicon = settings.api_favicon
+            favicon = settings.favicon
         if type(docs_url) is Default:
-            docs_url = settings.api_docs_url
+            docs_url = settings.docs_url
         if type(docs_title) is Default:
-            docs_title = settings.api_docs_title
+            docs_title = settings.docs_title
         if type(docs_title) is Default:
             docs_title = title
         if type(docs_favicon) is Default:
-            docs_favicon = settings.api_docs_favicon
+            docs_favicon = settings.docs_favicon
         if type(docs_favicon) is Default:
             docs_favicon = favicon
         if type(redoc_url) is Default:
-            redoc_url = settings.api_redoc_url
+            redoc_url = settings.redoc_url
         if type(redoc_title) is Default:
-            redoc_title = settings.api_redoc_title
+            redoc_title = settings.redoc_title
         if type(redoc_title) is Default:
             redoc_title = title
         if type(redoc_favicon) is Default:
-            redoc_favicon = settings.api_redoc_favicon
+            redoc_favicon = settings.redoc_favicon
         if type(redoc_favicon) is Default:
             redoc_favicon = favicon
         if type(terms_of_service) is Default:
-            terms_of_service = settings.api_terms_of_service
+            terms_of_service = settings.terms_of_service
         if type(terms_of_service) is Default:
             terms_of_service = settings.terms_of_service
         if type(contact) is Default:
-            contact = settings.api_contact
+            contact = settings.contact
         if type(contact) is Default:
             if settings.author is not None and settings.author_email is not None:
                 contact = {"name": settings.author,
@@ -154,7 +154,7 @@ class FastAPI(_FastAPI):
         if type(contact) is Default:
             contact = None
         if type(license_info) is Default:
-            license_info = settings.api_license_info
+            license_info = settings.license_info
         if type(license_info) is Default:
             if settings.license is not None and settings.license_url is not None:
                 license_info = {"name": settings.license,
@@ -162,17 +162,17 @@ class FastAPI(_FastAPI):
         if type(license_info) is Default:
             license_info = None
         if type(root_path) is Default:
-            root_path = settings.api_root_path
+            root_path = settings.root_path
         if root_path_in_servers is None:
-            root_path_in_servers = settings.api_root_path_in_servers
+            root_path_in_servers = settings.root_path_in_servers
         if type(deprecated) is Default:
-            deprecated = settings.api_deprecated
+            deprecated = settings.deprecated
         if type(info_url) is Default:
-            info_url = settings.api_info_url
+            info_url = settings.info_url
         if type(info_response_model) is Default:
             info_response_model = InfoModel
         if type(version_url) is Default:
-            version_url = settings.api_version_url
+            version_url = settings.version_url
         if type(version_response_model) is Default:
             version_response_model = VersionModel
         if type(root_redirect) is Default:
