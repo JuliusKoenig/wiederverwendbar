@@ -2,14 +2,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Union
 
-from pydantic import Field
-
-from wiederverwendbar.branding import BrandingSettings
 from wiederverwendbar.default import Default
+from wiederverwendbar.pydantic import PrintableSettings, Field
 from wiederverwendbar.pydantic.types.version import Version
 
 
-class FastAPISettings(BrandingSettings):
+class FastAPISettings(PrintableSettings):
     api_debug: Union[Default, bool] = Field(default=Default(), title="FastAPI Debug", description="Whether the FastAPI is in debug mode.")
     api_title: Union[Default, str] = Field(default=Default(), title="FastAPI Title", description="The title of the FastAPI.")
     api_summary: Union[None, Default, str] = Field(default=Default(), title="FastAPI Summary", description="The summary of the FastAPI.")
@@ -28,7 +26,8 @@ class FastAPISettings(BrandingSettings):
     api_contact: Union[None, Default, dict[str, str]] = Field(default=Default(), title="FastAPI Contact", description="The contact of the FastAPI.")
     api_license_info: Union[None, Default, dict[str, str]] = Field(default=Default(), title="FastAPI License Info", description="The license info of the FastAPI.")
     api_root_path: Union[Default, str] = Field(default=Default(), title="FastAPI Root Path", description="The root path of the FastAPI.")
-    api_root_path_in_servers: Union[Default, bool] = Field(default=Default(), title="FastAPI Root Path in Servers", description="Whether the root path of the FastAPI is in servers.")
+    api_root_path_in_servers: Union[Default, bool] = Field(default=Default(), title="FastAPI Root Path in Servers",
+                                                           description="Whether the root path of the FastAPI is in servers.")
     api_deprecated: Union[None, Default, str] = Field(default=Default(), title="FastAPI Deprecated", description="Whether the FastAPI is deprecated.")
     api_info_url: Union[None, Default, str] = Field(default=Default(), title="FastAPI Info URL", description="The info URL of the FastAPI.")
     api_info_tags: list[str] = Field(default_factory=lambda: ["Info"], title="FastAPI Info tags", description="The info tags for info route in OpenAPI schema.")
