@@ -63,17 +63,17 @@ class SqlalchemyDb:
         """
 
         self._settings: SqlalchemySettings = settings or SqlalchemySettings()
-        self._file: Optional[Path] = file or self.settings.db_file
-        self._host: Union[IPv4Address, str, None] = host or self.settings.db_host
-        self._port: Optional[int] = port or self.settings.db_port
-        self._protocol: Optional[str] = protocol or self.settings.db_protocol
-        self._name: Optional[str] = name or self.settings.db_name
-        self._username: Optional[str] = username or self.settings.db_username
-        self._password: Optional[str] = password or self.settings.db_password
-        self._echo: bool = echo or self.settings.db_echo
-        self._test_on_startup: bool = test_on_startup or self.settings.db_test_on_startup
-        self._sqlite_check_if_file_exist: bool = sqlite_check_if_file_exist or self.settings.db_sqlite_check_if_file_exist
-        self._sqlite_handle_foreign_keys: bool = sqlite_handle_foreign_keys or self.settings.db_sqlite_handle_foreign_keys
+        self._file: Optional[Path] = file or self.settings.file
+        self._host: Union[IPv4Address, str, None] = host or self.settings.host
+        self._port: Optional[int] = port or self.settings.port
+        self._protocol: Optional[str] = protocol or self.settings.protocol
+        self._name: Optional[str] = name or self.settings.name
+        self._username: Optional[str] = username or self.settings.username
+        self._password: Optional[str] = password or self.settings.password
+        self._echo: bool = echo or self.settings.echo
+        self._test_on_startup: bool = test_on_startup or self.settings.test_on_startup
+        self._sqlite_check_if_file_exist: bool = sqlite_check_if_file_exist or self.settings.sqlite_check_if_file_exist
+        self._sqlite_handle_foreign_keys: bool = sqlite_handle_foreign_keys or self.settings.sqlite_handle_foreign_keys
 
         logger.debug(f"Create {self}")
 
