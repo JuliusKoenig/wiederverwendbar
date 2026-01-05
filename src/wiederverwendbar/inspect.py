@@ -1,7 +1,6 @@
 import inspect
 import re
-from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 DEBUGGER_FILENAME_PARTS = [r".*/python-ce/helpers/pydev/.*"]
 
