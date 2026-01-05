@@ -38,7 +38,7 @@ class MyApi(FastAPI):
     test_attr = "test_app_attr"
 
 
-app = MyApi(api_settings=settings.api,
+app = MyApi(settings=settings.api,
             branding_settings=settings.branding,
             separate_input_output_schemas=True)
 
