@@ -61,27 +61,27 @@ class UvicornServer:
         self.app = app
         self.settings = settings or UvicornServerSettings()
 
-        self.host: IPv4Address = host or self.settings.server_host
-        self.port: int = port or self.settings.server_port
-        self.reload: bool = reload or self.settings.server_reload
-        self.reload_dirs: Union[list[str], str, None] = reload_dirs or self.settings.server_reload_dirs
-        self.reload_includes: Union[list[str], str, None] = reload_includes or self.settings.server_reload_includes
-        self.reload_excludes: Union[list[str], str, None] = reload_excludes or self.settings.server_reload_excludes
-        self.reload_delay: float = reload_delay or self.settings.server_reload_delay
-        self.workers: int = workers or self.settings.server_workers
-        ssl_keyfile = ssl_keyfile or self.settings.server_ssl_keyfile
+        self.host: IPv4Address = host or self.settings.host
+        self.port: int = port or self.settings.port
+        self.reload: bool = reload or self.settings.reload
+        self.reload_dirs: Union[list[str], str, None] = reload_dirs or self.settings.reload_dirs
+        self.reload_includes: Union[list[str], str, None] = reload_includes or self.settings.reload_includes
+        self.reload_excludes: Union[list[str], str, None] = reload_excludes or self.settings.reload_excludes
+        self.reload_delay: float = reload_delay or self.settings.reload_delay
+        self.workers: int = workers or self.settings.workers
+        ssl_keyfile = ssl_keyfile or self.settings.ssl_keyfile
         if ssl_keyfile:
             ssl_keyfile = str(ssl_keyfile)
-        ssl_certfile = ssl_certfile or self.settings.server_ssl_certfile
+        ssl_certfile = ssl_certfile or self.settings.ssl_certfile
         if ssl_certfile:
             ssl_certfile = str(ssl_certfile)
         self.ssl_keyfile: Optional[str] = ssl_keyfile
         self.ssl_certfile: Optional[str] = ssl_certfile
-        self.ssl_keyfile_password: Optional[str] = ssl_keyfile_password or self.settings.server_ssl_keyfile_password
-        self.ssl_version: int = ssl_version or self.settings.server_ssl_version
-        self.ssl_cert_reqs: int = ssl_cert_reqs or self.settings.server_ssl_cert_reqs
-        self.ssl_ca_certs: Optional[str] = str(ssl_ca_certs or self.settings.server_ssl_ca_certs)
-        self.ssl_ciphers: Optional[str] = ssl_ciphers or self.settings.server_ssl_ciphers
+        self.ssl_keyfile_password: Optional[str] = ssl_keyfile_password or self.settings.ssl_keyfile_password
+        self.ssl_version: int = ssl_version or self.settings.ssl_version
+        self.ssl_cert_reqs: int = ssl_cert_reqs or self.settings.ssl_cert_reqs
+        self.ssl_ca_certs: Optional[str] = str(ssl_ca_certs or self.settings.ssl_ca_certs)
+        self.ssl_ciphers: Optional[str] = ssl_ciphers or self.settings.ssl_ciphers
         self.auto_run: bool = auto_run
         self.react_to_keyboard_interrupt = server_react_to_keyboard_interrupt
         self.factory: bool = factory
