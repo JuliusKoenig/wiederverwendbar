@@ -2,11 +2,13 @@ import ssl
 from ipaddress import IPv4Address
 from typing import Union, Optional
 
-from pydantic import BaseModel, Field, FilePath
+from pydantic import FilePath
 from uvicorn.config import SSL_PROTOCOL_VERSION
 
+from wiederverwendbar.printable_settings import PrintableSettings, Field
 
-class UvicornServerSettings(BaseModel):
+
+class UvicornServerSettings(PrintableSettings):
     host: Union[IPv4Address, str] = Field(default=IPv4Address("127.0.0.1"), title="Server Host", description="Server Host to bind to")
     port: int = Field(default=8000, title="Server Port", ge=0, le=65535, description="Server Port to bind to")
     reload: bool = Field(default=False, title="Server Reload", description="Server Enable auto-reload")
