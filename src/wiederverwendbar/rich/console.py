@@ -102,55 +102,55 @@ class RichConsole(_Console, _RichConsole):
                           settings=settings)
 
         if console_color_system is None:
-            console_color_system = settings.console_color_system
+            console_color_system = settings.color_system
 
         if console_force_terminal is None:
-            console_force_terminal = settings.console_force_terminal
+            console_force_terminal = settings.force_terminal
 
         if console_force_jupyter is None:
-            console_force_jupyter = settings.console_force_jupyter
+            console_force_jupyter = settings.force_jupyter
 
         if console_force_interactive is None:
-            console_force_interactive = settings.console_force_interactive
+            console_force_interactive = settings.force_interactive
 
         if console_soft_wrap is None:
-            console_soft_wrap = settings.console_soft_wrap
+            console_soft_wrap = settings.soft_wrap
 
         if console_quiet is None:
-            console_quiet = settings.console_quiet
+            console_quiet = settings.quiet
 
         if console_width is None:
-            console_width = settings.console_width
+            console_width = settings.width
 
         if console_height is None:
-            console_height = settings.console_height
+            console_height = settings.height
 
         if console_no_color is None:
-            console_no_color = settings.console_no_color
+            console_no_color = settings.no_color
 
         if console_tab_size is None:
-            console_tab_size = settings.console_tab_size
+            console_tab_size = settings.tab_size
 
         if console_record is None:
-            console_record = settings.console_record
+            console_record = settings.record
 
         if console_markup is None:
-            console_markup = settings.console_markup
+            console_markup = settings.markup
 
         if console_emoji is None:
-            console_emoji = settings.console_emoji
+            console_emoji = settings.emoji
 
         if console_emoji_variant is None:
-            console_emoji_variant = settings.console_emoji_variant
+            console_emoji_variant = settings.emoji_variant
 
         if console_highlight is None:
-            console_highlight = settings.console_highlight
+            console_highlight = settings.highlight
 
         if console_log_time is None:
-            console_log_time = settings.console_log_time
+            console_log_time = settings.log_time
 
         if console_log_path is None:
-            console_log_path = settings.console_log_path
+            console_log_path = settings.log_path
 
         _RichConsole.__init__(self,
                               color_system=console_color_system,
