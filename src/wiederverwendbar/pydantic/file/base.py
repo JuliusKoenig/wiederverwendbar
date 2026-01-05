@@ -14,9 +14,9 @@ from wiederverwendbar.pydantic.validation_error_make_pretty_lines import validat
 from wiederverwendbar.warnings import FileNotFoundWarning
 
 try:
-    from wiederverwendbar.rich import RichConsole as Console
+    from wiederverwendbar.rich.console import RichConsole as Console
 except ImportError:
-    from wiederverwendbar.console import Console
+    from wiederverwendbar.console.console import Console
 
 logger = logging.getLogger(__name__)
 

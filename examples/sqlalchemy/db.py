@@ -8,8 +8,8 @@ from sqlalchemy.orm import relationship
 from wiederverwendbar.logger import LoggerSingleton, LoggerSettings, LogLevels
 from wiederverwendbar.sqlalchemy import Base, SqlalchemySettings, SqlalchemyDbSingleton
 
-LoggerSingleton(name="test", settings=LoggerSettings(log_level=LogLevels.DEBUG), init=True)
-SqlalchemyDbSingleton(settings=SqlalchemySettings(db_file=Path("test.db")), init=True)
+LoggerSingleton(name="test", settings=LoggerSettings(level=LogLevels.DEBUG), init=True)
+SqlalchemyDbSingleton(settings=SqlalchemySettings(file=Path("test.db")), init=True)
 
 
 class MyBase(Base, SqlalchemyDbSingleton().Base):

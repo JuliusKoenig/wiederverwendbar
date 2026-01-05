@@ -81,19 +81,19 @@ class Console:
             settings = ConsoleSettings()
 
         if console_file is None:
-            console_file = settings.console_file
+            console_file = settings.file
         self._console_file = console_file
 
         if console_seperator is None:
-            console_seperator = settings.console_seperator
+            console_seperator = settings.seperator
         self._console_seperator = console_seperator
 
         if console_end is None:
-            console_end = settings.console_end
+            console_end = settings.end
         self._console_end = console_end
 
         if console_exclamation_prefix_brackets_style is None:
-            console_exclamation_prefix_brackets_style = settings.console_exclamation_prefix_brackets_style
+            console_exclamation_prefix_brackets_style = settings.exclamation_prefix_brackets_style
         self._console_exclamation_prefix_brackets_style = console_exclamation_prefix_brackets_style
 
     def print(self,

@@ -16,7 +16,7 @@ except RuntimeError:
     ...
 
 if not init or __name__ == '__main__':
-    LoggerSingleton(name="test", settings=LoggerSettings(log_level=LoggerSettings.LogLevels.DEBUG), init=True)
+    LoggerSingleton(name="test", settings=LoggerSettings(level=LoggerSettings.LogLevels.DEBUG), init=True)
 
 app = Starlette(
     routes=[

@@ -7,7 +7,7 @@ from wiederverwendbar.mongoengine import MongoengineDbSingleton
 from incubator.task_manager.task_manager import Manager, Worker, ScheduledTask
 
 # init logging
-LoggerSingleton(name="test", settings=LoggerSettings(log_level="DEBUG"), ignored_loggers_like=["pymongo"], init=True)
+LoggerSingleton(name="test", settings=LoggerSettings(level="DEBUG"), ignored_loggers_like=["pymongo"], init=True)
 
 # init database
 MongoengineDbSingleton(init=True)

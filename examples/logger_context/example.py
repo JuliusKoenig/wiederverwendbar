@@ -7,7 +7,7 @@ from wiederverwendbar.logger import LoggerSingleton, LoggerSettings
 
 from example_module import example_function
 
-LoggerSingleton(init=True, name="test", settings=LoggerSettings(log_level="DEBUG"), ignored_loggers_like=["logger1", "logger2"])
+LoggerSingleton(init=True, name="test", settings=LoggerSettings(level="DEBUG"), ignored_loggers_like=["logger1", "logger2"])
 
 logger1 = logging.getLogger("logger1")
 ch = logging.StreamHandler()

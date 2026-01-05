@@ -35,15 +35,15 @@ class MongoengineDb:
 
         self.name: str = name or DEFAULT_CONNECTION_NAME
         self.settings: MongoengineSettings = settings or MongoengineSettings()
-        self.host: Union[IPv4Address, str] = host or self.settings.db_host
-        self.port: int = port or self.settings.db_port
-        self.db_name: str = name or self.settings.db_name
-        self.username: str = username or self.settings.db_username
-        self.password: str = password or self.settings.db_password
-        self.auth_source: str = auth_source or self.settings.db_auth_source
-        self.timeout: int = timeout or self.settings.db_timeout
-        self.db_test: bool = test or self.settings.db_test
-        self.auto_connect: bool = auto_connect or self.settings.db_auto_connect
+        self.host: Union[IPv4Address, str] = host or self.settings.host
+        self.port: int = port or self.settings.port
+        self.db_name: str = name or self.settings.name
+        self.username: str = username or self.settings.username
+        self.password: str = password or self.settings.password
+        self.auth_source: str = auth_source or self.settings.auth_source
+        self.timeout: int = timeout or self.settings.timeout
+        self.db_test: bool = test or self.settings.test
+        self.auto_connect: bool = auto_connect or self.settings.auto_connect
 
         logger.debug(f"Create {self}")
 
