@@ -24,7 +24,7 @@ settings = MySettings(title="Test App",
                       license=__license__,
                       license_url=__license_url__,
                       terms_of_service=__terms_of_service__,
-                      log_level=LogLevels.DEBUG,
+                      level=LogLevels.DEBUG,
                       docs_favicon=TEST_ICO,
                       api_auth_scheme=OAuth2PasswordBearerScheme())
 

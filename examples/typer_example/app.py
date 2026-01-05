@@ -23,7 +23,7 @@ settings = MySettings(branding=BrandingSettings(title="Test App",
                                                 license=__license__,
                                                 license_url=__license_url__,
                                                 terms_of_service=__terms_of_service__),
-                      logger=LoggerSettings(log_level=LogLevels.DEBUG),
+                      logger=LoggerSettings(level=LogLevels.DEBUG),
                       cli=TyperSettings(),
                       console=RichConsoleSettings())
 

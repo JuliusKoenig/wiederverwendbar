@@ -8,7 +8,7 @@ from fastapi import FastAPI
 
 
 if __name__ == '__main__':
-    logger = LoggerSingleton(init=True, name="test", settings=LoggerSettings(log_level="DEBUG"), ignored_loggers_like=["uvicorn"])
+    logger = LoggerSingleton(init=True, name="test", settings=LoggerSettings(level="DEBUG"), ignored_loggers_like=["uvicorn"])
 
     sub_logger = logging.getLogger("sub")
 
