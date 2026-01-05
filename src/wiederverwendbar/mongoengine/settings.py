@@ -1,7 +1,7 @@
 from typing import Optional, Union
 from ipaddress import IPv4Address
 
-from wiederverwendbar.pydantic.printable_settings import PrintableSettings, Field
+from wiederverwendbar.printable_settings import PrintableSettings, Field
 
 
 class MongoengineSettings(PrintableSettings):

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Union
 
 from wiederverwendbar.default import Default
-from wiederverwendbar.pydantic import PrintableSettings, Field
+from wiederverwendbar.printable_settings import PrintableSettings, Field
 from wiederverwendbar.pydantic.types.version import Version
 
 

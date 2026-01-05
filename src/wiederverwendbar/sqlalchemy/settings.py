@@ -2,7 +2,7 @@ from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Optional, Union
 
-from wiederverwendbar.pydantic import PrintableSettings, Field
+from wiederverwendbar.printable_settings import PrintableSettings, Field
 
 
 class SqlalchemySettings(PrintableSettings):

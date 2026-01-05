@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-from pydantic import Field as BaseField
+from pydantic import BaseModel, Field as BaseField
 
 
 # noinspection PyPep8Naming

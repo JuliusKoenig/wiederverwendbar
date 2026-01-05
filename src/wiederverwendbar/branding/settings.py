@@ -4,7 +4,7 @@ from types import ModuleType
 from typing import Any, Union
 
 from wiederverwendbar.default import Default
-from wiederverwendbar.pydantic import PrintableSettings, Field
+from wiederverwendbar.printable_settings import PrintableSettings, Field
 from wiederverwendbar.pydantic.types.version import Version
 
 
