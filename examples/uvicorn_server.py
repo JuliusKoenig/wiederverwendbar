@@ -4,7 +4,7 @@ from starlette.applications import Starlette
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
 
-from wiederverwendbar.logger import LoggerSingleton, LoggerSettings
+from wiederverwendbar.logger import LoggerSingleton, LoggerSettings, LogLevels
 from wiederverwendbar.singleton import Singleton
 from wiederverwendbar.uvicorn import UvicornServer
 
@@ -16,7 +16,7 @@ except RuntimeError:
     ...
 
 if not init or __name__ == '__main__':
-    LoggerSingleton(name="test", settings=LoggerSettings(level=LoggerSettings.LogLevels.DEBUG), init=True)
+    LoggerSingleton(name="test", settings=LoggerSettings(level=LogLevels.DEBUG), init=True)
 
 app = Starlette(
     routes=[
@@ -28,5 +28,5 @@ app = Starlette(
 )
 
 if __name__ == '__main__':
-    UvicornServer("uvicorn_server:app", host="0.0.0.0", port=8000, workers=1)
+    UvicornServer("uvicorn_server:app", host="0.0.0.0", port=8000, workers=4)
     print()
