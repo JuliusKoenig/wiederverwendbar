@@ -9,7 +9,6 @@ from wiederverwendbar.pydantic.types.version import Version
 
 
 class ApiAppSettings(RootAppSettings):
-    # debug: Union[Default, bool] = Field(default=Default(), title="FastAPI Debug", description="Whether the FastAPI is in debug mode.")
     title: Union[Default, str] = Field(default=Default(), title="FastAPI Title", description="The title of the FastAPI.")
     summary: Union[None, Default, str] = Field(default=Default(), title="FastAPI Summary", description="The summary of the FastAPI.")
     description: Union[Default, str] = Field(default=Default(), title="FastAPI Description", description="The description of the FastAPI.")
@@ -26,8 +25,6 @@ class ApiAppSettings(RootAppSettings):
     terms_of_service: Union[None, Default, str] = Field(default=Default(), title="FastAPI Terms of Service", description="The terms of service of the FastAPI.")
     contact: Union[None, Default, dict[str, str]] = Field(default=Default(), title="FastAPI Contact", description="The contact of the FastAPI.")
     license_info: Union[None, Default, dict[str, str]] = Field(default=Default(), title="FastAPI License Info", description="The license info of the FastAPI.")
-    # root_path: Union[Default, str] = Field(default=Default(), title="FastAPI Root Path", description="The root path of the FastAPI.")
-    # root_path_in_servers: Union[Default, bool] = Field(default=Default(), title="FastAPI Root Path in Servers", description="Whether the root path of the FastAPI is in servers.")
     deprecated: Union[None, Default, str] = Field(default=Default(), title="FastAPI Deprecated", description="Whether the FastAPI is deprecated.")
     info_url: Union[None, Default, str] = Field(default=Default(), title="FastAPI Info URL", description="The info URL of the FastAPI.")
     info_tags: Union[Default, list[str]] = Field(default=Default(), title="FastAPI Info tags", description="The info tags for info route in OpenAPI schema.")
