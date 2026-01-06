@@ -4,7 +4,7 @@ import uvicorn
 
 from fastapi import Depends
 
-from wiederverwendbar.fastapi import FastAPISettings, FastAPI, protected, get_app, HttpBasicAuthScheme, OAuth2PasswordBearerScheme
+from wiederverwendbar.fastapi import ApiAppSettings, ApiApp, protected, get_app, HttpBasicAuthScheme, OAuth2PasswordBearerScheme
 from wiederverwendbar import __author__, __author_email__, __license__, __license_url__, __terms_of_service__
 from wiederverwendbar.logger import LoggerSettings, LogLevels, LoggerSingleton
 
@@ -12,7 +12,7 @@ from examples import TEST_ICO
 from examples.fastapi.router import router
 
 
-class MySettings(LoggerSettings, FastAPISettings):
+class MySettings(LoggerSettings, ApiAppSettings):
     ...
 
 
@@ -31,7 +31,7 @@ settings = MySettings(title="Test App",
 LoggerSingleton(name=__name__, settings=settings, init=True)  # ToDo fix this unresolved attr
 
 
-class MyApi(FastAPI):
+class MyApi(ApiApp):
     test_attr = "test_app_attr"
 
 

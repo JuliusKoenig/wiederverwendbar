@@ -1,40 +1,22 @@
 import logging
 from pathlib import Path
-from typing import Optional, Union, Any, Callable, Awaitable
+from typing import Optional, Union, Any
 
-from fastapi import FastAPI as _FastAPI, Request
+from fastapi import Request
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html, get_swagger_ui_oauth2_redirect_html
-from pydantic import BaseModel, Field
-from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse
 
 from wiederverwendbar.branding import BrandingSettings
 from wiederverwendbar.default import Default
-from wiederverwendbar.fastapi.settings import FastAPISettings
+from wiederverwendbar.fastapi.api.settings import ApiAppSettings
+from wiederverwendbar.fastapi.api.models import InfoModel
+from wiederverwendbar.fastapi.root.app import RootApp
 from wiederverwendbar.pydantic.types.version import Version
 
 logger = logging.getLogger(__name__)
 
 
-class InfoModel(BaseModel):
-    title: str = Field(..., title="Title", description="The title of the application.")
-    description: str = Field(..., title="Description", description="The description of the application.")
-    version: Version = Field(..., title="Version", description="The version of the application.")
-
-    class Contact(BaseModel):
-        name: str = Field(..., title="Name", description="The name of the contact.")
-        email: str = Field(..., title="Email", description="The email of the contact.")
-
-    contact: Optional[Contact] = Field(None, title="Contact", description="The contact of the application.")
-
-    class LicenseInfo(BaseModel):
-        name: str = Field(..., title="Name", description="The name of the license.")
-        url: str = Field(..., title="URL", description="The URL of the license.")
-
-    license_info: Optional[LicenseInfo] = Field(None, title="License Info", description="The license info of the application.")
-    terms_of_service: Optional[str] = Field(None, title="Terms of Service", description="The terms of service of the application.")
-
-
-class FastAPI(_FastAPI):
+class ApiApp(RootApp):
     def __init__(self,
                  debug: Union[Default, bool] = Default(),
                  title: Union[Default, str] = Default(),
@@ -61,14 +43,14 @@ class FastAPI(_FastAPI):
                  info_response_model: Union[Default, type[InfoModel]] = Default(),
                  version_url: Union[None, Default, str] = Default(),
                  version_tags: Union[Default, list[str]] = Default(),
-                 root_redirect: Union[Default, None, FastAPISettings.RootRedirect, str] = Default(),
-                 settings: Optional[FastAPISettings] = None,
+                 root_redirect: Union[Default, None, ApiAppSettings.RootRedirect, str] = Default(),
+                 settings: Optional[ApiAppSettings] = None,
                  branding_settings: Optional[BrandingSettings] = None,
                  **kwargs):
 
         # set default
         if settings is None:
-            settings = FastAPISettings()
+            settings = ApiAppSettings()
         if branding_settings is None:
             branding_settings = BrandingSettings()
 
@@ -177,11 +159,13 @@ class FastAPI(_FastAPI):
             root_path = settings.root_path
         if type(root_path) is Default:
             root_path = ""
+        # ToDo
 
         if root_path_in_servers is None:
             root_path_in_servers = settings.root_path_in_servers
         if type(root_path_in_servers) is Default:
             root_path_in_servers = True
+        # ToDo
 
         if type(deprecated) is Default:
             deprecated = settings.deprecated
@@ -216,12 +200,12 @@ class FastAPI(_FastAPI):
             info_tags = ["default"]
 
         if type(root_redirect) is Default:
-            root_redirect = settings.api_root_redirect
+            root_redirect = settings.root_redirect
         if type(root_redirect) is Default:
             if docs_url is not None:
-                root_redirect = FastAPISettings.RootRedirect.DOCS
+                root_redirect = ApiAppSettings.RootRedirect.DOCS
             elif redoc_url is not None:
-                root_redirect = FastAPISettings.RootRedirect.REDOC
+                root_redirect = ApiAppSettings.RootRedirect.REDOC
         if type(root_redirect) is Default:
             root_redirect = None
 
@@ -237,13 +221,6 @@ class FastAPI(_FastAPI):
         self.info_response_model = info_response_model
         self.version_url = version_url
         self.version_tags = version_tags
-        self.root_redirect = root_redirect
-
-        # For storing the original "add_api_route" method from router.
-        # If None, the access to router will be blocked.
-        self._original_add_route: Union[None, bool, Callable, Any] = None
-        self._original_add_api_route: Union[None, bool, Callable, Any] = None
-        self._original_add_api_websocket_route: Union[None, bool, Callable, Any] = None
 
         super().__init__(debug=debug,
                          title=title,
@@ -260,68 +237,12 @@ class FastAPI(_FastAPI):
                          root_path=root_path,
                          root_path_in_servers=root_path_in_servers,
                          deprecated=deprecated,
+                         root_redirect=root_redirect,
+                         settings=settings,
                          **kwargs)
 
-        logger.info(f"Initialized FastAPI: {self}")
-
-    def __str__(self):
-        return f"{self.__class__.__name__}(title={self.title}, version={self.version})"
-
-    def __getattribute__(self, item):
-        # block router access if the init flag is not set
-        if item == "router":
-            if self._original_add_route is None or self._original_add_api_route is None or self._original_add_api_websocket_route is None:
-                raise RuntimeError("Class is not initialized!")
-        return super().__getattribute__(item)
-
-    def _add_route(self,
-                   path: str,
-                   endpoint: Callable[[Request], Union[Awaitable[Response], Response]],
-                   methods: Optional[list[str]] = None,
-                   name: Optional[str] = None,
-                   include_in_schema: bool = True, *args, **kwargs) -> None:
-        if self._original_add_route is None or self._original_add_route is True:
-            raise RuntimeError("Original add_route method is not set!")
-        logger.debug(f"Adding route for {self} -> {path}")
-        return self._original_add_route(path, endpoint, methods, name, include_in_schema, *args, **kwargs)
-
-    def _add_api_route(self,
-                       path: str,
-                       endpoint: Callable[..., Any],
-                       *args,
-                       **kwargs) -> None:
-        if self._original_add_api_route is None or self._original_add_api_route is True:
-            raise RuntimeError("Original add_api_route method is not set!")
-        logger.debug(f"Adding API route for {self} -> {path}")
-        return self._original_add_api_route(path, endpoint, *args, **kwargs)
-
-    def _add_api_websocket_route(self,
-                                 path: str,
-                                 endpoint: Callable[..., Any],
-                                 name: Optional[str] = None,
-                                 *args,
-                                 **kwargs) -> None:
-        if self._original_add_api_websocket_route is None or self._original_add_api_websocket_route is True:
-            raise RuntimeError("Original add_api_websocket_route method is not set!")
-        logger.debug(f"Adding API websocket route for {self} -> {path}")
-        return self._original_add_api_websocket_route(path, endpoint, name, *args, **kwargs)
-
     def setup(self) -> None:
-        # to unblock router access
-        self._original_add_route = True
-        self._original_add_api_route = True
-        self._original_add_api_websocket_route = True
-
-        # overwrite add_api_route for router
-        # noinspection PyTypeChecker
-        self._original_add_api_route = self.router.add_api_route
-        self.router.add_api_route = self._add_api_route
-        # noinspection PyTypeChecker
-        self._original_add_api_websocket_route = self.router.add_api_websocket_route
-        self.router.add_api_websocket_route = self._add_api_websocket_route
-        # noinspection PyTypeChecker
-        self._original_add_route = self.router.add_route
-        self.router.add_route = self._add_route
+        super().setup()
 
         # create openapi route
         if self.openapi_url:
@@ -348,10 +269,6 @@ class FastAPI(_FastAPI):
         # create version route
         if self.version_url:
             self.add_api_route(path=self.version_url, endpoint=self.get_version, response_model=Version, tags=self.version_tags)
-
-        # create root redirect route
-        if self.root_redirect:
-            self.add_route(path="/", route=self.get_root_redirect, include_in_schema=False)
 
     async def get_openapi(self, request: Request) -> JSONResponse:
         root_path = request.scope.get("root_path", "").rstrip("/")
@@ -412,17 +329,13 @@ class FastAPI(_FastAPI):
     async def get_version(self, request: Request) -> str:
         return self.version
 
-    async def get_root_redirect(self, request: Request) -> RedirectResponse:
-        root_path = request.scope.get("root_path", "").rstrip("/")
-        if self.root_redirect is None:
-            raise RuntimeError("Root Redirect not set")
-        root_redirect = self.root_redirect
-        if root_redirect == FastAPISettings.RootRedirect.DOCS:
+    async def get_root_redirect(self, request: Request) -> tuple[str, int]:
+        if self.root_redirect == ApiAppSettings.RootRedirect.DOCS:
             if self.docs_url is None:
                 raise RuntimeError("Docs URL not set")
-            root_redirect = root_path + self.docs_url
-        if root_redirect == FastAPISettings.RootRedirect.REDOC:
+            return request.scope.get("root_path", "").rstrip("/") + self.docs_url, 307
+        elif self.root_redirect == ApiAppSettings.RootRedirect.REDOC:
             if self.redoc_url is None:
                 raise RuntimeError("Redoc URL not set")
-            root_redirect = root_path + self.redoc_url
-        return RedirectResponse(url=root_redirect)
+            return request.scope.get("root_path", "").rstrip("/") + self.redoc_url, 307
+        return await super().get_root_redirect(request=request)

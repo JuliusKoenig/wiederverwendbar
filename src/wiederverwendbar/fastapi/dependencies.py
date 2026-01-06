@@ -1,8 +1,7 @@
 from typing import Union, Any
 
+from fastapi import FastAPI
 from starlette.requests import Request
-
-from wiederverwendbar.fastapi.app import FastAPI
 
 
 async def get_app(request: Request) -> Union[FastAPI, Any]:

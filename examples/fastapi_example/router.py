@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from wiederverwendbar.fastapi import get_app
 
 if TYPE_CHECKING:
-    from examples.fastapi_example.app import MyApi
+    from examples.fastapi_example.api.app import MyApi
 
 router = APIRouter(prefix="/sub")
 
