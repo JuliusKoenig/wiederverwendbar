@@ -6,8 +6,8 @@ authors = [
     { name = "Julius Koenig", email = "info@bastelquartier.de" },
 ]
 dependencies = [
-    "pydantic>=2.11.10",
-    "pydantic-settings>=2.11.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
     "devtools>=0.12.2",
 ]
 requires-python = ">=3.10"
@@ -16,19 +16,19 @@ license = { file = "LICENSE" }
 
 [project.optional-dependencies]
 full = [
-    "rich>=14.1.0",
-    "typer>=0.19.2",
+    "rich>=14.2.0",
+    "typer>=0.21.1",
     "pythonping>=1.1.4",
     "mongoengine>=0.29.1",
-    "nicegui>=3.0.2",
-    "uvicorn>=0.37.0",
-    "fastapi>=0.118.0",
-    "starlette-admin[i18n]>=0.15.1",
-    "pillow>=11.3.0",
+    "nicegui>=3.5.0",
+    "uvicorn>=0.40.0",
+    "fastapi>=0.128.0",
+    "starlette-admin[i18n]>=0.16.0",
+    "pillow>=12.1.0",
     "blinker>=1.9.0",
-    "kombu>=5.5.4",
+    "kombu>=5.6.2",
     "nest-asyncio>=1.6.0",
-    "sqlalchemy>=2.0.43",
+    "sqlalchemy>=2.0.45",
     "art>=6.5",
     "email-validator>=2.3.0",
     "xmltodict>=1.0.2",
@@ -37,35 +37,35 @@ full = [
     "pyyaml>=6.0.3",
 ]
 rich = [
-    "rich>=14.1.0",
+    "rich>=14.2.0",
 ]
 typer = [
-    "typer>=0.19.2",
+    "typer>=0.21.1",
     "art>=6.5",
-    "rich>=14.1.0",
+    "rich>=14.2.0",
 ]
 mongoengine = [
     "mongoengine>=0.29.1",
     "blinker>=1.9.0",
 ]
 uvicorn = [
-    "uvicorn>=0.37.0",
+    "uvicorn>=0.40.0",
 ]
 fastapi = [
-    "fastapi>=0.118.0",
+    "fastapi>=0.128.0",
     "email-validator>=2.3.0",
 ]
 nicegui = [
-    "nicegui>=3.0.2",
+    "nicegui>=3.5.0",
 ]
 starlette-admin = [
-    "starlette-admin[i18n]>=0.15.1",
-    "pillow>=11.3.0",
-    "kombu>=5.5.4",
+    "starlette-admin[i18n]>=0.16.0",
+    "pillow>=12.1.0",
+    "kombu>=5.6.2",
     "nest-asyncio>=1.6.0",
 ]
 sqlalchemy = [
-    "sqlalchemy>=2.0.43",
+    "sqlalchemy>=2.0.45",
 ]
 xml = [
     "xmltodict>=1.0.2",
