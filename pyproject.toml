@@ -63,16 +63,16 @@ starlette-admin = [
     "kombu>=5.5.4",
     "nest-asyncio>=1.6.0",
 ]
-fuctions = [
-    "pythonping>=1.1.4",
-    "requests>=2.32.5",
-]
 sqlalchemy = [
     "sqlalchemy>=2.0.43",
 ]
 xml = [
     "xmltodict>=1.0.2",
     "dicttoxml>=1.7.16",
+]
+functions = [
+    "pythonping>=1.1.4",
+    "requests>=2.32.5",
 ]
 
 [build-system]
