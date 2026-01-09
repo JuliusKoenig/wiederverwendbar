@@ -4,6 +4,8 @@ from collections.abc import Iterator
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Union
+import warnings
+from urllib3.exceptions import InsecureRequestWarning
 
 import requests
 
@@ -26,7 +28,9 @@ def download_file(download_url: str,
                   method: Optional[str] = None,
                   overwrite: Optional[bool] = None,
                   chunk_size: Optional[int] = None,
-                  yield_percent: Optional[bool] = None) -> Iterator[Union[DownloadFileState, int]]:
+                  yield_percent: Optional[bool] = None,
+                  verify: Optional[bool] = None,
+                  warn_insecure: Optional[bool] = None) -> Iterator[Union[DownloadFileState, int]]:
     """
     Download single file with requests module.
 
@@ -38,6 +42,8 @@ def download_file(download_url: str,
     :param overwrite: overwrite local file (default: False)
     :param chunk_size: download chunk size (default: 1024)
     :param yield_percent: yield percent instead of bytes (default: True)
+    :param verify: verify SSL certificates (default: True)
+    :param warn_insecure: warn on insecure SSL certificates (default: True)
     :return: generator
     """
 
@@ -52,6 +58,10 @@ def download_file(download_url: str,
         chunk_size = 1024
     if yield_percent is None:
         yield_percent = True
+    if verify is None:
+        verify = True
+    if warn_insecure is None:
+        warn_insecure = True
 
     # parse download_url
     if local_file is None:
@@ -71,7 +81,14 @@ def download_file(download_url: str,
     logger.debug(f"Start download: {download_url} -> {local_file}")
     yield DownloadFileState.START
 
-    response = requests.request(method=method, url=download_url, stream=True)
+    # suppress insecure warning
+    if not warn_insecure:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+            response = requests.request(method=method, url=download_url, stream=True, verify=verify)
+    else:
+        response = requests.request(method=method, url=download_url, stream=True, verify=verify)
+
     total = int(response.headers.get("content-length", 0))
     bytes_downloaded = 0
     percent_downloaded = 0
@@ -122,7 +139,9 @@ def simple_download_file(download_url: str,
                          method: Optional[str] = None,
                          overwrite: Optional[bool] = None,
                          chunk_size: Optional[int] = None,
-                         raise_exception: Optional[bool] = None) -> bool:
+                         raise_exception: Optional[bool] = None,
+                         verify: Optional[bool] = None,
+                         warn_insecure: Optional[bool] = None) -> bool:
     """
     Download single file with requests module.
 
@@ -134,6 +153,7 @@ def simple_download_file(download_url: str,
     :param overwrite: overwrite local file (default: False)
     :param chunk_size: download chunk size (default: 1024)
     :param raise_exception: raise exception on error (default: True)
+    :param verify: verify SSL certificates (default: True)
     :return: True if download was successful, False otherwise
     """
 
@@ -148,7 +168,9 @@ def simple_download_file(download_url: str,
                                    method=method,
                                    local_file=local_file,
                                    overwrite=overwrite,
-                                   chunk_size=chunk_size):
+                                   chunk_size=chunk_size,
+                                   verify=verify,
+                                   warn_insecure=warn_insecure):
             if state == DownloadFileState.END:
                 return True
     except Exception as e:
