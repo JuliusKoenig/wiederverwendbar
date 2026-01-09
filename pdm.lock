@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "fastapi", "full", "functions", "mongoengine", "nicegui", "rich", "sqlalchemy", "starlette-admin", "typer", "uvicorn", "xml"]
+groups = ["default", "fastapi", "full", "functions", "mongoengine", "nicegui", "rich", "sqlalchemy", "starlette-admin", "typer", "uvicorn", "xml", "yaml"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:beaf4d631c29b08a6b05b3779022627cfb1eabfc00dbaf7fb34d5c5045dfe365"
+content_hash = "sha256:7244e262313264d93bcb7d35631f89b53b083b2d6032e84be8e81da075e2d936"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -1715,7 +1715,7 @@ name = "pyyaml"
 version = "6.0.3"
 requires_python = ">=3.8"
 summary = "YAML parser and emitter for Python"
-groups = ["full", "nicegui"]
+groups = ["full", "nicegui", "yaml"]
 files = [
     {file = "pyyaml-6.0.3-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:214ed4befebe12df36bcc8bc2b64b396ca31be9304b8f59e25c11cf94a4c033b"},
     {file = "pyyaml-6.0.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:02ea2dfa234451bbb8772601d7b8e426c2bfa197136796224e50e35a78777956"},
