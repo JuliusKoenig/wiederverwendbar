@@ -130,5 +130,7 @@ class RootApp(FastAPI):
                 continue
             if route.path == "/" and route.name == "get_root_redirect":
                 continue
-            return request.scope.get("root_path", "").rstrip("/") + route.path, 307
+            redirect_path = request.scope.get("root_path", "").rstrip("/")
+            redirect_path += "" if route.path == "/" else route.path
+            return redirect_path, 307
         raise RuntimeError("Cannot find any route to redirect to")

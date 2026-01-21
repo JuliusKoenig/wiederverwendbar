@@ -159,13 +159,11 @@ class ApiApp(RootApp):
             root_path = settings.root_path
         if type(root_path) is Default:
             root_path = ""
-        # ToDo
 
         if root_path_in_servers is None:
             root_path_in_servers = settings.root_path_in_servers
         if type(root_path_in_servers) is Default:
             root_path_in_servers = True
-        # ToDo
 
         if type(deprecated) is Default:
             deprecated = settings.deprecated
@@ -330,12 +328,15 @@ class ApiApp(RootApp):
         return self.version
 
     async def get_root_redirect(self, request: Request) -> tuple[str, int]:
+        redirect_path = request.scope.get("root_path", "").rstrip("/")
         if self.root_redirect == ApiAppSettings.RootRedirect.DOCS:
             if self.docs_url is None:
                 raise RuntimeError("Docs URL not set")
-            return request.scope.get("root_path", "").rstrip("/") + self.docs_url, 307
+            redirect_path += self.docs_url
+            return redirect_path, 307
         elif self.root_redirect == ApiAppSettings.RootRedirect.REDOC:
             if self.redoc_url is None:
                 raise RuntimeError("Redoc URL not set")
-            return request.scope.get("root_path", "").rstrip("/") + self.redoc_url, 307
+            redirect_path += self.redoc_url
+            return redirect_path, 307
         return await super().get_root_redirect(request=request)
